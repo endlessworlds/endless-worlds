@@ -1,7 +1,7 @@
 extends Node
 
-@export var width := 800
-@export var height := 800
+@export var width := 200
+@export var height := 200
 
 @onready var tilemap : TileMapLayer = $TileMap
 @onready var noise := FastNoiseLite.new()
@@ -20,7 +20,7 @@ const WATER = Vector2i(3, 1)
 
 func _ready():
 	noise.noise_type = FastNoiseLite.TYPE_SIMPLEX
-	noise.frequency = 0.04
+	noise.frequency = 0.008
 	noise.seed = randi()
 
 	generate_world()
@@ -45,37 +45,43 @@ func add_sand_edges():
 					if tilemap.get_cell_atlas_coords(pos + d) == WATER:
 						tilemap.set_cell(pos, SRC, SAND)
 						break
-func place_patches(tile: Vector2i, threshold: float):
+func place_patches(tile: Vector2i, threshold: float, scale: float):
+	var old_freq := noise.frequency
+	noise.frequency = scale   # LOWER = BIGGER CLUSTERS
+
 	for x in width:
 		for y in height:
-			var n := noise.get_noise_2d(x + randi() % 999, y + randi() % 999)
+			var n := noise.get_noise_2d(x, y)
 
 			if n > threshold:
 				var pos := Vector2i(x, y)
 				if tilemap.get_cell_atlas_coords(pos) == GRASS:
 					tilemap.set_cell(pos, SRC, tile)
 
+	noise.frequency = old_freq
+
+
 func generate_world():
 	fill_water()
 	generate_island()
 	add_sand_edges()
 
-	# Medium dirt clusters
-	place_patches(DIRT, 0.45)
+	# BIG clusters
+	place_patches(DIRT, 0.3, 0.015)
 
-	# Small magma clusters
-	place_patches(MAGMA, 0.65)
+	# Medium clusters
+	place_patches(MAGMA, 0.45, 0.02)
 
 	# Lava inside magma
 	for x in width:
 		for y in height:
 			var pos := Vector2i(x, y)
-			if tilemap.get_cell_atlas_coords(pos) == MAGMA and randf() < 0.15:
+			if tilemap.get_cell_atlas_coords(pos) == MAGMA and randf() < 0.12:
 				tilemap.set_cell(pos, SRC, LAVA)
 
-	# Small ponds
-	place_patches(WATER, 0.6)
+	# Ponds (small but visible)
+	place_patches(WATER, 0.4, 0.018)
 
-	# Very small patches
-	place_patches(MUD, 0.72)
-	place_patches(CLAY, 0.75)
+	# Tiny but readable
+	place_patches(MUD, 0.55, 0.025)
+	place_patches(CLAY, 0.6, 0.028)
