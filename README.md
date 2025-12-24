@@ -1,1 +1,5 @@
-this is a readme file
+to be added:
+
+move player to safe block during spawn
+
+
