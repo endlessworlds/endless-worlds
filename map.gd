@@ -6,10 +6,13 @@ extends Node2D
 
 @onready var tilemap : TileMapLayer = $TileMap
 @onready var noise := FastNoiseLite.new()
-@onready var glow_manager := $GlowManager   # Node2D with PointLight2D
+@onready var glow_manager := $GlowManager
+
+# RAIN 🌧️
+@onready var rain := $RainSystem   # <── ADD THIS
 
 # ---------------- LIGHT TRANSITION ----------------
-@export var light_transition_speed := 0.4  # smaller = smoother
+@export var light_transition_speed := 0.4
 
 var current_light_color : Color
 var target_light_color  : Color
@@ -48,6 +51,12 @@ const WATER = Vector2i(3, 1)
 # ---------------- CLOCK UI ----------------
 var clock_label : Label
 
+# ---------------- RAIN CONTROL ----------------
+@export var rain_enabled := true
+@export var rain_min_duration := 30.0
+@export var rain_max_duration := 60.0
+@export var rain_chance_per_minute := 0.99  # 4% chance per in-game minute
+
 # ==================================================
 # READY
 # ==================================================
@@ -62,7 +71,6 @@ func _ready():
 	noise.frequency = 0.008
 	noise.seed = randi()
 
-	# Random start time
 	game_hour = randi_range(0, 23)
 	game_minute = [0, 15, 30, 45].pick_random()
 
@@ -70,7 +78,6 @@ func _ready():
 	spawn_lava_lights()
 	create_clock_ui()
 	update_time_state()
-
 
 # ==================================================
 # TIME SYSTEM
@@ -82,7 +89,6 @@ func _process(delta):
 		time_accumulator = 0.0
 		advance_time(15)
 
-	# 🔹 Smooth lighting EVERY FRAME
 	current_light_color = current_light_color.lerp(
 		target_light_color,
 		light_transition_speed * delta
@@ -100,6 +106,9 @@ func advance_time(minutes: int):
 
 	update_time_state()
 	update_clock_text()
+
+	# 🌧️ RAIN TRIGGER (after time advances)
+	try_start_rain()
 
 func update_time_state():
 	var time_float := game_hour + game_minute / 60.0
@@ -124,15 +133,27 @@ func update_glow(color: Color):
 	if not glow_manager:
 		return
 
-	# darkness: 0 (day) → 1 (night)
 	var darkness : float = clamp(1.0 - color.v, 0.0, 1.0)
 
 	for child in glow_manager.get_children():
 		if child is PointLight2D:
 			var light : PointLight2D = child
-			# Smooth energy fade (NO snapping)
 			light.energy = lerp(0.0, 0.35, darkness)
 
+# ==================================================
+# 🌧️ RAIN LOGIC
+# ==================================================
+func try_start_rain():
+	if not rain_enabled:
+		return
+	if rain.raining:
+		return
+	if current_time != TimeOfDay.NIGHT:
+		return
+
+	if randf() < rain_chance_per_minute:
+		var duration := randf_range(rain_min_duration, rain_max_duration)
+		rain.start_rain(duration)
 
 # ==================================================
 # CLOCK UI
@@ -169,7 +190,7 @@ func update_clock_text():
 	clock_label.text = "%02d:%02d %s" % [hour, minute, suffix]
 
 # ==================================================
-# WORLD GENERATION
+# WORLD GENERATION (UNCHANGED)
 # ==================================================
 func generate_world():
 	fill_water()
@@ -224,13 +245,10 @@ func place_patches(tile: Vector2i, threshold: float, scale: float):
 
 	noise.frequency = old_freq
 
-
-
-
-
+# ==================================================
+# LAVA LIGHTS (UNCHANGED)
+# ==================================================
 func spawn_lava_lights():
-	
-	# clear old lights (important if regenerating)
 	for c in glow_manager.get_children():
 		c.queue_free()
 
@@ -239,15 +257,13 @@ func spawn_lava_lights():
 	for x in width:
 		for y in height:
 			var pos := Vector2i(x, y)
-
 			if tilemap.get_cell_atlas_coords(pos) == LAVA:
 				var light := PointLight2D.new()
 				light.color = Color(1.0, 0.4, 0.1)
 				light.energy = 0.35
-				light.texture = preload("res://assets/glow.png") # see note below
+				light.texture = preload("res://assets/glow.png")
 				light.position = tilemap.map_to_local(pos) + tile_size / 2.0
 				light.range_z_max = 4096
 				light.light_mask = 1
 				light.texture_scale = 1.3
-
 				glow_manager.add_child(light)
