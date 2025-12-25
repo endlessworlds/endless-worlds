@@ -1,0 +1,102 @@
+[gd_scene load_steps=4 format=3 uid="uid://bkmc8uu120p54"]
+
+[ext_resource type="Script" uid="uid://cuhg1onp8ukty" path="res://HomeScreen.gd" id="1_iapcu"]
+[ext_resource type="PackedScene" uid="uid://olx1k0r0di2" path="res://player.tscn" id="2_16mhu"]
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_psypl"]
+border_width_left = 1
+border_width_top = 1
+border_width_right = 1
+border_width_bottom = 1
+border_color = Color(0, 0, 0, 1)
+
+[node name="HomeScreen" type="Control"]
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+script = ExtResource("1_iapcu")
+
+[node name="Background" type="ColorRect" parent="."]
+layout_mode = 0
+offset_right = 40.0
+offset_bottom = 40.0
+
+[node name="TitleLabel" type="Label" parent="."]
+layout_mode = 1
+anchors_preset = 5
+anchor_left = 0.5
+anchor_right = 0.5
+offset_left = -70.0
+offset_right = 70.0
+offset_bottom = 23.0
+grow_horizontal = 2
+theme_override_font_sizes/font_size = 60
+text = "ENDLESS WORLDS"
+horizontal_alignment = 1
+
+[node name="StartButton" type="Button" parent="."]
+layout_mode = 1
+anchors_preset = 7
+anchor_left = 0.5
+anchor_top = 1.0
+anchor_right = 0.5
+anchor_bottom = 1.0
+offset_left = -138.0
+offset_top = -184.0
+offset_right = 138.5
+offset_bottom = -33.0
+grow_horizontal = 2
+grow_vertical = 0
+pivot_offset = Vector2(0, -60)
+theme_override_font_sizes/font_size = 50
+text = "START"
+
+[node name="PlayerPanel" type="Panel" parent="."]
+custom_minimum_size = Vector2(260, 380)
+layout_mode = 1
+anchors_preset = 1
+anchor_left = 1.0
+anchor_right = 1.0
+offset_left = -260.0
+offset_bottom = 649.0
+grow_horizontal = 0
+pivot_offset = Vector2(-40, 0)
+theme_override_styles/panel = SubResource("StyleBoxFlat_psypl")
+
+[node name="PlayerSprite" type="Sprite2D" parent="PlayerPanel"]
+
+[node name="StatsVBox" type="VBoxContainer" parent="PlayerPanel"]
+z_index = 1
+layout_mode = 1
+anchors_preset = 7
+anchor_left = 0.5
+anchor_top = 1.0
+anchor_right = 0.5
+anchor_bottom = 1.0
+offset_left = -120.0
+offset_top = -100.0
+offset_right = 120.0
+grow_horizontal = 2
+grow_vertical = 0
+
+[node name="HeartsLabel" type="Label" parent="PlayerPanel/StatsVBox"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 20
+text = "Hearts: 5"
+
+[node name="ScoreLabel" type="Label" parent="PlayerPanel/StatsVBox"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 20
+text = "⭐ Score: 0"
+
+[node name="HighScoreLabel" type="Label" parent="PlayerPanel/StatsVBox"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 20
+text = "🏆 High Score: 100"
+
+[node name="Player" parent="PlayerPanel" instance=ExtResource("2_16mhu")]
+position = Vector2(122.99999, 201.00002)
+scale = Vector2(5, 5)
