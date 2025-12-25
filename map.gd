@@ -67,8 +67,10 @@ func _ready():
 	game_minute = [0, 15, 30, 45].pick_random()
 
 	generate_world()
+	spawn_lava_lights()
 	create_clock_ui()
 	update_time_state()
+
 
 # ==================================================
 # TIME SYSTEM
@@ -122,9 +124,15 @@ func update_glow(color: Color):
 	if not glow_manager:
 		return
 
-	var darkness := 1.0 - color.v
-	glow_manager.visible = darkness > 0.05
-	glow_manager.modulate.a = clamp(darkness, 0.0, 1.0)
+	# darkness: 0 (day) → 1 (night)
+	var darkness : float = clamp(1.0 - color.v, 0.0, 1.0)
+
+	for child in glow_manager.get_children():
+		if child is PointLight2D:
+			var light : PointLight2D = child
+			# Smooth energy fade (NO snapping)
+			light.energy = lerp(0.0, 0.35, darkness)
+
 
 # ==================================================
 # CLOCK UI
@@ -215,3 +223,31 @@ func place_patches(tile: Vector2i, threshold: float, scale: float):
 					tilemap.set_cell(pos, SRC, tile)
 
 	noise.frequency = old_freq
+
+
+
+
+
+func spawn_lava_lights():
+	
+	# clear old lights (important if regenerating)
+	for c in glow_manager.get_children():
+		c.queue_free()
+
+	var tile_size : Vector2 = Vector2(tilemap.tile_set.tile_size)
+
+	for x in width:
+		for y in height:
+			var pos := Vector2i(x, y)
+
+			if tilemap.get_cell_atlas_coords(pos) == LAVA:
+				var light := PointLight2D.new()
+				light.color = Color(1.0, 0.4, 0.1)
+				light.energy = 0.35
+				light.texture = preload("res://assets/glow.png") # see note below
+				light.position = tilemap.map_to_local(pos) + tile_size / 2.0
+				light.range_z_max = 4096
+				light.light_mask = 1
+				light.texture_scale = 1.3
+
+				glow_manager.add_child(light)
