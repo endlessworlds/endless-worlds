@@ -8,6 +8,12 @@ extends Node2D
 @onready var noise := FastNoiseLite.new()
 @onready var glow_manager := $GlowManager   # Node2D with PointLight2D
 
+# ---------------- LIGHT TRANSITION ----------------
+@export var light_transition_speed := 0.4  # smaller = smoother
+
+var current_light_color : Color
+var target_light_color  : Color
+
 # ---------------- DAY / NIGHT ----------------
 enum TimeOfDay { DAY, NIGHT }
 
@@ -15,10 +21,10 @@ enum TimeOfDay { DAY, NIGHT }
 @export var night_color : Color = Color(0.3, 0.3, 0.5, 1)
 
 # ⏱ TIME SETTINGS
-@export var real_seconds_per_game_minute := 1.0   # 15 sec = 15 game minutes
-@export var dawn_start := 5.0
-@export var day_start := 7.0
-@export var dusk_start := 17.0
+@export var real_seconds_per_game_minute := 1.0
+@export var dawn_start  := 5.0
+@export var day_start   := 7.0
+@export var dusk_start  := 17.0
 @export var night_start := 19.0
 
 var current_time : TimeOfDay
@@ -42,12 +48,15 @@ const WATER = Vector2i(3, 1)
 # ---------------- CLOCK UI ----------------
 var clock_label : Label
 
-
 # ==================================================
 # READY
 # ==================================================
 func _ready():
 	randomize()
+
+	current_light_color = day_color
+	target_light_color = day_color
+	modulate = day_color
 
 	noise.noise_type = FastNoiseLite.TYPE_SIMPLEX
 	noise.frequency = 0.008
@@ -61,7 +70,6 @@ func _ready():
 	create_clock_ui()
 	update_time_state()
 
-
 # ==================================================
 # TIME SYSTEM
 # ==================================================
@@ -72,41 +80,43 @@ func _process(delta):
 		time_accumulator = 0.0
 		advance_time(15)
 
+	# 🔹 Smooth lighting EVERY FRAME
+	current_light_color = current_light_color.lerp(
+		target_light_color,
+		light_transition_speed * delta
+	)
+
+	modulate = current_light_color
+	update_glow(current_light_color)
 
 func advance_time(minutes: int):
 	game_minute += minutes
 
 	if game_minute >= 60:
-		game_minute = 0
+		game_minute -= 60
 		game_hour = (game_hour + 1) % 24
 
 	update_time_state()
 	update_clock_text()
 
-
 func update_time_state():
-	var time := game_hour + game_minute / 60.0
-	var target_color : Color
+	var time_float := game_hour + game_minute / 60.0
 
-	if time >= night_start or time < dawn_start:
-		target_color = night_color
+	if time_float >= night_start or time_float < dawn_start:
+		target_light_color = night_color
 		current_time = TimeOfDay.NIGHT
 
-	elif time >= dusk_start:
-		var t := (time - dusk_start) / (night_start - dusk_start)
-		target_color = day_color.lerp(night_color, t)
+	elif time_float >= dusk_start:
+		var t := (time_float - dusk_start) / (night_start - dusk_start)
+		target_light_color = day_color.lerp(night_color, t)
 
-	elif time >= day_start:
-		target_color = day_color
+	elif time_float >= day_start:
+		target_light_color = day_color
 		current_time = TimeOfDay.DAY
 
 	else:
-		var t := (time - dawn_start) / (day_start - dawn_start)
-		target_color = night_color.lerp(day_color, t)
-
-	modulate = target_color
-	update_glow(target_color)
-
+		var t := (time_float - dawn_start) / (day_start - dawn_start)
+		target_light_color = night_color.lerp(day_color, t)
 
 func update_glow(color: Color):
 	if not glow_manager:
@@ -115,7 +125,6 @@ func update_glow(color: Color):
 	var darkness := 1.0 - color.v
 	glow_manager.visible = darkness > 0.05
 	glow_manager.modulate.a = clamp(darkness, 0.0, 1.0)
-
 
 # ==================================================
 # CLOCK UI
@@ -137,7 +146,6 @@ func create_clock_ui():
 
 	update_clock_text()
 
-
 func update_clock_text():
 	var hour := game_hour
 	var minute := game_minute
@@ -151,7 +159,6 @@ func update_clock_text():
 		hour = 12
 
 	clock_label.text = "%02d:%02d %s" % [hour, minute, suffix]
-
 
 # ==================================================
 # WORLD GENERATION
@@ -174,19 +181,16 @@ func generate_world():
 	place_patches(MUD, 0.55, 0.025)
 	place_patches(CLAY, 0.6, 0.028)
 
-
 func fill_water():
 	for x in width:
 		for y in height:
 			tilemap.set_cell(Vector2i(x, y), SRC, WATER)
-
 
 func generate_island():
 	for x in width:
 		for y in height:
 			if noise.get_noise_2d(x, y) > -0.1:
 				tilemap.set_cell(Vector2i(x, y), SRC, GRASS)
-
 
 func add_sand_edges():
 	for x in range(1, width - 1):
@@ -198,7 +202,6 @@ func add_sand_edges():
 					if tilemap.get_cell_atlas_coords(pos + d) == WATER:
 						tilemap.set_cell(pos, SRC, SAND)
 						break
-
 
 func place_patches(tile: Vector2i, threshold: float, scale: float):
 	var old_freq := noise.frequency
