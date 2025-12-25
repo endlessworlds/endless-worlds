@@ -8,7 +8,7 @@ script = ExtResource("1_btfku")
 
 [node name="RainFar" type="CPUParticles2D" parent="."]
 z_index = 6
-amount = 300
+amount = 500
 texture = ExtResource("2_20ieq")
 lifetime = 4.0
 emission_shape = 3
@@ -24,7 +24,7 @@ anim_speed_max = 300.0
 
 [node name="RainNear" type="CPUParticles2D" parent="."]
 z_index = 8
-amount = 600
+amount = 1000
 texture = ExtResource("2_20ieq")
 lifetime = 2.0
 emission_shape = 3

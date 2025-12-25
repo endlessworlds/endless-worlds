@@ -232,9 +232,9 @@ func add_sand_edges():
 						tilemap.set_cell(pos, SRC, SAND)
 						break
 
-func place_patches(tile: Vector2i, threshold: float, scale: float):
+func place_patches(tile: Vector2i, threshold: float, noise_frequency: float):
 	var old_freq := noise.frequency
-	noise.frequency = scale
+	noise.frequency = noise_frequency
 
 	for x in width:
 		for y in height:
@@ -260,10 +260,10 @@ func spawn_lava_lights():
 			if tilemap.get_cell_atlas_coords(pos) == LAVA:
 				var light := PointLight2D.new()
 				light.color = Color(1.0, 0.4, 0.1)
-				light.energy = 0.35
+				light.energy =100
 				light.texture = preload("res://assets/glow.png")
 				light.position = tilemap.map_to_local(pos) + tile_size / 2.0
 				light.range_z_max = 4096
 				light.light_mask = 1
-				light.texture_scale = 1.3
+				light.texture_scale =2.5
 				glow_manager.add_child(light)

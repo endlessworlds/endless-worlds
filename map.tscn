@@ -6,6 +6,7 @@
 [ext_resource type="PackedScene" uid="uid://bcfxoeuah1slf" path="res://rain_system.tscn" id="4_p5pve"]
 
 [node name="Map" type="Node2D"]
+scale = Vector2(2, 2)
 script = ExtResource("1_wijl4")
 
 [node name="Player" parent="." instance=ExtResource("3_e0an3")]

@@ -5,7 +5,7 @@
 [ext_resource type="Texture2D" uid="uid://c7al8mod06o6j" path="res://assets/player.png" id="2_onrkg"]
 
 [sub_resource type="RectangleShape2D" id="RectangleShape2D_hqtel"]
-size = Vector2(44.5, 24)
+size = Vector2(10.3125, 3)
 
 [sub_resource type="AtlasTexture" id="AtlasTexture_bwjto"]
 atlas = ExtResource("2_i3pqv")
@@ -130,14 +130,14 @@ animations = [{
 script = ExtResource("1_onrkg")
 
 [node name="CollisionShape2D" type="CollisionShape2D" parent="."]
-position = Vector2(-2, 59)
+z_index = 1
+position = Vector2(-0.15625, 16.5)
 shape = SubResource("RectangleShape2D_hqtel")
 
 [node name="Camera2D" type="Camera2D" parent="."]
 position_smoothing_enabled = true
 
 [node name="AnimatedSprite2D" type="AnimatedSprite2D" parent="."]
-scale = Vector2(0.5, 0.5)
+scale = Vector2(0.25, 0.25)
 sprite_frames = SubResource("SpriteFrames_i3pqv")
-animation = &"walk_up"
-frame_progress = 0.39281347
+animation = &"walk_down"
