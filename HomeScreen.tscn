@@ -32,10 +32,10 @@ layout_mode = 1
 anchors_preset = 5
 anchor_left = 0.5
 anchor_right = 0.5
-offset_left = 288.0
-offset_top = 73.0
-offset_right = 1336.0
-offset_bottom = 238.0
+offset_left = 201.0
+offset_top = 81.0
+offset_right = 1249.0
+offset_bottom = 246.0
 grow_horizontal = 2
 theme_override_colors/font_color = Color(1, 0.29337206, 0, 1)
 theme_override_colors/font_shadow_color = Color(0, 0, 0, 1)
@@ -58,6 +58,7 @@ pivot_offset = Vector2(0, -60)
 theme_override_colors/font_color = Color(1, 0.29337206, 0, 1)
 theme_override_colors/font_focus_color = Color(1, 0.2716998, 0, 1)
 theme_override_colors/font_pressed_color = Color(1, 0, 0, 1)
+theme_override_colors/font_hover_color = Color(1, 0.09985284, 0, 1)
 theme_override_fonts/font = ExtResource("2_ksj1l")
 theme_override_font_sizes/font_size = 60
 theme_override_styles/normal = SubResource("StyleBoxFlat_ksj1l")
@@ -66,48 +67,43 @@ text = " START "
 [node name="PlayerPanel" type="Panel" parent="."]
 z_index = 1
 layout_mode = 1
-anchors_preset = 1
-anchor_left = 1.0
-anchor_right = 1.0
-offset_left = 223.0
-offset_top = 498.0
-offset_right = 523.0
-offset_bottom = 648.0
-grow_horizontal = 0
+anchors_preset = -1
+offset_left = 2209.0
+offset_top = 197.0
+offset_right = 2209.0
+offset_bottom = 197.0
 theme_override_styles/panel = SubResource("StyleBoxEmpty_ksj1l")
 
 [node name="StatsVBox" type="VBoxContainer" parent="PlayerPanel"]
 z_index = 1
 layout_mode = 1
-anchors_preset = 7
-anchor_left = 0.5
-anchor_top = 1.0
-anchor_right = 0.5
+anchors_preset = 15
+anchor_right = 1.0
 anchor_bottom = 1.0
-offset_left = -125.0
-offset_top = -59.0
-offset_right = 115.0
-offset_bottom = 41.0
+offset_left = -115.0
+offset_top = 13.0
+offset_right = 18.0
+offset_bottom = 63.0
 grow_horizontal = 2
-grow_vertical = 0
+grow_vertical = 2
 
 [node name="ScoreLabel" type="Label" parent="PlayerPanel/StatsVBox"]
 layout_mode = 2
 theme_override_fonts/font = ExtResource("2_ksj1l")
-theme_override_font_sizes/font_size = 20
+theme_override_font_sizes/font_size = 28
 text = "⭐ Score: 0"
 
 [node name="HighScoreLabel" type="Label" parent="PlayerPanel/StatsVBox"]
 layout_mode = 2
 theme_override_fonts/font = ExtResource("2_ksj1l")
-theme_override_font_sizes/font_size = 20
+theme_override_font_sizes/font_size = 28
 text = "🏆 High Score: 100"
 
 [node name="HeartsLabel" type="Label" parent="PlayerPanel/StatsVBox"]
 visible = false
 layout_mode = 2
 theme_override_fonts/font = ExtResource("2_ksj1l")
-theme_override_font_sizes/font_size = 20
+theme_override_font_sizes/font_size = 28
 text = "Hearts: 5"
 
 [node name="IslandTileMap" type="TileMapLayer" parent="."]
