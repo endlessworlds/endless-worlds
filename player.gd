@@ -1,5 +1,4 @@
 extends CharacterBody2D
-@onready var bubbles := $BubbleParticles
 
 @export var speed := 200.0
 @export var water_speed_multiplier := 0.6
@@ -22,7 +21,6 @@ var last_dir := Vector2.DOWN
 func _ready():
 	base_sprite_pos = sprite.position
 	sprite.modulate = Color.WHITE
-	bubbles.emitting = false
 
 func _physics_process(delta):
 	var dir := Vector2(
@@ -56,8 +54,6 @@ func _physics_process(delta):
 		set_idle_frame()
 
 	move_and_slide()
-	update_bubbles()
-
 
 # ---------------- WATER TINT ----------------
 func apply_water_tint():
@@ -91,16 +87,3 @@ func set_idle_frame():
 		sprite.animation = "walk_down" if last_dir.y > 0 else "walk_up"
 
 	sprite.frame = 1
-
-
-func update_bubbles():
-	if in_water and sink_px > 2.0:
-		bubbles.emitting = true
-
-		# More bubbles as sink increases
-		bubbles.amount = int(10 + (sink_px / max_sink_px) * 20)
-
-		# Keep bubbles at feet
-		bubbles.position = sprite.position + Vector2(0, max_sink_px)
-	else:
-		bubbles.emitting = false
