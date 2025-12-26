@@ -75,6 +75,8 @@ func update_player_tile_info():
 	)
 
 	var atlas := tilemap.get_cell_atlas_coords(cell)
+	player.in_water = (atlas == Vector2i(3, 1)) # WATER
+
 
 	if TILE_NAMES.has(atlas):
 		tile_info_label.text = "Tile: " + TILE_NAMES[atlas]
