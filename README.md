@@ -8,5 +8,5 @@ lighting:
     filters
     shadows
 
-ui:
+other biomes
     
