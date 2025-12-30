@@ -11,3 +11,4 @@ lighting:
 other biomes
     snow
     plain
+    forest
