@@ -17,7 +17,9 @@ scale = Vector2(2, 2)
 script = ExtResource("1_wijl4")
 
 [node name="Player" parent="." instance=ExtResource("3_e0an3")]
-z_index = 1
+
+[node name="FlowerSpawner" type="Node" parent="."]
+script = ExtResource("11_sb2pt")
 
 [node name="TileMap" type="TileMapLayer" parent="."]
 tile_set = ExtResource("1_c7s6e")
@@ -47,6 +49,3 @@ offset_bottom = 23.0
 
 [node name="HeartSystem" type="CanvasLayer" parent="."]
 script = ExtResource("10_oysan")
-
-[node name="FlowerSpawner" type="Node" parent="."]
-script = ExtResource("11_sb2pt")

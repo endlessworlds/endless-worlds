@@ -18,16 +18,13 @@ const FLOWER_PATH: String = "res://assets/flowers/"
 func spawn_flowers() -> void:
 	var grass_positions: Array[Vector2i] = []
 
-	# 🔁 SAME SCAN LOGIC AS LAVA
-	for x in width:
-		for y in height:
+	for x: int in range(width):
+		for y: int in range(height):
 			var pos: Vector2i = Vector2i(x, y)
 
-			# ensure tile exists
 			if tilemap.get_cell_source_id(pos) == -1:
 				continue
 
-			# only grass tiles
 			if tilemap.get_cell_atlas_coords(pos) == GRASS:
 				grass_positions.append(pos)
 
@@ -37,7 +34,6 @@ func spawn_flowers() -> void:
 
 	grass_positions.shuffle()
 
-	# load flower textures
 	var flower_textures: Array[Texture2D] = load_flower_textures()
 	if flower_textures.is_empty():
 		push_error("❌ No flower textures found")
@@ -46,26 +42,29 @@ func spawn_flowers() -> void:
 	flower_textures.shuffle()
 	flower_textures = flower_textures.slice(0, FLOWER_TYPES)
 
-	var tile_size: Vector2 = Vector2(tilemap.tile_set.tile_size)
 	var count: int = min(TOTAL_FLOWERS, grass_positions.size())
 
-	for i in range(count):
+	for i: int in range(count):
 		var cell: Vector2i = grass_positions[i]
 		var tex: Texture2D = flower_textures.pick_random()
 
 		var flower: Sprite2D = Sprite2D.new()
 		flower.texture = tex
-		flower.z_index = 2
 
-		# ✅ SCALE-SAFE POSITION (works with Map scale = 2)
-		var tile_local: Vector2 = tilemap.map_to_local(cell) + tile_size / 2.0
+		# 🔑 PLACE AT TILE BASE (NOT CENTER)
+		var tile_local: Vector2 = tilemap.map_to_local(cell)
 		flower.global_position = tilemap.to_global(tile_local)
 
-		# 🌸 DOUBLE SIZE FLOWERS
-		flower.scale = Vector2(2, 2)
-
-		# optional natural variation
+		flower.scale = Vector2(2.0, 2.0)
 		flower.rotation = randf_range(-0.1, 0.1)
+
+		# 🔑 DEPTH SORT BY BASE
+		flower.z_index = int(flower.global_position.y / 4.0)
+
+
+		# DEBUG (prints once)
+		if i == 0:
+			print("FLOWER z_index:", flower.z_index)
 
 		add_child(flower)
 
