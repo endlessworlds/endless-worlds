@@ -1,4 +1,4 @@
-[gd_scene load_steps=11 format=3 uid="uid://dpbxblfybuwu6"]
+[gd_scene load_steps=12 format=3 uid="uid://dpbxblfybuwu6"]
 
 [ext_resource type="TileSet" uid="uid://crg0orous800e" path="res://tile_set.tres" id="1_c7s6e"]
 [ext_resource type="Script" uid="uid://b221v61dem8vf" path="res://scripts/map.gd" id="1_wijl4"]
@@ -10,6 +10,7 @@
 [ext_resource type="Script" uid="uid://ct23e1gb8hsc5" path="res://scripts/lighting_system.gd" id="8_0t07s"]
 [ext_resource type="Script" uid="uid://ckr7c4rk8j5ds" path="res://scripts/player_spawner.gd" id="9_6qsgm"]
 [ext_resource type="Script" uid="uid://c3h4x6wcufkuw" path="res://scripts/ui/HeartSystem.gd" id="10_oysan"]
+[ext_resource type="Script" uid="uid://ccc36y8bo0jyy" path="res://flower_spawner.gd" id="11_sb2pt"]
 
 [node name="Map" type="Node2D"]
 scale = Vector2(2, 2)
@@ -46,3 +47,6 @@ offset_bottom = 23.0
 
 [node name="HeartSystem" type="CanvasLayer" parent="."]
 script = ExtResource("10_oysan")
+
+[node name="FlowerSpawner" type="Node" parent="."]
+script = ExtResource("11_sb2pt")

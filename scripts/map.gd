@@ -5,6 +5,7 @@ extends Node2D
 @onready var rain := $RainController
 @onready var lighting := $LightingSystem
 @onready var spawner := $PlayerSpawner
+@onready var flower_spawner := $FlowerSpawner
 
 @onready var player := $Player
 @onready var player_shape: CollisionShape2D = $Player/CollisionShape2D
@@ -53,6 +54,7 @@ var tile_damage_timer: Timer
 # ==================================================
 func _ready():
 	world.generate()
+	flower_spawner.spawn_flowers()
 	lighting.spawn_lava_lights()
 	time.init_time()
 	spawner.spawn_on_nearest_grass()
