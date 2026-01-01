@@ -14,6 +14,8 @@ extends Node2D
 
 @onready var gemini: GeminiRiddle = $GeminiRiddle
 
+@onready var riddle_ui: RiddleUI = $RiddleUI
+@onready var tasks: Tasks = $Tasks
 
 # ==================================================
 # 🔧 GAME SETTINGS (RECOVERED FROM OLD FILE)
@@ -94,18 +96,29 @@ func _ready():
 	gemini.riddle_generated.connect(_on_riddle_generated)
 	gemini.generate_riddle()
 
+	tasks.hint_collected.connect(func():
+		riddle_ui.unlock_next_hint()
+	)
 
-func _on_riddle_generated(data):
-	print("RIDDLE:", data.riddle)
+
+func _on_riddle_generated(data: Dictionary) -> void:
+	# Setup riddle UI (PASS FULL DICTIONARY)
+	riddle_ui.setup_riddle(data)
+
+	# Spawn hint pickups on map
+	tasks.spawn_hints(data["hints"].size(), player.global_position)
+
+	print("RIDDLE:", data["riddle"])
 	print("HINTS:")
-	for hint in data.hints:
+	for hint in data["hints"]:
 		print("*", hint)
-	print("SOLUTION:", data.solution)
+	print("SOLUTION:", data["solution"])
 
 	# You can now:
 	# - show this in UI
 	# - unlock a quest
 	# - give score reward
+
 
 # ==================================================
 func _process(_delta):
