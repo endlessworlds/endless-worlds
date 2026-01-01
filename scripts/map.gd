@@ -15,10 +15,21 @@ extends Node2D
 @onready var gemini: GeminiRiddle = $GeminiRiddle
 
 
+# ==================================================
+# 🔧 GAME SETTINGS (RECOVERED FROM OLD FILE)
+# ==================================================
+@export var enable_rain: bool = true
+@export var TILE_SOURCE_ID: int = 0
+
+
+# ==================================================
+# UI / DEATH
+# ==================================================
 var score_label: Label
 var death_overlay: CanvasLayer
 var death_label: Label
 var death_bg: ColorRect
+
 
 # ================= TILE INFO =================
 const TILE_NAMES := {
@@ -38,6 +49,7 @@ const MAGMA_TILE := Vector2i(2, 1)
 
 var tile_info_label: Label
 
+
 # ================= WATER BREATHING =================
 const MAX_BUBBLES := 5
 var bubbles_left := MAX_BUBBLES
@@ -46,23 +58,28 @@ var in_water := false
 var bubble_container: HBoxContainer
 var bubble_timer: Timer
 
-# ================= TILE DAMAGE COOLDOWN =================
-var drown_damage_timer: Timer
 
+# ================= DAMAGE =================
 const DAMAGE_INTERVAL := 2.0
-const TILE_DAMAGE_INTERVAL := DAMAGE_INTERVAL
 var can_take_tile_damage := true
+var drown_damage_timer: Timer
 var tile_damage_timer: Timer
+
 
 # ==================================================
 func _ready():
+	# 🔧 APPLY SETTINGS
+	rain.rain_enabled = enable_rain
+	world.SRC = TILE_SOURCE_ID
+
+	# 🌍 WORLD SETUP
 	world.generate()
 	flower_spawner.spawn_flowers()
 	lighting.spawn_lava_lights()
 	time.init_time()
 	spawner.spawn_on_nearest_grass()
-	
 
+	# 🖥 UI + SYSTEMS
 	create_tile_info_ui()
 	create_bubble_ui()
 	create_bubble_timer()
@@ -70,15 +87,14 @@ func _ready():
 	create_tile_damage_timer()
 	create_score_ui()
 
-
 	hearts.connect("player_died", _on_player_died)
 	create_death_overlay()
 
-	# GEMINI
+	# 🧩 GEMINI
 	gemini.riddle_generated.connect(_on_riddle_generated)
 	gemini.generate_riddle()
-	
-	
+
+
 func _on_riddle_generated(data):
 	print("RIDDLE:", data.riddle)
 	print("HINTS:")
@@ -96,6 +112,7 @@ func _process(_delta):
 	update_player_tile_info()
 	update_score_label()
 
+
 # ==================================================
 # TILE INFO UI
 # ==================================================
@@ -106,13 +123,11 @@ func create_tile_info_ui():
 	tile_info_label = Label.new()
 	ui.add_child(tile_info_label)
 
-	# anchor bottom-left
 	tile_info_label.anchor_left = 0
 	tile_info_label.anchor_top = 1
 	tile_info_label.anchor_right = 0
 	tile_info_label.anchor_bottom = 1
 
-	# give it size + offset
 	tile_info_label.offset_left = 20
 	tile_info_label.offset_top = -40
 	tile_info_label.offset_right = 200
@@ -120,10 +135,7 @@ func create_tile_info_ui():
 
 	tile_info_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_LEFT
 	tile_info_label.vertical_alignment = VERTICAL_ALIGNMENT_BOTTOM
-
-	# debug safety (optional)
 	tile_info_label.text = "Tile: Grass"
-
 
 
 # ==================================================
@@ -131,7 +143,7 @@ func create_tile_info_ui():
 # ==================================================
 func create_bubble_ui():
 	bubble_container = HBoxContainer.new()
-	hearts.add_child(bubble_container) # attach to HeartSystem CanvasLayer
+	hearts.add_child(bubble_container)
 
 	bubble_container.visible = false
 	bubble_container.add_theme_constant_override("separation", 6)
@@ -139,7 +151,7 @@ func create_bubble_ui():
 	for i in range(MAX_BUBBLES):
 		var bubble := TextureRect.new()
 		bubble.texture = preload("res://assets/ui/bubble.png")
-		bubble.custom_minimum_size = Vector2(40,40)
+		bubble.custom_minimum_size = Vector2(40, 40)
 		bubble.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
 		bubble.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT
 		bubble_container.add_child(bubble)
@@ -147,8 +159,9 @@ func create_bubble_ui():
 	await get_tree().process_frame
 	position_bubbles()
 
+
 func position_bubbles():
-	var hearts_container: HBoxContainer = hearts.hearts_container
+	var hearts_container := hearts.hearts_container
 	if hearts_container == null:
 		return
 
@@ -157,21 +170,20 @@ func position_bubbles():
 		hearts.heart_size + 8
 	)
 
+
 # ==================================================
-# BUBBLE TIMER
+# TIMERS
 # ==================================================
 func create_bubble_timer():
 	bubble_timer = Timer.new()
-	bubble_timer.wait_time = 1.0   # bubbles drop every 1 sec
-	bubble_timer.autostart = false
+	bubble_timer.wait_time = 1.0
 	bubble_timer.timeout.connect(_on_bubble_tick)
 	add_child(bubble_timer)
 
 
 func create_drown_damage_timer():
 	drown_damage_timer = Timer.new()
-	drown_damage_timer.wait_time = DAMAGE_INTERVAL # 2 seconds
-	drown_damage_timer.autostart = false
+	drown_damage_timer.wait_time = DAMAGE_INTERVAL
 	drown_damage_timer.timeout.connect(func():
 		if in_water and bubbles_left <= 0:
 			hearts.damage(1)
@@ -179,30 +191,27 @@ func create_drown_damage_timer():
 	add_child(drown_damage_timer)
 
 
-# ==================================================
-# TILE DAMAGE TIMER
-# ==================================================
 func create_tile_damage_timer():
 	tile_damage_timer = Timer.new()
-	tile_damage_timer.wait_time = TILE_DAMAGE_INTERVAL
+	tile_damage_timer.wait_time = DAMAGE_INTERVAL
 	tile_damage_timer.one_shot = true
 	tile_damage_timer.timeout.connect(func():
 		can_take_tile_damage = true
 	)
 	add_child(tile_damage_timer)
 
+
 # ==================================================
 # TILE CHECKING
 # ==================================================
 func update_player_tile_info():
 	var cell := tilemap.local_to_map(
-		tilemap.to_local(player_shape.global_position-Vector2(0,16))
+		tilemap.to_local(player_shape.global_position - Vector2(0, 16))
 	)
 
 	var atlas := tilemap.get_cell_atlas_coords(cell)
 	tile_info_label.text = "Tile: " + TILE_NAMES.get(atlas, "Unknown")
 
-	# ---- WATER LOGIC ----
 	if atlas == WATER_TILE:
 		if not in_water:
 			enter_water()
@@ -210,12 +219,12 @@ func update_player_tile_info():
 		if in_water:
 			exit_water()
 
-	# ---- LAVA / MAGMA DAMAGE ----
 	if atlas == LAVA_TILE or atlas == MAGMA_TILE:
 		if can_take_tile_damage:
 			hearts.damage(1)
 			can_take_tile_damage = false
 			tile_damage_timer.start()
+
 
 # ==================================================
 # WATER STATE
@@ -239,7 +248,7 @@ func exit_water():
 
 
 # ==================================================
-# BUBBLE TICK
+# BUBBLE LOGIC
 # ==================================================
 func _on_bubble_tick():
 	if not in_water:
@@ -249,7 +258,6 @@ func _on_bubble_tick():
 		bubbles_left -= 1
 		update_bubbles()
 
-		# start drowning once bubbles end
 		if bubbles_left == 0:
 			drown_damage_timer.start()
 
@@ -259,22 +267,15 @@ func update_bubbles():
 		var bubble := bubble_container.get_child(i) as TextureRect
 
 		if i < bubbles_left:
-			# bubble should be visible
-			if not bubble.visible:
-				bubble.visible = true
-				bubble.modulate.a = 0.0
-
-				var tween := create_tween()
-				tween.tween_property(bubble, "modulate:a", 1.0, 0.3)
+			bubble.visible = true
+			bubble.modulate.a = 1.0
 		else:
-			# bubble should disappear
-			if bubble.visible:
-				var tween := create_tween()
-				tween.tween_property(bubble, "modulate:a", 0.0, 0.5)
-				tween.tween_callback(func():
-					bubble.visible = false
-				)
+			bubble.visible = false
 
+
+# ==================================================
+# SCORE
+# ==================================================
 func create_score_ui():
 	var canvas := CanvasLayer.new()
 	add_child(canvas)
@@ -282,27 +283,26 @@ func create_score_ui():
 	score_label = Label.new()
 	canvas.add_child(score_label)
 
-	# Load font
-	var font: FontFile = load("res://Jersey10-Regular.ttf")
-
-
-	# Apply font
-	score_label.add_theme_font_override("font", font)
+	score_label.add_theme_font_override("font", load("res://Jersey10-Regular.ttf"))
 	score_label.add_theme_font_size_override("font_size", 40)
-	score_label.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
-
 	score_label.position = Vector2(20, 20)
-	score_label.text = "Score: %d" % Global.score
+
+	update_score_label()
 
 
 func update_score_label():
 	if score_label:
 		score_label.text = "Score: %d" % Global.score
 
+
 func add_score(amount: int):
 	Global.add_score(amount)
 	update_score_label()
 
+
+# ==================================================
+# DEATH
+# ==================================================
 func _on_player_died():
 	var messages = [
 		"💙 You tried your best!",
@@ -327,9 +327,7 @@ func _on_player_died():
 	tween.tween_property(death_bg, "modulate:a", 0.65, 0.4)
 	tween.parallel().tween_property(death_label, "modulate:a", 1.0, 0.4)
 
-	# wait 2 seconds (scene NOT paused)
 	await get_tree().create_timer(5.0).timeout
-
 	get_tree().change_scene_to_file("res://HomeScreen.tscn")
 
 
@@ -356,7 +354,6 @@ func create_death_overlay():
 
 	death_overlay.add_child(death_bg)
 
-	# Message label
 	death_label = Label.new()
 	death_label.anchor_left = 0.5
 	death_label.anchor_top = 0.5
@@ -371,8 +368,8 @@ func create_death_overlay():
 	death_label.add_theme_font_override("font", load("res://Jersey10-Regular.ttf"))
 	death_label.add_theme_font_size_override("font_size", 60)
 	death_label.modulate.a = 0.0
-
 	death_overlay.add_child(death_label)
+
 	death_overlay.visible = false
 
 
