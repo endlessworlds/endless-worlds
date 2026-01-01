@@ -1,7 +1,8 @@
-[gd_scene load_steps=18 format=3 uid="uid://dpbxblfybuwu6"]
+[gd_scene load_steps=19 format=3 uid="uid://dpbxblfybuwu6"]
 
 [ext_resource type="TileSet" uid="uid://crg0orous800e" path="res://tile_set.tres" id="1_c7s6e"]
 [ext_resource type="Script" uid="uid://b221v61dem8vf" path="res://scripts/map.gd" id="1_wijl4"]
+[ext_resource type="PackedScene" uid="uid://cf3x46l0ncyf1" path="res://well.tscn" id="2_4on3e"]
 [ext_resource type="PackedScene" uid="uid://olx1k0r0di2" path="res://player.tscn" id="3_e0an3"]
 [ext_resource type="PackedScene" uid="uid://bcfxoeuah1slf" path="res://rain_system.tscn" id="4_p5pve"]
 [ext_resource type="Script" uid="uid://2r81c838wwhe" path="res://scripts/world_generator.gd" id="5_gqbix"]
@@ -16,11 +17,12 @@
 [ext_resource type="PackedScene" uid="uid://fcyo16xbwnnq" path="res://Tasks.tscn" id="13_6qsgm"]
 [ext_resource type="Script" uid="uid://crb5l7rvldjbb" path="res://scripts/riddleui/HintBulb.gd" id="14_wbpbn"]
 [ext_resource type="Texture2D" uid="uid://dvh14cywlfrfr" path="res://assets/ui/hints_bulb.png" id="15_wbpbn"]
-[ext_resource type="PackedScene" uid="uid://bm3cduarx3ktr" path="res://HintPickup.tscn" id="17_a6rn7"]
+[ext_resource type="PackedScene" uid="uid://dpqtvtf5uxnjn" path="res://answer_popup.tscn" id="17_a6rn7"]
 
 [node name="Map" type="Node2D"]
 scale = Vector2(2, 2)
 script = ExtResource("1_wijl4")
+well_scene = ExtResource("2_4on3e")
 
 [node name="Player" parent="." instance=ExtResource("3_e0an3")]
 
@@ -100,5 +102,6 @@ bulb_texture = ExtResource("15_wbpbn")
 layout_mode = 2
 
 [node name="Tasks" parent="." instance=ExtResource("13_6qsgm")]
-hint_pickup_scene = ExtResource("17_a6rn7")
 spawn_radius = 100.0
+
+[node name="AnswerPopup" parent="." instance=ExtResource("17_a6rn7")]

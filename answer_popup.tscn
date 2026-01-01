@@ -1,0 +1,41 @@
+[gd_scene load_steps=3 format=3 uid="uid://dpqtvtf5uxnjn"]
+
+[ext_resource type="Script" uid="uid://cw7pmsfdaakoc" path="res://answer_popup.gd" id="1_juwdi"]
+[ext_resource type="FontFile" uid="uid://08vndck327l2" path="res://Jersey10-Regular.ttf" id="2_ddl3n"]
+
+[node name="AnswerPopup" type="CanvasLayer"]
+script = ExtResource("1_juwdi")
+
+[node name="Panel" type="Panel" parent="."]
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+
+[node name="VBoxContainer" type="VBoxContainer" parent="Panel"]
+layout_mode = 0
+offset_right = 1153.0
+offset_bottom = 646.0
+alignment = 1
+
+[node name="MessageLabel" type="Label" parent="Panel/VBoxContainer"]
+layout_mode = 2
+theme_override_fonts/font = ExtResource("2_ddl3n")
+theme_override_font_sizes/font_size = 30
+text = "Yay!! u found the well type your answer below"
+horizontal_alignment = 1
+vertical_alignment = 1
+
+[node name="AnswerInput" type="LineEdit" parent="Panel/VBoxContainer"]
+layout_mode = 2
+theme_override_fonts/font = ExtResource("2_ddl3n")
+theme_override_font_sizes/font_size = 30
+placeholder_text = "answer"
+alignment = 1
+
+[node name="SubmitButton" type="Button" parent="Panel/VBoxContainer"]
+layout_mode = 2
+theme_override_fonts/font = ExtResource("2_ddl3n")
+theme_override_font_sizes/font_size = 40
+text = "SUBMIT"

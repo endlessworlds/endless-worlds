@@ -7,6 +7,12 @@ extends Node2D
 @onready var spawner := $PlayerSpawner
 @onready var flower_spawner := $FlowerSpawner
 
+@onready var answer_popup: AnswerPopup = $AnswerPopup
+@export var well_scene: PackedScene
+var wells_spawned: bool = false
+
+
+
 @onready var player := $Player
 @onready var player_shape: CollisionShape2D = $Player/CollisionShape2D
 @onready var tilemap: TileMapLayer = $TileMap
@@ -76,6 +82,7 @@ func _ready():
 
 	# 🌍 WORLD SETUP
 	world.generate()
+	spawn_wells()
 	flower_spawner.spawn_flowers()
 	lighting.spawn_lava_lights()
 	time.init_time()
@@ -99,6 +106,36 @@ func _ready():
 	tasks.hint_collected.connect(func():
 		riddle_ui.unlock_next_hint()
 	)
+	
+func spawn_wells() -> void:
+	if wells_spawned:
+		return
+
+	if well_scene == null:
+		push_error("Well scene not assigned in Inspector!")
+		return
+
+	wells_spawned = true
+
+	# Exact fixed positions on a 200x200 map
+	var positions: Array[Vector2] = [
+		Vector2(500, 500),
+		Vector2(50, 900)
+	]
+
+	for pos: Vector2 in positions:
+		var well: Well = well_scene.instantiate()
+		well.position = pos
+		add_child(well)
+
+		well.interact.connect(func():
+			answer_popup.open(
+				gemini.riddle_data["solution"],
+				hearts,
+				self
+			)
+		)
+
 
 
 func _on_riddle_generated(data: Dictionary) -> void:
@@ -389,8 +426,8 @@ func create_death_overlay():
 # ==================================================
 # TEST INPUT
 # ==================================================
-func _input(event):
-	if event.is_action_pressed("ui_accept"):
-		add_score(10)
-	if event.is_action_pressed("ui_cancel"):
-		add_score(-10)
+# func _input(event):
+# 	if event.is_action_pressed("ui_accept"):
+# 		add_score(10)
+# 	if event.is_action_pressed("ui_cancel"):
+# 		add_score(-10)
