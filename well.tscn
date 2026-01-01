@@ -1,18 +1,17 @@
 [gd_scene load_steps=4 format=3 uid="uid://cf3x46l0ncyf1"]
 
 [ext_resource type="Script" uid="uid://k0p1csg07vb1" path="res://well.gd" id="1_7ftsu"]
-[ext_resource type="Texture2D" uid="uid://b6gsqk5qkovqo" path="res://assets/well.png" id="2_hmora"]
+[ext_resource type="Texture2D" uid="uid://dip3xc2rptcok" path="res://assets/well.png" id="2_hmora"]
 
-[sub_resource type="RectangleShape2D" id="RectangleShape2D_7ftsu"]
-size = Vector2(77, 52.5)
+[sub_resource type="CircleShape2D" id="CircleShape2D_7ftsu"]
+radius = 34.0147
 
 [node name="Well" type="Area2D"]
 script = ExtResource("1_7ftsu")
 
 [node name="Sprite2D" type="Sprite2D" parent="."]
-scale = Vector2(0.2, 0.2)
 texture = ExtResource("2_hmora")
 
 [node name="CollisionShape2D" type="CollisionShape2D" parent="."]
-position = Vector2(-2.5, 38.75)
-shape = SubResource("RectangleShape2D_7ftsu")
+position = Vector2(-1, 20)
+shape = SubResource("CircleShape2D_7ftsu")

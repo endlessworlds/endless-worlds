@@ -73,6 +73,13 @@ var can_take_tile_damage := true
 var drown_damage_timer: Timer
 var tile_damage_timer: Timer
 
+# ==================================================
+# WELL TILE POSITIONS (TILE COORDINATES, NOT WORLD)
+# ==================================================
+const WELL_TILES: Array[Vector2i] = [
+	Vector2i(50, 80),
+	Vector2i(50, 120)
+]
 
 # ==================================================
 func _ready():
@@ -117,15 +124,12 @@ func spawn_wells() -> void:
 
 	wells_spawned = true
 
-	# Exact fixed positions on a 200x200 map
-	var positions: Array[Vector2] = [
-		Vector2(500, 500),
-		Vector2(50, 900)
-	]
+	for tile_pos: Vector2i in WELL_TILES:
+		var local_pos: Vector2 = tilemap.map_to_local(tile_pos)
+		var world_pos: Vector2 = tilemap.to_global(local_pos)
 
-	for pos: Vector2 in positions:
 		var well: Well = well_scene.instantiate()
-		well.position = pos
+		well.position = world_pos
 		add_child(well)
 
 		well.interact.connect(func():
