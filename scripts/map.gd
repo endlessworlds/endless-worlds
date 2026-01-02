@@ -78,7 +78,7 @@ func _ready():
 	flower_spawner.spawn_flowers()
 	lighting.spawn_lava_lights()
 	time.init_time()
-	spawner.spawn_on_nearest_grass()
+	spawner.spawn_player_at_center()
 
 	# 🖥 UI + SYSTEMS
 	create_tile_info_ui()
@@ -113,6 +113,7 @@ func _on_riddle_generated(data: Dictionary) -> void:
 	current_solution = str(data["solution"]).strip_edges().to_lower()
 	riddle_ui.setup_riddle(data)
 	tasks.spawn_hints(data["hints"].size(), player.global_position)
+	
 
 func _process(_delta):
 	update_player_tile_info()
