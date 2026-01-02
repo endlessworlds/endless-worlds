@@ -50,9 +50,6 @@ func generate_world():
 # ==================================================
 # WELL LOGIC
 # ==================================================
-# ==================================================
-# WELL LOGIC (Fixed for Scaling)
-# ==================================================
 func spawn_wells(parent_map: Node) -> void:
 	if wells_spawned:
 		return
@@ -64,30 +61,39 @@ func spawn_wells(parent_map: Node) -> void:
 	wells_spawned = true
 
 	for tile_pos in WELL_TILES:
-		# 1. Place 10x10 Grass Patch (centered on tile_pos)
-		for x in range(-5, 5):
-			for y in range(-5, 5):
-				tilemap.set_cell(tile_pos + Vector2i(x, y), SRC, GRASS)
+		# --- 1. CREATE ASYMMETRICAL OVAL PATCH ---
+		# Variation in radius per well to make them look unique
+		var base_rx := randf_range(7.0, 9.0) 
+		var base_ry := randf_range(5.0, 6.0) 
+		
+		# Iterate over the bounds of the patch
+		for x in range(-11, 11):
+			for y in range(-9, 9):
+				# Oval Math with a "Noise" offset for asymmetry
+				var noise_factor = randf_range(-0.25, 0.25)
+				var distance = (pow(x, 2) / pow(base_rx, 2)) + (pow(y, 2) / pow(base_ry, 2))
+				
+				# If within the oval (with ragged edges)
+				if distance + noise_factor <= 1.0:
+					var target_pos = tile_pos + Vector2i(x, y)
+					
+					# 20% chance for Dirt, 80% for Grass
+					var chosen_tile = GRASS
+					if randf() > 0.8:
+						chosen_tile = DIRT
+					
+					tilemap.set_cell(target_pos, SRC, chosen_tile)
 
-		# 2. Alignment Fix:
-		# map_to_local returns the center of the tile in the TileMap's local coordinate space.
+		# --- 2. ALIGNMENT & INSTANTIATION ---
 		var tile_center_local: Vector2 = tilemap.map_to_local(tile_pos)
-
-		# 3. Instantiate and Scale Fix:
 		var well = well_scene.instantiate()
 		
-		# BY ADDING AS CHILD OF TILEMAP:
-		# The well will automatically inherit the 2.0 scale of the TileMap
-		# and the position will match perfectly.
+		# Add as child of tilemap to inherit the (2.0, 2.0) scale
 		tilemap.add_child(well)
 		well.position = tile_center_local 
 
-		# 4. Connect Signal back to Map.gd
 		if parent_map.has_method("_on_well_interacted"):
 			well.interact.connect(parent_map._on_well_interacted)
-		
-		print("Spawned well at tile: ", tile_pos, " Local Pos: ", tile_center_local)
-
 # ==================================================
 # TERRAIN HELPERS
 # ==================================================

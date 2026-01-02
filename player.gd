@@ -1,7 +1,7 @@
 extends CharacterBody2D
 
 # ================= MOVEMENT =================
-@export var speed := 800.0
+@export var speed := 200.0
 @export var water_speed_multiplier := 0.6
 
 # ================= DROWNING (PIXELS) =================
