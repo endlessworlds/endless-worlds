@@ -4,37 +4,37 @@ class_name GeminiRiddle
 # ================= GEMINI CONFIG =================
 const GEMINI_URL: String = "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent"
 
-# ================= TECHNICAL FALLBACK RIDDLES =================
+# ================= EASY PROGRAMMING FALLBACK RIDDLES =================
 const FALLBACK_RIDDLES: Array[Dictionary] = [
 	{
-		"riddle": "I offer no resistance to the flow, yet I am the pressure that makes things go. What am I?",
-		"hints": ["Measured in Volts", "Potential difference", "Battery rating", "Ohm's law: V", "The push for electrons", "Unit symbol is V"],
-		"solution": "Voltage"
+		"riddle": "I repeat a block of code until a condition becomes false. What am I?",
+		"hints": ["Used for repetition", "Can be while or for", "Avoid infinite use", "Common control structure"],
+		"solution": "Loop"
 	},
 	{
-		"riddle": "I can store energy in a field of force, blocking DC but letting AC take its course. What am I?",
-		"hints": ["Measured in Farads", "Two conductive plates", "Stores electric charge", "Decoupling component", "Passive element", "Reactance varies with freq"],
-		"solution": "Capacitor"
+		"riddle": "I store a value that can change while the program runs. What am I?",
+		"hints": ["Holds data", "Can be int or string", "Declared before use", "Changes over time"],
+		"solution": "Variable"
 	},
 	{
-		"riddle": "I am a loop that never ends unless a condition is met or a break is sent. What am I?",
-		"hints": ["Repeats instructions", "Can cause stack overflow", "While or For", "Program structure", "Infinite versions crash CPUs", "Logic cycle"],
-		"solution": "Iteration"
+		"riddle": "I compare two values and return true or false. What am I?",
+		"hints": ["Used in conditions", "== is one example", "Returns boolean", "Checks equality"],
+		"solution": "Operator"
 	},
 	{
-		"riddle": "I am the friction of the wire, turning energy into heat and fire. What am I?",
-		"hints": ["Measured in Ohms", "Opposes current flow", "Color bands tell my value", "V = I * R", "Dissipates power", "Passive resistor"],
-		"solution": "Resistance"
+		"riddle": "I group reusable code and can take inputs and return outputs. What am I?",
+		"hints": ["Called many times", "Helps avoid repetition", "Has parameters", "Also called a method"],
+		"solution": "Function"
 	},
 	{
-		"riddle": "I am the brain made of silicon and gates, processing logic at incredible rates. What am I?",
-		"hints": ["The CPU", "Fetch-Decode-Execute", "Billions of transistors", "Central brain", "Clock speed in GHz", "Calculates everything"],
-		"solution": "Processor"
+		"riddle": "I decide which block of code runs based on a condition. What am I?",
+		"hints": ["Uses true or false", "if / else", "Controls program flow", "Decision making"],
+		"solution": "Condition"
 	},
 	{
-		"riddle": "I am the force that turns the wheel, a twisting strength that you can feel. What am I?",
-		"hints": ["Newton-meters unit", "Force times distance", "Engine output", "Rotational force", "Tightening a bolt", "Twisting moment"],
-		"solution": "Torque"
+		"riddle": "I hold multiple values under one name, accessed by an index. What am I?",
+		"hints": ["Uses indices", "Ordered collection", "Starts at 0", "Common data structure"],
+		"solution": "Array"
 	}
 ]
 
