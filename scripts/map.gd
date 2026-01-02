@@ -9,28 +9,20 @@ extends Node2D
 @onready var joystick := $JoyStickUI/VirtualJoystick
 
 @onready var answer_popup: AnswerPopup = $AnswerPopup
-@export var well_scene: PackedScene
-var wells_spawned: bool = false
-
-
-
 @onready var player := $Player
 @onready var player_shape: CollisionShape2D = $Player/CollisionShape2D
 @onready var tilemap: TileMapLayer = $TileMap
 @onready var hearts: HeartSystem = $HeartSystem
-
 @onready var gemini: GeminiRiddle = $GeminiRiddle
-
 @onready var riddle_ui: RiddleUI = $RiddleUI
 @onready var tasks: Tasks = $Tasks
 
 # ==================================================
-# 🔧 GAME SETTINGS (RECOVERED FROM OLD FILE)
+# 🔧 GAME SETTINGS
 # ==================================================
 @export var enable_rain: bool = true
 @export var TILE_SOURCE_ID: int = 0
 var current_solution: String = ""
-
 
 # ==================================================
 # UI / DEATH
@@ -39,7 +31,6 @@ var score_label: Label
 var death_overlay: CanvasLayer
 var death_label: Label
 var death_bg: ColorRect
-
 
 # ================= TILE INFO =================
 const TILE_NAMES := {
@@ -59,7 +50,6 @@ const MAGMA_TILE := Vector2i(2, 1)
 
 var tile_info_label: Label
 
-
 # ================= WATER BREATHING =================
 const MAX_BUBBLES := 5
 var bubbles_left := MAX_BUBBLES
@@ -68,20 +58,11 @@ var in_water := false
 var bubble_container: HBoxContainer
 var bubble_timer: Timer
 
-
 # ================= DAMAGE =================
 const DAMAGE_INTERVAL := 2.0
 var can_take_tile_damage := true
 var drown_damage_timer: Timer
 var tile_damage_timer: Timer
-
-# ==================================================
-# WELL TILE POSITIONS (TILE COORDINATES, NOT WORLD)
-# ==================================================
-const WELL_TILES: Array[Vector2i] = [
-	Vector2i(50, 80),
-	Vector2i(50, 120)
-]
 
 # ==================================================
 func _ready():
@@ -90,8 +71,9 @@ func _ready():
 	world.SRC = TILE_SOURCE_ID
 
 	# 🌍 WORLD SETUP
-	world.generate()
-	spawn_wells()
+	world.generate_world()
+	world.spawn_wells(self) # Handled by WorldGenerator now
+	
 	flower_spawner.spawn_flowers()
 	lighting.spawn_lava_lights()
 	time.init_time()
@@ -117,60 +99,26 @@ func _ready():
 	)
 
 	joystick.modulate.a = 0.3
-	
-func spawn_wells() -> void:
-	if wells_spawned:
-		return
 
-	if well_scene == null:
-		push_error("Well scene not assigned in Inspector!")
-		return
-
-	wells_spawned = true
-
-	for tile_pos: Vector2i in WELL_TILES:
-		var local_pos: Vector2 = tilemap.map_to_local(tile_pos)
-		var world_pos: Vector2 = tilemap.to_global(local_pos)
-
-		var well: Well = well_scene.instantiate()
-		well.position = world_pos
-		add_child(well)
-
-		well.interact.connect(func():
-			answer_popup.open(
-				current_solution,
-				hearts,
-				self
-			)
-		)
-
-
+# Called by wells spawned via WorldGenerator
+func _on_well_interacted():
+	answer_popup.open(
+		current_solution,
+		hearts,
+		self
+	)
 
 func _on_riddle_generated(data: Dictionary) -> void:
 	current_solution = str(data["solution"]).strip_edges().to_lower()
-
 	riddle_ui.setup_riddle(data)
-
-	# Spawn hint pickups on map
 	tasks.spawn_hints(data["hints"].size(), player.global_position)
 
 	print("RIDDLE:", data["riddle"])
-	print("HINTS:")
-	for hint in data["hints"]:
-		print("*", hint)
 	print("SOLUTION:", current_solution)
 
-	# You can now:
-	# - show this in UI
-	# - unlock a quest
-	# - give score reward
-
-
-# ==================================================
 func _process(_delta):
 	update_player_tile_info()
 	update_score_label()
-
 
 # ==================================================
 # TILE INFO UI
@@ -196,7 +144,6 @@ func create_tile_info_ui():
 	tile_info_label.vertical_alignment = VERTICAL_ALIGNMENT_BOTTOM
 	tile_info_label.text = "Tile: Grass"
 
-
 # ==================================================
 # WATER BUBBLES UI
 # ==================================================
@@ -218,7 +165,6 @@ func create_bubble_ui():
 	await get_tree().process_frame
 	position_bubbles()
 
-
 func position_bubbles():
 	var hearts_container := hearts.hearts_container
 	if hearts_container == null:
@@ -229,7 +175,6 @@ func position_bubbles():
 		hearts.heart_size + 8
 	)
 
-
 # ==================================================
 # TIMERS
 # ==================================================
@@ -238,7 +183,6 @@ func create_bubble_timer():
 	bubble_timer.wait_time = 1.0
 	bubble_timer.timeout.connect(_on_bubble_tick)
 	add_child(bubble_timer)
-
 
 func create_drown_damage_timer():
 	drown_damage_timer = Timer.new()
@@ -249,7 +193,6 @@ func create_drown_damage_timer():
 	)
 	add_child(drown_damage_timer)
 
-
 func create_tile_damage_timer():
 	tile_damage_timer = Timer.new()
 	tile_damage_timer.wait_time = DAMAGE_INTERVAL
@@ -258,7 +201,6 @@ func create_tile_damage_timer():
 		can_take_tile_damage = true
 	)
 	add_child(tile_damage_timer)
-
 
 # ==================================================
 # TILE CHECKING
@@ -284,7 +226,6 @@ func update_player_tile_info():
 			can_take_tile_damage = false
 			tile_damage_timer.start()
 
-
 # ==================================================
 # WATER STATE
 # ==================================================
@@ -296,7 +237,6 @@ func enter_water():
 	update_bubbles()
 	bubble_timer.start()
 
-
 func exit_water():
 	in_water = false
 	player.in_water = false
@@ -304,7 +244,6 @@ func exit_water():
 	drown_damage_timer.stop()
 	bubble_container.visible = false
 	bubbles_left = MAX_BUBBLES
-
 
 # ==================================================
 # BUBBLE LOGIC
@@ -320,17 +259,14 @@ func _on_bubble_tick():
 		if bubbles_left == 0:
 			drown_damage_timer.start()
 
-
 func update_bubbles():
 	for i in range(bubble_container.get_child_count()):
 		var bubble := bubble_container.get_child(i) as TextureRect
-
 		if i < bubbles_left:
 			bubble.visible = true
 			bubble.modulate.a = 1.0
 		else:
 			bubble.visible = false
-
 
 # ==================================================
 # SCORE
@@ -341,23 +277,18 @@ func create_score_ui():
 
 	score_label = Label.new()
 	canvas.add_child(score_label)
-
 	score_label.add_theme_font_override("font", load("res://Jersey10-Regular.ttf"))
 	score_label.add_theme_font_size_override("font_size", 40)
 	score_label.position = Vector2(20, 20)
-
 	update_score_label()
-
 
 func update_score_label():
 	if score_label:
 		score_label.text = "Score: %d" % Global.score
 
-
 func add_score(amount: int):
 	Global.add_score(amount)
 	update_score_label()
-
 
 # ==================================================
 # DEATH
@@ -376,32 +307,26 @@ func _on_player_died():
 	]
 
 	death_overlay.visible = true
-
-	# reset alpha
 	death_bg.modulate.a = 0.0
 	death_label.modulate.a = 0.0
 
-	# fade in overlay
 	var tween := create_tween()
 	tween.tween_property(death_bg, "modulate:a", 0.65, 0.4)
 	tween.parallel().tween_property(death_label, "modulate:a", 1.0, 0.4)
-	#RESET SCORE
+	
 	Global.reset_score_only()
 
 	await get_tree().create_timer(5.0).timeout
 	get_tree().change_scene_to_file("res://HomeScreen.tscn")
 
-
 func create_death_overlay():
 	death_overlay = CanvasLayer.new()
 	add_child(death_overlay)
 
-	# Capture screen
 	var backbuffer := BackBufferCopy.new()
 	backbuffer.copy_mode = BackBufferCopy.COPY_MODE_VIEWPORT
 	death_overlay.add_child(backbuffer)
 
-	# Blur layer
 	death_bg = ColorRect.new()
 	death_bg.anchor_left = 0
 	death_bg.anchor_top = 0
@@ -412,7 +337,6 @@ func create_death_overlay():
 	mat.shader = load("res://shaders/screen_blur.gdshader")
 	mat.set_shader_parameter("blur_strength", 3.0)
 	death_bg.material = mat
-
 	death_overlay.add_child(death_bg)
 
 	death_label = Label.new()
@@ -432,13 +356,3 @@ func create_death_overlay():
 	death_overlay.add_child(death_label)
 
 	death_overlay.visible = false
-
-
-# ==================================================
-# TEST INPUT
-# ==================================================
-# func _input(event):
-# 	if event.is_action_pressed("ui_accept"):
-# 		add_score(10)
-# 	if event.is_action_pressed("ui_cancel"):
-# 		add_score(-10)

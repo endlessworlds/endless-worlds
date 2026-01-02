@@ -25,7 +25,6 @@
 [node name="Map" type="Node2D"]
 scale = Vector2(2, 2)
 script = ExtResource("1_wijl4")
-well_scene = ExtResource("2_4on3e")
 
 [node name="Player" parent="." instance=ExtResource("3_e0an3")]
 
@@ -41,6 +40,7 @@ tile_set = ExtResource("1_c7s6e")
 
 [node name="WorldGenerator" type="Node" parent="."]
 script = ExtResource("5_gqbix")
+well_scene = ExtResource("2_4on3e")
 
 [node name="TimeSystem" type="Node" parent="."]
 script = ExtResource("6_oysan")
