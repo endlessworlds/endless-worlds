@@ -32,7 +32,7 @@ var death_overlay: CanvasLayer
 var death_label: Label
 var death_bg: ColorRect
 
-# ================= TILE INFO =================
+# ================= TILE & COORDINATE INFO =================
 const TILE_NAMES := {
 	Vector2i(0, 0): "Grass",
 	Vector2i(1, 0): "Dirt",
@@ -49,6 +49,7 @@ const LAVA_TILE := Vector2i(1, 1)
 const MAGMA_TILE := Vector2i(2, 1)
 
 var tile_info_label: Label
+var coords_label: Label # New label for coordinates
 
 # ================= WATER BREATHING =================
 const MAX_BUBBLES := 5
@@ -72,7 +73,7 @@ func _ready():
 
 	# 🌍 WORLD SETUP
 	world.generate_world()
-	world.spawn_wells(self) # Handled by WorldGenerator now
+	world.spawn_wells(self) 
 	
 	flower_spawner.spawn_flowers()
 	lighting.spawn_lava_lights()
@@ -113,36 +114,71 @@ func _on_riddle_generated(data: Dictionary) -> void:
 	riddle_ui.setup_riddle(data)
 	tasks.spawn_hints(data["hints"].size(), player.global_position)
 
-	print("RIDDLE:", data["riddle"])
-	print("SOLUTION:", current_solution)
-
 func _process(_delta):
 	update_player_tile_info()
 	update_score_label()
 
 # ==================================================
-# TILE INFO UI
+# TILE & COORDS INFO UI
 # ==================================================
 func create_tile_info_ui():
 	var ui := CanvasLayer.new()
 	add_child(ui)
 
+	# Tile Name Label
 	tile_info_label = Label.new()
 	ui.add_child(tile_info_label)
-
 	tile_info_label.anchor_left = 0
 	tile_info_label.anchor_top = 1
 	tile_info_label.anchor_right = 0
 	tile_info_label.anchor_bottom = 1
-
 	tile_info_label.offset_left = 20
-	tile_info_label.offset_top = -40
-	tile_info_label.offset_right = 200
-	tile_info_label.offset_bottom = -20
-
-	tile_info_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_LEFT
-	tile_info_label.vertical_alignment = VERTICAL_ALIGNMENT_BOTTOM
+	tile_info_label.offset_top = -60 # Moved up slightly to make room
 	tile_info_label.text = "Tile: Grass"
+
+	# Player Coordinates Label
+	coords_label = Label.new()
+	ui.add_child(coords_label)
+	coords_label.anchor_left = 0
+	coords_label.anchor_top = 1
+	coords_label.anchor_right = 0
+	coords_label.anchor_bottom = 1
+	coords_label.offset_left = 20
+	coords_label.offset_top = -35 # Positioned below the tile display
+	coords_label.text = "Coords: (0, 0)"
+
+
+# ==================================================
+# TILE & POSITION CHECKING
+# ==================================================
+func update_player_tile_info():
+	# Convert world position to tilemap coordinates
+	var cell := tilemap.local_to_map(
+		tilemap.to_local(player_shape.global_position - Vector2(0, 16))
+	)
+
+	# Update Coordinate Label
+	if coords_label:
+		coords_label.text = "Coords: (%d, %d)" % [cell.x, cell.y]
+
+	# Update Tile Name Label
+	var atlas := tilemap.get_cell_atlas_coords(cell)
+	tile_info_label.text = "Tile: " + TILE_NAMES.get(atlas, "Unknown")
+
+	# Water logic
+	if atlas == WATER_TILE:
+		if not in_water:
+			enter_water()
+	else:
+		if in_water:
+			exit_water()
+
+	# Damage logic
+	if atlas == LAVA_TILE or atlas == MAGMA_TILE:
+		if can_take_tile_damage:
+			hearts.damage(1)
+			can_take_tile_damage = false
+			tile_damage_timer.start()
 
 # ==================================================
 # WATER BUBBLES UI
@@ -150,7 +186,6 @@ func create_tile_info_ui():
 func create_bubble_ui():
 	bubble_container = HBoxContainer.new()
 	hearts.add_child(bubble_container)
-
 	bubble_container.visible = false
 	bubble_container.add_theme_constant_override("separation", 6)
 
@@ -169,11 +204,7 @@ func position_bubbles():
 	var hearts_container := hearts.hearts_container
 	if hearts_container == null:
 		return
-
-	bubble_container.position = hearts_container.position + Vector2(
-		0,
-		hearts.heart_size + 8
-	)
+	bubble_container.position = hearts_container.position + Vector2(0, hearts.heart_size + 8)
 
 # ==================================================
 # TIMERS
@@ -203,30 +234,6 @@ func create_tile_damage_timer():
 	add_child(tile_damage_timer)
 
 # ==================================================
-# TILE CHECKING
-# ==================================================
-func update_player_tile_info():
-	var cell := tilemap.local_to_map(
-		tilemap.to_local(player_shape.global_position - Vector2(0, 16))
-	)
-
-	var atlas := tilemap.get_cell_atlas_coords(cell)
-	tile_info_label.text = "Tile: " + TILE_NAMES.get(atlas, "Unknown")
-
-	if atlas == WATER_TILE:
-		if not in_water:
-			enter_water()
-	else:
-		if in_water:
-			exit_water()
-
-	if atlas == LAVA_TILE or atlas == MAGMA_TILE:
-		if can_take_tile_damage:
-			hearts.damage(1)
-			can_take_tile_damage = false
-			tile_damage_timer.start()
-
-# ==================================================
 # WATER STATE
 # ==================================================
 func enter_water():
@@ -245,17 +252,11 @@ func exit_water():
 	bubble_container.visible = false
 	bubbles_left = MAX_BUBBLES
 
-# ==================================================
-# BUBBLE LOGIC
-# ==================================================
 func _on_bubble_tick():
-	if not in_water:
-		return
-
+	if not in_water: return
 	if bubbles_left > 0:
 		bubbles_left -= 1
 		update_bubbles()
-
 		if bubbles_left == 0:
 			drown_damage_timer.start()
 
@@ -274,7 +275,6 @@ func update_bubbles():
 func create_score_ui():
 	var canvas := CanvasLayer.new()
 	add_child(canvas)
-
 	score_label = Label.new()
 	canvas.add_child(score_label)
 	score_label.add_theme_font_override("font", load("res://Jersey10-Regular.ttf"))
@@ -294,51 +294,34 @@ func add_score(amount: int):
 # DEATH
 # ==================================================
 func _on_player_died():
-	var messages = [
-		"💙 You tried your best!",
-		"🌊 The world was tough today!",
-		"🔥 Nice run, adventurer!",
-		"✨ You'll do even better next time!"
-	]
-
-	death_label.text = "%s\nScore: %d" % [
-		messages.pick_random(),
-		Global.score
-	]
-
+	var messages = ["💙 You tried your best!", "🌊 The world was tough today!", "🔥 Nice run, adventurer!", "✨ You'll do even better next time!"]
+	death_label.text = "%s\nScore: %d" % [messages.pick_random(), Global.score]
 	death_overlay.visible = true
 	death_bg.modulate.a = 0.0
 	death_label.modulate.a = 0.0
-
 	var tween := create_tween()
 	tween.tween_property(death_bg, "modulate:a", 0.65, 0.4)
 	tween.parallel().tween_property(death_label, "modulate:a", 1.0, 0.4)
-	
 	Global.reset_score_only()
-
 	await get_tree().create_timer(5.0).timeout
 	get_tree().change_scene_to_file("res://HomeScreen.tscn")
 
 func create_death_overlay():
 	death_overlay = CanvasLayer.new()
 	add_child(death_overlay)
-
 	var backbuffer := BackBufferCopy.new()
 	backbuffer.copy_mode = BackBufferCopy.COPY_MODE_VIEWPORT
 	death_overlay.add_child(backbuffer)
-
 	death_bg = ColorRect.new()
 	death_bg.anchor_left = 0
 	death_bg.anchor_top = 0
 	death_bg.anchor_right = 1
 	death_bg.anchor_bottom = 1
-
 	var mat := ShaderMaterial.new()
 	mat.shader = load("res://shaders/screen_blur.gdshader")
 	mat.set_shader_parameter("blur_strength", 3.0)
 	death_bg.material = mat
 	death_overlay.add_child(death_bg)
-
 	death_label = Label.new()
 	death_label.anchor_left = 0.5
 	death_label.anchor_top = 0.5
@@ -354,5 +337,4 @@ func create_death_overlay():
 	death_label.add_theme_font_size_override("font_size", 60)
 	death_label.modulate.a = 0.0
 	death_overlay.add_child(death_label)
-
 	death_overlay.visible = false

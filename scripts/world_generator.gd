@@ -23,9 +23,10 @@ const MAGMA = Vector2i(2, 1)
 const WATER = Vector2i(3, 1)
 
 # ---------------- WELL SETTINGS ----------------
+# Ensure these coordinates are far apart
 const WELL_TILES: Array[Vector2i] = [
 	Vector2i(50, 80),
-	Vector2i(50, 120)
+	Vector2i(120, 120) # Moved second well further away to ensure visibility
 ]
 var wells_spawned: bool = false
 
@@ -49,6 +50,9 @@ func generate_world():
 # ==================================================
 # WELL LOGIC
 # ==================================================
+# ==================================================
+# WELL LOGIC (Fixed for Scaling)
+# ==================================================
 func spawn_wells(parent_map: Node) -> void:
 	if wells_spawned:
 		return
@@ -60,25 +64,29 @@ func spawn_wells(parent_map: Node) -> void:
 	wells_spawned = true
 
 	for tile_pos in WELL_TILES:
-		# Ensure ground is walkable under well
-		place_grass_under_well(tile_pos)
+		# 1. Place 10x10 Grass Patch (centered on tile_pos)
+		for x in range(-5, 5):
+			for y in range(-5, 5):
+				tilemap.set_cell(tile_pos + Vector2i(x, y), SRC, GRASS)
 
-		var local_pos: Vector2 = tilemap.map_to_local(tile_pos)
-		var world_pos: Vector2 = tilemap.to_global(local_pos)
+		# 2. Alignment Fix:
+		# map_to_local returns the center of the tile in the TileMap's local coordinate space.
+		var tile_center_local: Vector2 = tilemap.map_to_local(tile_pos)
 
-		var well: Well = well_scene.instantiate()
-		well.position = world_pos
-		parent_map.add_child(well)
+		# 3. Instantiate and Scale Fix:
+		var well = well_scene.instantiate()
+		
+		# BY ADDING AS CHILD OF TILEMAP:
+		# The well will automatically inherit the 2.0 scale of the TileMap
+		# and the position will match perfectly.
+		tilemap.add_child(well)
+		well.position = tile_center_local 
 
-		# Connect well interaction to Map.gd's function
+		# 4. Connect Signal back to Map.gd
 		if parent_map.has_method("_on_well_interacted"):
 			well.interact.connect(parent_map._on_well_interacted)
-
-# 5x5 grass patch helper
-func place_grass_under_well(center: Vector2i) -> void:
-	for x in range(-2, 3):
-		for y in range(-2, 3):
-			tilemap.set_cell(center + Vector2i(x, y), SRC, GRASS)
+		
+		print("Spawned well at tile: ", tile_pos, " Local Pos: ", tile_center_local)
 
 # ==================================================
 # TERRAIN HELPERS
