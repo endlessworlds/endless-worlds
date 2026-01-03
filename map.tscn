@@ -1,9 +1,10 @@
-[gd_scene load_steps=23 format=3 uid="uid://dpbxblfybuwu6"]
+[gd_scene load_steps=24 format=3 uid="uid://dpbxblfybuwu6"]
 
 [ext_resource type="TileSet" uid="uid://crg0orous800e" path="res://tile_set.tres" id="1_c7s6e"]
 [ext_resource type="Script" uid="uid://b221v61dem8vf" path="res://scripts/map.gd" id="1_wijl4"]
 [ext_resource type="PackedScene" uid="uid://cf3x46l0ncyf1" path="res://well.tscn" id="2_4on3e"]
 [ext_resource type="PackedScene" uid="uid://olx1k0r0di2" path="res://player.tscn" id="3_e0an3"]
+[ext_resource type="Script" uid="uid://q37t7m6c2agj" path="res://tree_spawner.gd" id="4_jky6x"]
 [ext_resource type="PackedScene" uid="uid://bcfxoeuah1slf" path="res://rain_system.tscn" id="4_p5pve"]
 [ext_resource type="Script" uid="uid://2r81c838wwhe" path="res://scripts/world_generator.gd" id="5_gqbix"]
 [ext_resource type="Script" uid="uid://bgoy7uljh6g1l" path="res://scripts/time_system.gd" id="6_oysan"]
@@ -32,6 +33,9 @@ script = ExtResource("1_wijl4")
 
 [node name="FlowerSpawner" type="Node" parent="."]
 script = ExtResource("11_sb2pt")
+
+[node name="TreeSpawner" type="Node" parent="."]
+script = ExtResource("4_jky6x")
 
 [node name="TileMap" type="TileMapLayer" parent="."]
 tile_set = ExtResource("1_c7s6e")

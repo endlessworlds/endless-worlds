@@ -7,6 +7,7 @@ extends Node2D
 @onready var spawner := $PlayerSpawner
 @onready var flower_spawner := $FlowerSpawner
 @onready var joystick := $JoyStickUI/VirtualJoystick
+@onready var tree_spawner := $TreeSpawner
 
 @onready var answer_popup: AnswerPopup = $AnswerPopup
 @onready var player := $Player
@@ -76,6 +77,7 @@ func _ready():
 	world.spawn_wells(self) 
 	
 	flower_spawner.spawn_flowers()
+	tree_spawner.spawn_trees()
 	lighting.spawn_lava_lights()
 	time.init_time()
 	spawner.spawn_player_at_center()

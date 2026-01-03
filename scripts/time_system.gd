@@ -30,6 +30,8 @@ var clock_label : Label
 
 # ---------------- FLOWER SPAWNER ----------------
 @onready var flower_spawner := get_parent().get_node("FlowerSpawner")
+@onready var tree_spawner := get_parent().get_node("TreeSpawner")
+
 
 # ==================================================
 # INIT
@@ -68,12 +70,15 @@ func _process(delta):
 # FLOWER LIGHTING
 # ==================================================
 func update_flower_lighting():
-	if flower_spawner == null:
-		return
+	if flower_spawner != null:
+		for child in flower_spawner.get_children():
+			if child is Sprite2D:
+				child.modulate = current_light_color
 
-	for child in flower_spawner.get_children():
-		if child is Sprite2D:
-			child.modulate = current_light_color
+	if tree_spawner != null:
+		for child in tree_spawner.get_children():
+			if child is Sprite2D:
+				child.modulate = current_light_color
 
 # ==================================================
 # TIME LOGIC (UNCHANGED)
