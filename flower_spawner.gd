@@ -73,20 +73,22 @@ func spawn_flowers() -> void:
 # ==================================================
 func load_flower_textures() -> Array[Texture2D]:
 	var textures: Array[Texture2D] = []
-
-	var dir: DirAccess = DirAccess.open(FLOWER_PATH)
-	if dir == null:
+	
+	# 🔑 In Godot 4.5, list_directory handles the "missing files" 
+	# and .remap / .import logic for you automatically.
+	if not DirAccess.dir_exists_absolute(FLOWER_PATH):
+		push_error("❌ Directory not found: " + FLOWER_PATH)
 		return textures
 
-	dir.list_dir_begin()
-	var file_name: String = dir.get_next()
-
-	while file_name != "":
-		if not dir.current_is_dir() and file_name.ends_with(".png"):
-			var tex: Texture2D = load(FLOWER_PATH + file_name) as Texture2D
-			if tex:
+	var files = ResourceLoader.list_directory(FLOWER_PATH)
+	
+	for file in files:
+		# Check for .png (ResourceLoader maps this to the imported asset in exports)
+		if file.ends_with(".png"):
+			var full_path = FLOWER_PATH + file
+			var tex = load(full_path)
+			
+			if tex is Texture2D:
 				textures.append(tex)
-		file_name = dir.get_next()
-
-	dir.list_dir_end()
+				
 	return textures

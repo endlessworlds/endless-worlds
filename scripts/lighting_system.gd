@@ -1,8 +1,8 @@
 extends Node
 
 # ---------------- WORLD SIZE ----------------
-@export var width := 200
-@export var height := 200
+@export var width := 280
+@export var height := 280
 
 @onready var tilemap : TileMapLayer = $"../TileMap"
 @onready var glow_manager := $"../GlowManager"

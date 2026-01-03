@@ -46,6 +46,8 @@ func spawn_hints(count: int, tilemap: TileMapLayer, water_border: int, width: in
 				var pickup = hint_pickup_scene.instantiate()
 				add_child(pickup)
 				
+				pickup.scale = Vector2(0.5, 0.5)
+				
 				pickup.position = tilemap.map_to_local(tile_pos)
 				placed_positions.append(tile_pos)
 				

@@ -1,8 +1,8 @@
 extends Node
 class_name GeminiRiddle
 
-# ================= GEMINI CONFIG =================
-const GEMINI_URL: String = "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent"
+# ================= LLM CONFIG =================
+const LLM_URL: String = "https://api.groq.com/openai/v1/chat/completions"
 
 # ================= EASY PROGRAMMING FALLBACK RIDDLES =================
 const FALLBACK_RIDDLES: Array[Dictionary] = [
@@ -54,7 +54,7 @@ signal riddle_generated(data: Dictionary)
 # =================================================
 func _ready() -> void:
 	var env: Dictionary = EnvLoader.load_env()
-	api_key = env.get("GEMINI_API_KEY", "")
+	api_key = env.get("LLM_API_KEY", "")
 
 	if not has_node("HTTPRequest"):
 		var new_http = HTTPRequest.new()
@@ -66,11 +66,10 @@ func _ready() -> void:
 # =================================================
 func generate_riddle() -> void:
 	if api_key.is_empty():
-		print("⚠️ Gemini API key missing — using fallback riddle")
+		print("⚠️ LLM API key missing — using fallback riddle")
 		_use_fallback()
 		return
 
-	# 🔥 GEMINI MODE
 	var prompt: String = """
 Generate a riddle in STRICT JSON format only.
 
@@ -89,50 +88,77 @@ Rules:
 - solution should be a single word
 """
 
-	var body: Dictionary = {
-		"contents": [{"parts": [{"text": prompt}]}]
+	var body := {
+		"model": "llama-3.1-8b-instant",
+		"messages": [
+			{ "role": "user", "content": prompt }
+		],
+		"temperature": 0.5,
+		"max_tokens": 256,
+		"top_p": 0.9
 	}
 
 	var headers: PackedStringArray = [
 		"Content-Type: application/json",
-		"x-goog-api-key: %s" % api_key
+		"Authorization: Bearer %s" % api_key
 	]
 
-	var err: int = http.request(GEMINI_URL, headers, HTTPClient.METHOD_POST, JSON.stringify(body))
+	var err := http.request(
+		LLM_URL,
+		headers,
+		HTTPClient.METHOD_POST,
+		JSON.stringify(body)
+	)
 
 	if err != OK:
-		push_warning("❌ Gemini request failed — using fallback")
+		push_warning("❌ LLM request failed — using fallback")
 		_use_fallback()
 
 # =================================================
 func _on_response(result: int, response_code: int, headers: PackedStringArray, body: PackedByteArray) -> void:
+	print("HTTP:", response_code)
+	print("RAW RESPONSE:")
+	print(body.get_string_from_utf8())
+
 	if response_code != 200:
+		print("❌ Non-200 response, fallback")
 		_use_fallback()
 		return
 
 	var response_text: String = body.get_string_from_utf8()
-	var parsed_var: Variant = JSON.parse_string(response_text)
-	
-	if parsed_var == null:
+	var parsed: Dictionary = JSON.parse_string(response_text)
+
+	if parsed.is_empty():
+		print("❌ Failed to parse top-level JSON")
 		_use_fallback()
 		return
 
-	var candidates: Array = parsed_var.get("candidates", [])
-	if candidates.is_empty():
+	# ✅ GROQ / OpenAI FORMAT
+	var choices: Array = parsed.get("choices", [])
+	if choices.is_empty():
+		print("❌ No choices in response")
 		_use_fallback()
 		return
 
-	var text_output: String = str(candidates[0].get("content", {}).get("parts", [{}])[0].get("text", ""))
-	var riddle_var: Variant = JSON.parse_string(text_output)
-	
-	if riddle_var == null:
+	var message: Dictionary = choices[0].get("message", {})
+	var content: String = str(message.get("content", ""))
+
+	print("LLM CONTENT:")
+	print(content)
+
+	# content itself is JSON → parse again
+	var riddle_var: Dictionary = JSON.parse_string(content)
+	if riddle_var.is_empty():
+		print("❌ Riddle JSON invalid")
 		_use_fallback()
 		return
 
+	# ✅ SUCCESS
 	riddle_data["riddle"] = str(riddle_var.get("riddle", ""))
 	riddle_data["hints"] = riddle_var.get("hints", [])
 	riddle_data["solution"] = str(riddle_var.get("solution", ""))
 
+	print("✅ USING LLM RIDDLE")
 	emit_signal("riddle_generated", riddle_data)
 
 # =================================================
