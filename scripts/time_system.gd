@@ -117,11 +117,14 @@ func create_clock_ui():
 	clock_label = Label.new()
 	canvas.add_child(clock_label)
 
-	# apply font
+	# Apply font
 	clock_label.add_theme_font_override("font", jersey_font)
 	clock_label.add_theme_font_size_override("font_size", 40)
 	clock_label.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
 
+	# --- SET OPACITY HERE ---
+	# (1, 1, 1) keeps the original color, 0.8 sets the transparency
+	clock_label.modulate = Color(1, 1, 1, 0.8)
 
 	clock_label.anchor_right = 1
 	clock_label.anchor_bottom = 1
@@ -129,7 +132,6 @@ func create_clock_ui():
 	clock_label.offset_bottom = -20
 	clock_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
 	clock_label.vertical_alignment = VERTICAL_ALIGNMENT_BOTTOM
-
 
 func update_clock_text():
 	var hour := game_hour

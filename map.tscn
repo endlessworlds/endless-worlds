@@ -1,4 +1,4 @@
-[gd_scene load_steps=22 format=3 uid="uid://dpbxblfybuwu6"]
+[gd_scene load_steps=23 format=3 uid="uid://dpbxblfybuwu6"]
 
 [ext_resource type="TileSet" uid="uid://crg0orous800e" path="res://tile_set.tres" id="1_c7s6e"]
 [ext_resource type="Script" uid="uid://b221v61dem8vf" path="res://scripts/map.gd" id="1_wijl4"]
@@ -21,6 +21,8 @@
 [ext_resource type="Texture2D" uid="uid://dxi7du3opig45" path="res://assets/ui/riddle.png" id="17_jk4ss"]
 [ext_resource type="FontFile" uid="uid://08vndck327l2" path="res://Jersey10-Regular.ttf" id="18_r5om4"]
 [ext_resource type="PackedScene" uid="uid://dmr0fcamx7t56" path="res://addons/virtual_joystick/virtual_joystick_scene.tscn" id="19_bssq0"]
+
+[sub_resource type="StyleBoxEmpty" id="StyleBoxEmpty_r5om4"]
 
 [node name="Map" type="Node2D"]
 scale = Vector2(2, 2)
@@ -72,6 +74,7 @@ anchor_right = 1.0
 anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
+theme_override_styles/panel = SubResource("StyleBoxEmpty_r5om4")
 
 [node name="HintsColumn" type="VBoxContainer" parent="RiddleUI/Panel"]
 layout_mode = 1
@@ -84,30 +87,35 @@ grow_vertical = 2
 alignment = 1
 
 [node name="HintBulb1" type="TextureRect" parent="RiddleUI/Panel/HintsColumn"]
+modulate = Color(1, 1, 1, 0.70000005)
 layout_mode = 2
 stretch_mode = 2
 script = ExtResource("14_wbpbn")
 bulb_texture = ExtResource("15_wbpbn")
 
 [node name="HintBulb2" type="TextureRect" parent="RiddleUI/Panel/HintsColumn"]
+modulate = Color(1, 1, 1, 0.70000005)
 layout_mode = 2
 stretch_mode = 2
 script = ExtResource("14_wbpbn")
 bulb_texture = ExtResource("15_wbpbn")
 
 [node name="HintBulb3" type="TextureRect" parent="RiddleUI/Panel/HintsColumn"]
+modulate = Color(1, 1, 1, 0.70000005)
 layout_mode = 2
 stretch_mode = 2
 script = ExtResource("14_wbpbn")
 bulb_texture = ExtResource("15_wbpbn")
 
 [node name="HintBulb4" type="TextureRect" parent="RiddleUI/Panel/HintsColumn"]
+modulate = Color(1, 1, 1, 0.70000005)
 layout_mode = 2
 stretch_mode = 2
 script = ExtResource("14_wbpbn")
 bulb_texture = ExtResource("15_wbpbn")
 
 [node name="RiddleToggle" type="TextureButton" parent="RiddleUI/Panel"]
+modulate = Color(1, 1, 1, 0.70000005)
 layout_mode = 1
 anchors_preset = 5
 anchor_left = 0.5
@@ -152,7 +160,6 @@ theme_override_font_sizes/font_size = 25
 text = "loading.."
 
 [node name="Tasks" parent="." instance=ExtResource("13_6qsgm")]
-spawn_radius = 100.0
 
 [node name="AnswerPopup" parent="." instance=ExtResource("17_a6rn7")]
 

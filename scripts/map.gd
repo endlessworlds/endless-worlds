@@ -78,7 +78,7 @@ func _ready():
 	flower_spawner.spawn_flowers()
 	lighting.spawn_lava_lights()
 	time.init_time()
-	spawner.spawn_on_nearest_grass()
+	spawner.spawn_player_at_center()
 
 	# 🖥 UI + SYSTEMS
 	create_tile_info_ui()
@@ -112,7 +112,15 @@ func _on_well_interacted():
 func _on_riddle_generated(data: Dictionary) -> void:
 	current_solution = str(data["solution"]).strip_edges().to_lower()
 	riddle_ui.setup_riddle(data)
-	tasks.spawn_hints(data["hints"].size(), player.global_position)
+	
+	# Updated call: Pass count, tilemap, border, width, and height
+	tasks.spawn_hints(
+		data["hints"].size(), 
+		tilemap, 
+		world.water_border, 
+		world.total_width, 
+		world.total_height
+	)
 
 func _process(_delta):
 	update_player_tile_info()
@@ -186,6 +194,7 @@ func update_player_tile_info():
 func create_bubble_ui():
 	bubble_container = HBoxContainer.new()
 	hearts.add_child(bubble_container)
+	bubble_container.modulate.a = 0.8
 	bubble_container.visible = false
 	bubble_container.add_theme_constant_override("separation", 6)
 
@@ -275,10 +284,18 @@ func update_bubbles():
 func create_score_ui():
 	var canvas := CanvasLayer.new()
 	add_child(canvas)
+	
 	score_label = Label.new()
 	canvas.add_child(score_label)
+	
+	# Apply font settings
 	score_label.add_theme_font_override("font", load("res://Jersey10-Regular.ttf"))
 	score_label.add_theme_font_size_override("font_size", 40)
+	
+	# --- ADD THIS LINE FOR OPACITY ---
+	# Color(1, 1, 1) keeps it white, 0.8  sets the transparency
+	score_label.modulate = Color(1, 1, 1, 0.8) 
+	
 	score_label.position = Vector2(20, 20)
 	update_score_label()
 

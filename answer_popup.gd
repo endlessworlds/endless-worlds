@@ -4,6 +4,7 @@ class_name AnswerPopup
 @onready var message: Label = $Panel/VBoxContainer/MessageLabel
 @onready var input: LineEdit = $Panel/VBoxContainer/AnswerInput
 @onready var submit: Button = $Panel/VBoxContainer/SubmitButton
+@onready var close_button: Button = $Panel/CloseButton
 
 var correct_answer: String = ""
 var hearts: HeartSystem
@@ -12,6 +13,7 @@ var map_ref
 func _ready():
 	visible = false
 	submit.pressed.connect(_on_submit)
+	close_button.pressed.connect(close)
 
 	# 🚫 Prevent Enter key from submitting
 	input.gui_input.connect(_block_enter_key)
