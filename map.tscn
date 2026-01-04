@@ -1,4 +1,4 @@
-[gd_scene load_steps=24 format=3 uid="uid://dpbxblfybuwu6"]
+[gd_scene load_steps=25 format=3 uid="uid://dpbxblfybuwu6"]
 
 [ext_resource type="TileSet" uid="uid://crg0orous800e" path="res://tile_set.tres" id="1_c7s6e"]
 [ext_resource type="Script" uid="uid://b221v61dem8vf" path="res://scripts/map.gd" id="1_wijl4"]
@@ -22,6 +22,7 @@
 [ext_resource type="Texture2D" uid="uid://dxi7du3opig45" path="res://assets/ui/riddle.png" id="17_jk4ss"]
 [ext_resource type="FontFile" uid="uid://08vndck327l2" path="res://Jersey10-Regular.ttf" id="18_r5om4"]
 [ext_resource type="PackedScene" uid="uid://qlpy3iu78nw2" path="res://joy_stick_ui.tscn" id="21_r5om4"]
+[ext_resource type="PackedScene" uid="uid://clivw5ge2vyc" path="res://tutorialscene/TutorialButton.tscn" id="23_4sf5t"]
 
 [sub_resource type="StyleBoxEmpty" id="StyleBoxEmpty_r5om4"]
 
@@ -168,3 +169,16 @@ text = "loading.."
 [node name="AnswerPopup" parent="." instance=ExtResource("17_a6rn7")]
 
 [node name="JoyStickUI" parent="." instance=ExtResource("21_r5om4")]
+
+[node name="TutorialButton" parent="JoyStickUI" instance=ExtResource("23_4sf5t")]
+anchors_preset = 7
+anchor_left = 0.5
+anchor_top = 1.0
+anchor_right = 0.5
+anchor_bottom = 1.0
+offset_left = -55.5
+offset_top = -50.0
+offset_right = 55.5
+offset_bottom = 0.0
+grow_horizontal = 2
+grow_vertical = 0
