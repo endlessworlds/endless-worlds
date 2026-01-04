@@ -1,7 +1,21 @@
-[gd_scene load_steps=3 format=3 uid="uid://bywgfekvqlbn4"]
+[gd_scene load_steps=5 format=3 uid="uid://bywgfekvqlbn4"]
 
 [ext_resource type="Script" uid="uid://dkxkmjwgujtli" path="res://tutorialscene/tutorial_overlay.gd" id="1_dscx2"]
 [ext_resource type="FontFile" uid="uid://08vndck327l2" path="res://Jersey10-Regular.ttf" id="2_jvirp"]
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_jvirp"]
+bg_color = Color(0, 0, 0, 0.358)
+border_width_left = 4
+border_width_top = 4
+border_width_right = 4
+border_width_bottom = 4
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_jbccx"]
+bg_color = Color(0, 0, 0, 0.703)
+border_width_left = 4
+border_width_top = 4
+border_width_right = 4
+border_width_bottom = 4
 
 [node name="TutorialOverlay" type="CanvasLayer"]
 script = ExtResource("1_dscx2")
@@ -56,14 +70,25 @@ layout_mode = 1
 anchors_preset = 4
 anchor_top = 0.5
 anchor_bottom = 0.5
-offset_left = -80.0
+offset_left = -110.0
 offset_top = -28.0
-offset_right = -22.0
 offset_bottom = 28.0
 grow_vertical = 2
+theme_override_colors/font_color = Color(0, 0.6997954, 0.29769254, 1)
 theme_override_fonts/font = ExtResource("2_jvirp")
 theme_override_font_sizes/font_size = 40
-text = "◄"
+theme_override_styles/normal = SubResource("StyleBoxFlat_jvirp")
+theme_override_styles/normal_mirrored = SubResource("StyleBoxFlat_jvirp")
+theme_override_styles/pressed = SubResource("StyleBoxFlat_jvirp")
+theme_override_styles/pressed_mirrored = SubResource("StyleBoxFlat_jvirp")
+theme_override_styles/hover = SubResource("StyleBoxFlat_jvirp")
+theme_override_styles/hover_mirrored = SubResource("StyleBoxFlat_jvirp")
+theme_override_styles/hover_pressed = SubResource("StyleBoxFlat_jvirp")
+theme_override_styles/hover_pressed_mirrored = SubResource("StyleBoxFlat_jvirp")
+theme_override_styles/disabled = SubResource("StyleBoxFlat_jvirp")
+theme_override_styles/disabled_mirrored = SubResource("StyleBoxFlat_jvirp")
+theme_override_styles/focus = SubResource("StyleBoxFlat_jvirp")
+text = "  BACK  "
 
 [node name="RightArrow" type="Button" parent="Root/Panel/VBoxContainer/SlideArea"]
 layout_mode = 1
@@ -72,15 +97,26 @@ anchor_left = 1.0
 anchor_top = 0.5
 anchor_right = 1.0
 anchor_bottom = 0.5
-offset_left = 22.0
 offset_top = -28.0
-offset_right = 80.0
+offset_right = 110.0
 offset_bottom = 28.0
 grow_horizontal = 0
 grow_vertical = 2
+theme_override_colors/font_color = Color(0, 0.6997954, 0.29769254, 1)
 theme_override_fonts/font = ExtResource("2_jvirp")
 theme_override_font_sizes/font_size = 40
-text = "►"
+theme_override_styles/normal = SubResource("StyleBoxFlat_jvirp")
+theme_override_styles/normal_mirrored = SubResource("StyleBoxFlat_jvirp")
+theme_override_styles/pressed = SubResource("StyleBoxFlat_jvirp")
+theme_override_styles/pressed_mirrored = SubResource("StyleBoxFlat_jvirp")
+theme_override_styles/hover = SubResource("StyleBoxFlat_jvirp")
+theme_override_styles/hover_mirrored = SubResource("StyleBoxFlat_jvirp")
+theme_override_styles/hover_pressed = SubResource("StyleBoxFlat_jvirp")
+theme_override_styles/hover_pressed_mirrored = SubResource("StyleBoxFlat_jvirp")
+theme_override_styles/disabled = SubResource("StyleBoxFlat_jvirp")
+theme_override_styles/disabled_mirrored = SubResource("StyleBoxFlat_jvirp")
+theme_override_styles/focus = SubResource("StyleBoxFlat_jvirp")
+text = "  NEXT  "
 
 [node name="SlideText" type="Label" parent="Root/Panel/VBoxContainer"]
 layout_mode = 2
@@ -96,4 +132,5 @@ layout_mode = 2
 theme_override_colors/font_color = Color(0.8745098, 0.20784314, 0.21568628, 1)
 theme_override_fonts/font = ExtResource("2_jvirp")
 theme_override_font_sizes/font_size = 40
+theme_override_styles/normal = SubResource("StyleBoxFlat_jbccx")
 text = "CLOSE TUTORIAL"
