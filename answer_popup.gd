@@ -67,6 +67,7 @@ func _on_submit():
 	print(user_answer + " " + correct_answer)
 
 	if user_answer == correct_answer:
+		Global.end_game(true)
 		message.text = "🎉 VICTORY!"
 		
 		Global.add_score(50)

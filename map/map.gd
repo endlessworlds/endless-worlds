@@ -68,6 +68,7 @@ var tile_damage_timer: Timer
 
 # ==================================================
 func _ready():
+	Global.start_game()
 	# 🔧 APPLY SETTINGS
 	rain.rain_enabled = enable_rain
 	world.SRC = TILE_SOURCE_ID
@@ -323,6 +324,8 @@ func _on_player_died():
 	tween.parallel().tween_property(death_label, "modulate:a", 1.0, 0.4)
 	Global.reset_score_only()
 	await get_tree().create_timer(5.0).timeout
+	
+	Global.end_game(false)
 	get_tree().change_scene_to_file("res://HomeScreen.tscn")
 
 func create_death_overlay():

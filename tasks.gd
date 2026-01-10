@@ -58,6 +58,7 @@ func spawn_hints(_count: int, tilemap: TileMapLayer, water_border: int, width: i
 
 func _on_hint_collected() -> void:
 	collected_hints += 1
+	Global.record_hint()
 	emit_signal("hint_collected")
 	if collected_hints >= total_hints:
 		emit_signal("all_hints_collected")
