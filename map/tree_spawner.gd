@@ -8,8 +8,8 @@ extends Node
 # ---------------- SETTINGS ----------------
 const GRASS: Vector2i = Vector2i(0, 0)
 
-const TOTAL_TREES: int = 20        # 🌲 fewer than flowers
-const TREE_TYPES: int = 4          # number of tree variations
+const TOTAL_TREES: int = 20
+const TREE_TYPES: int = 4
 const TREE_PATH: String = "res://assets/trees/"
 
 # ==================================================
@@ -18,33 +18,22 @@ const TREE_PATH: String = "res://assets/trees/"
 func spawn_trees() -> void:
 	var grass_positions: Array[Vector2i] = []
 
-	# 1️⃣ Collect all grass tiles
 	for x: int in range(width):
 		for y: int in range(height):
 			var pos: Vector2i = Vector2i(x, y)
-
-			if tilemap.get_cell_source_id(pos) == -1:
-				continue
-
+			if tilemap.get_cell_source_id(pos) == -1: continue
 			if tilemap.get_cell_atlas_coords(pos) == GRASS:
 				grass_positions.append(pos)
 
-	if grass_positions.is_empty():
-		push_error("❌ No grass tiles found for trees")
-		return
-
+	if grass_positions.is_empty(): return
 	grass_positions.shuffle()
 
-	# 2️⃣ Load tree textures
 	var tree_textures: Array[Texture2D] = load_tree_textures()
-	if tree_textures.is_empty():
-		push_error("❌ No tree textures found")
-		return
+	if tree_textures.is_empty(): return
 
 	tree_textures.shuffle()
 	tree_textures = tree_textures.slice(0, TREE_TYPES)
 
-	# 3️⃣ Spawn trees
 	var count: int = min(TOTAL_TREES, grass_positions.size())
 
 	for i: int in range(count):
@@ -53,43 +42,45 @@ func spawn_trees() -> void:
 
 		var tree := Sprite2D.new()
 		tree.texture = tex
-
-		# ✅ Bottom-center origin (tree base)
 		tree.centered = false
+		# Offset ensures the "root" of the tree is at the tile center
 		tree.offset = Vector2(-tex.get_width() / 2.0, -tex.get_height() + 10)
 
 		var tile_local: Vector2 = tilemap.map_to_local(cell)
 		tree.global_position = tilemap.to_global(tile_local)
-
-		# 🌲 Trees are bigger than flowers
-		tree.scale = Vector2(1,1)
-
-		# Small random rotation for natural look
 		tree.rotation = randf_range(-0.05, 0.05)
-
-		# 🔑 Depth sorting based on trunk/base
 		tree.z_index = int(tree.global_position.y / 4.0)
 
+		# --------- ELLIPSE SHADOW GENERATION ---------
+		var shadow := Polygon2D.new()
+		var shadow_points := PackedVector2Array()
+		var steps := 32
+		var radius_x : float = tex.get_width() * 0.4 # Adjust width of shadow
+		var radius_y : float = radius_x * 0.4        # Flatten it into an ellipse
+		
+		for j in range(steps):
+			var angle = j * PI * 2 / steps
+			shadow_points.append(Vector2(cos(angle) * radius_x, sin(angle) * radius_y))
+		
+		shadow.polygon = shadow_points
+		shadow.color = Color(0, 0, 0, 0.3) # Semi-transparent black
+		shadow.show_behind_parent = true   # Puts shadow under the tree sprite
+		
+		# Position shadow at the "feet" of the tree
+		shadow.position = Vector2(0, 5) 
+		tree.add_child(shadow)
 
-		# --------- HITBOX GENERATION ---------
+		# --------- HITBOX GENERATION (Trunk Only) ---------
 		var img = tex.get_image()
 		var img_w = img.get_width()
 		var img_h = img.get_height()
-		
-		# Define how high from the bottom of the sprite the collision should be
 		var scan_height = 25
-		var scan_region = Rect2i(0, img_h - scan_height, img_w, scan_height)
-		var bottom_slice = img.get_region(scan_region)
-		
 		var bitmap = BitMap.new()
-		bitmap.create_from_image_alpha(bottom_slice)
+		bitmap.create_from_image_alpha(img.get_region(Rect2i(0, img_h - scan_height, img_w, scan_height)))
 		
-		# Convert the alpha of the trunk into actual polygon data
 		var polygons = bitmap.opaque_to_polygons(Rect2i(0, 0, img_w, scan_height), 2.0)
-		
 		var static_body := StaticBody2D.new()
-		# Position the body at the start of the scan region relative to the sprite offset
-		static_body.position = tree.offset + Vector2(0, img_h - scan_height+30)
+		static_body.position = tree.offset + Vector2(0, img_h - scan_height)
 		
 		for poly in polygons:
 			var collision_poly = CollisionPolygon2D.new()
@@ -119,17 +110,10 @@ func spawn_trees() -> void:
 # ==================================================
 func load_tree_textures() -> Array[Texture2D]:
 	var textures: Array[Texture2D] = []
-
-	if not DirAccess.dir_exists_absolute(TREE_PATH):
-		push_error("❌ Directory not found: " + TREE_PATH)
-		return textures
-
+	if not DirAccess.dir_exists_absolute(TREE_PATH): return textures
 	var files = ResourceLoader.list_directory(TREE_PATH)
-
 	for file in files:
 		if file.ends_with(".png"):
 			var tex = load(TREE_PATH + file)
-			if tex is Texture2D:
-				textures.append(tex)
-
+			if tex is Texture2D: textures.append(tex)
 	return textures

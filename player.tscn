@@ -1,8 +1,9 @@
-[gd_scene load_steps=19 format=3 uid="uid://olx1k0r0di2"]
+[gd_scene load_steps=20 format=3 uid="uid://olx1k0r0di2"]
 
 [ext_resource type="Script" uid="uid://v6bppyt17khp" path="res://player.gd" id="1_onrkg"]
 [ext_resource type="Texture2D" uid="uid://0vme22iwwl51" path="res://assets/front-player.png" id="2_i3pqv"]
 [ext_resource type="Texture2D" uid="uid://c7al8mod06o6j" path="res://assets/player.png" id="2_onrkg"]
+[ext_resource type="Texture2D" uid="uid://bpd52mc63ei4q" path="res://assets/glow.png" id="4_shadow"]
 
 [sub_resource type="RectangleShape2D" id="RectangleShape2D_hqtel"]
 size = Vector2(10.3125, 3)
@@ -144,6 +145,13 @@ rotation_smoothing_enabled = true
 scale = Vector2(0.25, 0.25)
 sprite_frames = SubResource("SpriteFrames_i3pqv")
 animation = &"walk_down"
+
+[node name="Shadow" type="Sprite2D" parent="."]
+modulate = Color(0, 0, 0, 0.3)
+z_index = -1
+position = Vector2(0, 7)
+scale = Vector2(0.8, 0.5)
+texture = ExtResource("4_shadow")
 
 [node name="WaterBubbleSpawner" type="Node2D" parent="."]
 position = Vector2(0, 7)
