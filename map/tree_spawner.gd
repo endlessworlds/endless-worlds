@@ -74,13 +74,21 @@ func spawn_trees() -> void:
 		var img = tex.get_image()
 		var img_w = img.get_width()
 		var img_h = img.get_height()
-		var scan_height = 25
-		var bitmap = BitMap.new()
-		bitmap.create_from_image_alpha(img.get_region(Rect2i(0, img_h - scan_height, img_w, scan_height)))
 		
+		# Define how high from the bottom of the sprite the collision should be
+		var scan_height = 25
+		var scan_region = Rect2i(0, img_h - scan_height, img_w, scan_height)
+		var bottom_slice = img.get_region(scan_region)
+		
+		var bitmap = BitMap.new()
+		bitmap.create_from_image_alpha(bottom_slice)
+		
+		# Convert the alpha of the trunk into actual polygon data
 		var polygons = bitmap.opaque_to_polygons(Rect2i(0, 0, img_w, scan_height), 2.0)
+		
 		var static_body := StaticBody2D.new()
-		static_body.position = tree.offset + Vector2(0, img_h - scan_height)
+		# Position the body at the start of the scan region relative to the sprite offset
+		static_body.position = tree.offset + Vector2(0, img_h - scan_height+30)
 		
 		for poly in polygons:
 			var collision_poly = CollisionPolygon2D.new()
