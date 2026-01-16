@@ -1,8 +1,9 @@
-[gd_scene load_steps=20 format=3 uid="uid://olx1k0r0di2"]
+[gd_scene load_steps=21 format=3 uid="uid://olx1k0r0di2"]
 
 [ext_resource type="Script" uid="uid://v6bppyt17khp" path="res://player.gd" id="1_onrkg"]
 [ext_resource type="Texture2D" uid="uid://0vme22iwwl51" path="res://assets/front-player.png" id="2_i3pqv"]
 [ext_resource type="Texture2D" uid="uid://c7al8mod06o6j" path="res://assets/player.png" id="2_onrkg"]
+[ext_resource type="Script" uid="uid://dia2khw6ash3t" path="res://CameraShake.gd" id="2_sweqy"]
 [ext_resource type="Texture2D" uid="uid://bpd52mc63ei4q" path="res://assets/glow.png" id="4_shadow"]
 
 [sub_resource type="RectangleShape2D" id="RectangleShape2D_hqtel"]
@@ -140,6 +141,7 @@ limit_enabled = false
 position_smoothing_enabled = true
 position_smoothing_speed = 2.0
 rotation_smoothing_enabled = true
+script = ExtResource("2_sweqy")
 
 [node name="AnimatedSprite2D" type="AnimatedSprite2D" parent="."]
 scale = Vector2(0.25, 0.25)

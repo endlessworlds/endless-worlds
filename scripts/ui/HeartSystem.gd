@@ -1,5 +1,3 @@
-#Call `hearts.damage(amount)` to reduce health and `hearts.heal(amount)` to restore it.
-
 extends CanvasLayer
 class_name HeartSystem
 
@@ -10,10 +8,12 @@ signal player_died
 @export var spacing := 6
 
 var current_hearts := max_hearts
-
 var hearts_container: HBoxContainer
 var heart_full: Texture2D
 var heart_empty: Texture2D
+
+# 📳 SHAKE SETTINGS
+var shake_strength := 12.0
 
 # ==================================================
 func _ready():
@@ -62,9 +62,25 @@ func update_hearts_ui():
 		heart.texture = heart_full if i < current_hearts else heart_empty
 
 # ==================================================
+# 📳 SCREEN SHAKE ONLY
+# ==================================================
+func _screen_shake():
+	var tween := create_tween()
+	for i in range(8):
+		var offset := Vector2(
+			randf_range(-shake_strength, shake_strength),
+			randf_range(-shake_strength, shake_strength)
+		)
+		tween.tween_property(self, "offset", offset, 0.04)
+	tween.tween_property(self, "offset", Vector2.ZERO, 0.1)
+
+# ==================================================
 # PUBLIC API
 # ==================================================
 func damage(amount := 1):
+	_shake_camera()   # 🎥 WORLD SHAKE
+	_shake_hearts()   # ❤️ UI SHAKE
+
 	for i in range(amount):
 		if current_hearts <= 0:
 			return
@@ -72,6 +88,7 @@ func damage(amount := 1):
 		current_hearts -= 1
 
 		var heart := hearts_container.get_child(current_hearts) as TextureRect
+
 		var tween := create_tween()
 
 		tween.tween_property(heart, "modulate:a", 0.0, 0.4)
@@ -97,7 +114,37 @@ func heal(amount := 1):
 		tween.tween_property(heart, "modulate:a", 1.0, 0.3)
 
 		current_hearts += 1
+		
+func _shake_camera():
+	var cam := get_viewport().get_camera_2d()
+	if cam and cam.has_method("shake"):
+		cam.shake()
+		
 
+
+
+func _shake_hearts():
+	if not hearts_container:
+		return
+
+	var original_pos := hearts_container.position
+	var tween := create_tween()
+	var strength := 6.0
+	var steps := 6
+
+	for i in range(steps):
+		var offset := Vector2(
+			randf_range(-strength, strength),
+			randf_range(-strength, strength)
+		)
+		tween.tween_property(
+			hearts_container,
+			"position",
+			original_pos + offset,
+			0.03
+		)
+
+	tween.tween_property(hearts_container, "position", original_pos, 0.05)
 
 func _emit_player_died():
 	emit_signal("player_died")
