@@ -100,53 +100,81 @@ func spawn_confetti():
 	var viewport_size := get_viewport().get_visible_rect().size
 
 	var colors := [
-	Color.RED,
-	Color.YELLOW,
-	Color.GREEN,
-	Color.CYAN,
-	Color.MAGENTA,
-	Color.ORANGE
+		Color.RED,
+		Color.YELLOW,
+		Color.GREEN,
+		Color.CYAN,
+		Color.MAGENTA,
+		Color.ORANGE
 	]
+
+	var shapes := ["circle", "square", "rectangle", "triangle", "parallelogram"]
 
 	for c in colors:
 		var particles := CPUParticles2D.new()
+		add_child(particles)
 
-		# 1. ADD TO SELF
-		# This ensures it stays on the CanvasLayer (UI) and above the map
-		add_child(particles) 
+		particles.position = viewport_size * 0.5 + Vector2(0, -200)
 
-		# 2. POSITION
-		# (viewport_size * 0.5) is the exact center
-		# Vector2(0, -50) moves it UP by 50 pixels
-		particles.position = (viewport_size * 0.5) + Vector2(0, -100)
-
-		# 3. CONFIGURE PARTICLES
 		particles.amount = 80
-		particles.explosiveness = 1.0     # All particles pop at once
-		particles.lifetime = 2.0          # How long they stay on screen
-		particles.one_shot = true         # Play only once
-		particles.direction = Vector2(0, -1) # Aim UP
-		particles.spread = 180.0          # Blow out in a half-circle
+		particles.explosiveness = 1.0
+		particles.lifetime = 2.0
+		particles.one_shot = true
+		particles.direction = Vector2(0, -1)
+		particles.spread = 180
 
-		# Physics
-		particles.gravity = Vector2(0, 1200)       # Pulls them down
+		particles.gravity = Vector2(0, 1200)
 		particles.initial_velocity_min = 400
 		particles.initial_velocity_max = 900
 
-		# Rotation (Makes them spin/flutter)
 		particles.angular_velocity_min = 100
 		particles.angular_velocity_max = 400
 
-		# Size (Make sure they are big enough to see!)
-		particles.scale_amount_min = 10.0 
-		particles.scale_amount_max = 20.0
+		particles.scale_amount_min = 0.6
+		particles.scale_amount_max = 1.2
 
-		# Color
+		# 🎨 COLOR
 		particles.modulate = c
 
-		# 4. START
+		# 🔺 SHAPE TEXTURE
+		var shape :Variant= shapes.pick_random()
+		particles.texture = _make_shape_texture(shape, 16)
+
 		particles.emitting = true
 
-		# 5. CLEANUP
-		# Automatically deletes the particle node after 3 seconds
-		get_tree().create_timer(3.0).timeout.connect(particles.queue_free)	
+		get_tree().create_timer(3.0).timeout.connect(particles.queue_free)
+
+
+func _make_shape_texture(shape: String, size := 16) -> Texture2D:
+	var img := Image.create(size, size, false, Image.FORMAT_RGBA8)
+	img.fill(Color.TRANSPARENT)
+
+	var c := Color.WHITE
+
+	match shape:
+		"circle":
+			for x in size:
+				for y in size:
+					if Vector2(x, y).distance_to(Vector2(size/2.0, size/2)) <= size/2:
+						img.set_pixel(x, y, c)
+
+		"square":
+			img.fill(c)
+
+		"rectangle":
+			for x in size:
+				for y in int(size * 0.6):
+					img.set_pixel(x, y + int(size * 0.2), c)
+
+		"triangle":
+			for y in size:
+				for x in int((y / float(size)) * size):
+					img.set_pixel(x + (size - x) / 2, y, c)
+
+		"parallelogram":
+			for y in size:
+				for x in int(size * 0.7):
+					img.set_pixel(x + int(y * 0.2), y, c)
+
+	var tex := ImageTexture.create_from_image(img)
+	return tex
