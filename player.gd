@@ -18,6 +18,8 @@ extends CharacterBody2D
 @onready var collider: CollisionShape2D = $CollisionShape2D
 @onready var bubble_spawner: Node2D = $WaterBubbleSpawner
 
+@onready var camera: Camera2D = $Camera2D
+
 # ================= BUBBLES =================
 @export var bubble_scene := preload("res://WaterBubble.tscn")
 @export var bubble_spawn_rate := 0.6
@@ -33,6 +35,7 @@ var last_dir := Vector2.DOWN
 func _ready():
 	base_sprite_pos = sprite.position-Vector2(0,10)
 	sprite.modulate = Color.WHITE
+	camera.zoom = Vector2.ONE
 
 # ==================================================
 func _physics_process(delta):
