@@ -41,6 +41,7 @@ const FALLBACK_RIDDLES: Array[Dictionary] = [
 @onready var http: HTTPRequest = $HTTPRequest
 
 var api_key: String = ""
+var LAMBDA_URL :String = ""
 
 # ================= STORED DATA =================
 var riddle_data: Dictionary = {
@@ -53,10 +54,15 @@ signal riddle_generated(data: Dictionary)
 
 # =================================================
 func _ready() -> void:
+	print("[GeminiRiddle] Initializing script...")
 	var env: Dictionary = EnvLoader.load_env()
 	api_key = env.get("LLM_API_KEY", "")
+	LAMBDA_URL = env.get("LAMBDA_URL", "")
+	
+	print("[GeminiRiddle] Config Loaded. API Key Present: ", !api_key.is_empty(), " | Lambda URL Present: ", !LAMBDA_URL.is_empty())
 
 	if not has_node("HTTPRequest"):
+		print("[GeminiRiddle] Creating HTTPRequest node dynamically.")
 		var new_http = HTTPRequest.new()
 		add_child(new_http)
 		http = new_http
@@ -65,42 +71,36 @@ func _ready() -> void:
 
 # =================================================
 func generate_riddle() -> void:
-	# DIFFICULTY FETCHING
 	var difficulty = get_node("/root/Map/DifficultyRL").choose_difficulty()
-	print(difficulty)
+	var topic = Global.selected_topic
+	
+	print("[GeminiRiddle] Starting generation. Topic: ", topic, " | Difficulty: ", difficulty)
 	
 	if api_key.is_empty():
-		print("⚠️ LLM API key missing — using fallback riddle")
-		_use_fallback()
+		print("[GeminiRiddle] No API Key found. Routing to Lambda...")
+		_call_lambda(difficulty, topic)
 		return
 
+	print("[GeminiRiddle] API Key found. Requesting from Groq LLM...")
 	var prompt: String = """
 Generate a riddle in STRICT JSON format only.
-
 Structure:
 {
   "riddle": "string",
   "hints": ["hint1", "hint2", "hint3", "hint4"],
   "solution": "string"
 }
-
 Rules:
-- The question must be related to the topic: """ + Global.selected_topic + """
-- Difficulty="""+difficulty+"""
-- No markdown
-- No explanation
-- Valid JSON only
-- solution should be a single word
+- Topic: """ + topic + """
+- Difficulty: """ + difficulty + """
+- Valid JSON only, solution is one word.
 """
 
 	var body := {
 		"model": "llama-3.1-8b-instant",
-		"messages": [
-			{ "role": "user", "content": prompt }
-		],
+		"messages": [{ "role": "user", "content": prompt }],
 		"temperature": 0.5,
-		"max_tokens": 256,
-		"top_p": 0.9
+		"max_tokens": 256
 	}
 
 	var headers: PackedStringArray = [
@@ -108,67 +108,85 @@ Rules:
 		"Authorization: Bearer %s" % api_key
 	]
 
-	var err := http.request(
-		LLM_URL,
-		headers,
-		HTTPClient.METHOD_POST,
-		JSON.stringify(body)
-	)
+	var err := http.request(LLM_URL, headers, HTTPClient.METHOD_POST, JSON.stringify(body))
 
 	if err != OK:
-		push_warning("❌ LLM request failed — using fallback")
+		push_error("[GeminiRiddle] HTTP Request Error: " + str(err))
+		_use_fallback()
+
+func _call_lambda(difficulty: String, topic: String) -> void:
+	if LAMBDA_URL.is_empty():
+		push_error("[GeminiRiddle] Lambda URL is missing! Cannot fetch riddle.")
+		_use_fallback()
+		return
+
+	print("[GeminiRiddle] Sending POST to Lambda: ", LAMBDA_URL)
+	var body := { "difficulty": difficulty, "topic": topic }
+	var headers := PackedStringArray(["Content-Type: application/json"])
+
+	var err := http.request(LAMBDA_URL, headers, HTTPClient.METHOD_POST, JSON.stringify(body))
+
+	if err != OK:
+		push_error("[GeminiRiddle] Lambda Connection Failed.")
 		_use_fallback()
 
 # =================================================
-func _on_response(_result: int, response_code: int, _headers: PackedStringArray, body: PackedByteArray) -> void:
-	print("HTTP:", response_code)
-	#print("RAW RESPONSE:")
-	#print(body.get_string_from_utf8())
-
-	if response_code != 200:
-		print("❌ Non-200 response, fallback")
+func _on_response(_r, code, _h, body):
+	print("[GeminiRiddle] Response received. HTTP Code: ", code)
+	
+	if code != 200:
+		push_warning("[GeminiRiddle] Server returned error code. Switching to fallback.")
 		_use_fallback()
 		return
 
-	var response_text: String = body.get_string_from_utf8()
-	var parsed: Dictionary = JSON.parse_string(response_text)
+	var text :String= body.get_string_from_utf8()
+	var data = JSON.parse_string(text)
 
-	if parsed.is_empty():
-		print("❌ Failed to parse top-level JSON")
+	if typeof(data) != TYPE_DICTIONARY or data.is_empty():
+		push_error("[GeminiRiddle] Failed to parse JSON response.")
 		_use_fallback()
 		return
 
-	# ✅ GROQ / OpenAI FORMAT
-	var choices: Array = parsed.get("choices", [])
-	if choices.is_empty():
-		print("❌ No choices in response")
-		_use_fallback()
+	# Logic for Lambda Response
+	if data.has("riddle"):
+		riddle_data = data
+		_log_riddle_details(riddle_data)
+		emit_signal("riddle_generated", riddle_data)
 		return
 
-	var message: Dictionary = choices[0].get("message", {})
-	var content: String = str(message.get("content", ""))
-
-	print("LLM CONTENT:")
-	print(content)
-
-	# content itself is JSON → parse again
-	var riddle_var: Dictionary = JSON.parse_string(content)
-	if riddle_var.is_empty():
-		print("❌ Riddle JSON invalid")
+	# Logic for Groq/OpenAI Response
+	if data.has("choices"):
+		var content :String = data["choices"][0]["message"]["content"]
+		var parsed = JSON.parse_string(content)
+		
+		if typeof(parsed) == TYPE_DICTIONARY:
+			riddle_data = parsed
+			_log_riddle_details(riddle_data)
+			emit_signal("riddle_generated", riddle_data)
+		else:
+			_use_fallback()
+	else:
 		_use_fallback()
-		return
-
-	# ✅ SUCCESS
-	riddle_data["riddle"] = str(riddle_var.get("riddle", ""))
-	riddle_data["hints"] = riddle_var.get("hints", [])
-	riddle_data["solution"] = str(riddle_var.get("solution", ""))
-
-	print("✅ USING LLM RIDDLE")
-	emit_signal("riddle_generated", riddle_data)
 
 # =================================================
 func _use_fallback() -> void:
-	# Randomly pick one of the 6 technical riddles
+	print("[GeminiRiddle] ⚠️ ACTIVATING FALLBACK.")
 	var random_entry = FALLBACK_RIDDLES.pick_random()
 	riddle_data = random_entry.duplicate(true)
+	
+	_log_riddle_details(riddle_data) # <--- ADD THIS
+	
 	emit_signal("riddle_generated", riddle_data)
+
+
+func _log_riddle_details(data: Dictionary) -> void:
+	print("------------------------------------------")
+	print("[GeminiRiddle] NEW RIDDLE GENERATED:")
+	print("QUESTION: ", data.get("riddle", "N/A"))
+	
+	var hints = data.get("hints", [])
+	for i in range(hints.size()):
+		print("  HINT %d: %s" % [i + 1, hints[i]])
+		
+	print("ANSWER: ", data.get("solution", "N/A"))
+	print("------------------------------------------")
