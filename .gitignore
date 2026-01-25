@@ -2,3 +2,7 @@
 .godot/
 /android/
 .env
+/web-scraper-tool/node_modules
+/web-scraper-tool/debug_scrape.txt
+/web-scraper-tool/.env
+/web-scraper-tool/package-lock.json
