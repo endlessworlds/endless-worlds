@@ -19,6 +19,7 @@ config/icon="res://icon.svg"
 
 Global="*res://scripts/utils/Global.gd"
 DifficultyRl="*res://ai/DifficultyRL.gd"
+env_loader="*res://scripts/utils/env_loader.gd"
 
 [display]
 
