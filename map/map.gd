@@ -193,9 +193,10 @@ func update_player_tile_info():
 	if coords_label:
 		coords_label.text = "Coords: (%d, %d)" % [cell.x, cell.y]
 
-	# Update Tile Name Label
+	# Tile info
 	var atlas := tilemap.get_cell_atlas_coords(cell)
-	tile_info_label.text = "Tile: " + TILE_NAMES.get(atlas, "Unknown")
+	var tile_name :Variant= TILE_NAMES.get(atlas, "Dirt")
+	tile_info_label.text = "Tile: " + tile_name
 
 	# Water logic
 	if atlas == WATER_TILE:
@@ -211,6 +212,15 @@ func update_player_tile_info():
 			hearts.damage(1)
 			can_take_tile_damage = false
 			tile_damage_timer.start()
+
+	# 🔊 FOOTSTEP TILE TYPE
+	match tile_name:
+		"Water":
+			player.current_tile_type = "Water"
+		"Sand", "Lava", "Magma":
+			player.current_tile_type = "Gravel"
+		_:
+			player.current_tile_type = "Dirt"
 
 # ==================================================
 # WATER BUBBLES UI

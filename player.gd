@@ -12,6 +12,9 @@ extends CharacterBody2D
 
 # ================= COLOR TINT =================
 @export var max_blue_tint := 0.5
+# ================= FOOTSTEPS =================
+@export var footstep_interval_walk := 0.35
+@export var footstep_interval_sprint := 0.22
 
 # ================= NODES =================
 @onready var sprite: AnimatedSprite2D = $AnimatedSprite2D
@@ -19,6 +22,8 @@ extends CharacterBody2D
 @onready var bubble_spawner: Node2D = $WaterBubbleSpawner
 
 @onready var camera: Camera2D = $Camera2D
+@onready var footsteps: AudioStreamPlayer2D = $FootstepPlayer
+@onready var footstep_timer: Timer = $FootstepTimer
 
 # ================= BUBBLES =================
 @export var bubble_scene := preload("res://WaterBubble.tscn")
@@ -30,12 +35,37 @@ var in_water := false        # SET FROM map.gd
 var sink_px := 0.0
 var base_sprite_pos := Vector2.ZERO
 var last_dir := Vector2.DOWN
+var current_tile_type := "Dirt" # default
+
+# ================= FOOTSTEP SOUNDS =================
+var FOOTSTEP_SOUNDS := {
+	"Dirt": [],
+	"Gravel": [],
+	"Water": []
+}
 
 # ==================================================
 func _ready():
 	base_sprite_pos = sprite.position-Vector2(0,10)
 	sprite.modulate = Color.WHITE
 	camera.zoom = Vector2.ONE
+	load_footstep_sounds()
+	footstep_timer.timeout.connect(play_footstep)
+
+# ==================================================
+func load_footstep_sounds():
+	FOOTSTEP_SOUNDS["Dirt"] = load_folder("res://assets/audio/Dirt")
+	FOOTSTEP_SOUNDS["Gravel"] = load_folder("res://assets/audio/Gravel")
+	FOOTSTEP_SOUNDS["Water"] = load_folder("res://assets/audio/Water")
+
+func load_folder(path: String) -> Array:
+	var sounds := []
+	var dir := DirAccess.open(path)
+	if dir:
+		for file in dir.get_files():
+			if file.ends_with(".ogg"):
+				sounds.append(load(path + "/" + file))
+	return sounds
 
 # ==================================================
 func _physics_process(delta):
@@ -45,6 +75,7 @@ func _physics_process(delta):
 	)
 
 	# 🏃 SPRINT LOGIC
+	var sprinting := Input.is_action_pressed("sprint")
 	var current_speed = sprint_speed if Input.is_action_pressed("sprint") else speed
 
 	# 🌊 WATER LOGIC
@@ -72,9 +103,11 @@ func _physics_process(delta):
 		last_dir = dir
 		velocity = dir * current_speed
 		play_animation(dir)
+		start_footsteps(sprinting)
 	else:
 		velocity = Vector2.ZERO
 		set_idle_frame()
+		stop_footsteps()
 
 	move_and_slide()
 
@@ -83,6 +116,29 @@ func _physics_process(delta):
 
 	# 🎨 WATER TINT
 	apply_water_tint()
+
+# ==================================================
+# 🔊 FOOTSTEP SYSTEM
+# ==================================================
+func start_footsteps(sprinting: bool):
+	if footstep_timer.is_stopped():
+		footstep_timer.wait_time = (
+			footstep_interval_sprint if sprinting else footstep_interval_walk
+		)
+		footstep_timer.start()
+
+func stop_footsteps():
+	if not footstep_timer.is_stopped():
+		footstep_timer.stop()
+
+func play_footstep():
+	var list :Variant= FOOTSTEP_SOUNDS.get(current_tile_type, [])
+	if list.is_empty():
+		return
+	footsteps.stream = list.pick_random()
+	footsteps.pitch_scale = randf_range(0.95, 1.05)
+	footsteps.play()
+
 
 # ==================================================
 # 🔑 FOOT-BASED DEPTH SORT (NO LAG)

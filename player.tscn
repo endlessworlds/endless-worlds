@@ -157,3 +157,11 @@ texture = ExtResource("4_shadow")
 
 [node name="WaterBubbleSpawner" type="Node2D" parent="."]
 position = Vector2(0, 7)
+
+[node name="FootstepPlayer" type="AudioStreamPlayer2D" parent="."]
+volume_db = -10.0
+max_distance = 600.0
+attenuation = 1.5
+
+[node name="FootstepTimer" type="Timer" parent="."]
+wait_time = 0.35
