@@ -2,11 +2,21 @@ extends Node2D
 class_name Tasks
 
 @export var hint_pickup_scene: PackedScene
+@export var coin_sound: AudioStream
+@onready var coin_player := AudioStreamPlayer.new()
+
 var total_hints: int = 0
 var collected_hints: int = 0
 
 signal hint_collected
 signal all_hints_collected
+
+func _ready():
+	if coin_sound:
+		coin_player.stream = coin_sound
+		coin_player.volume_db = -15   # 🔉 lower volume
+		add_child(coin_player)
+
 
 func spawn_hints(_count: int, tilemap: TileMapLayer, water_border: int, width: int, height: int) -> void:
 	if hint_pickup_scene == null:
@@ -59,6 +69,11 @@ func spawn_hints(_count: int, tilemap: TileMapLayer, water_border: int, width: i
 func _on_hint_collected() -> void:
 	collected_hints += 1
 	Global.record_hint()
+
+	if coin_player:
+		coin_player.play()  
+
+
 	emit_signal("hint_collected")
 	if collected_hints >= total_hints:
 		emit_signal("all_hints_collected")
