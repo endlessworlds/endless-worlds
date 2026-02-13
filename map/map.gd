@@ -75,7 +75,7 @@ var tile_damage_timer: Timer
 func _ready():
 	Global.start_game()
 	Global.current_question_type = Global.QuestionType.values().pick_random()
-
+	Global.current_question_type=Global.QuestionType.WORDLE
 	# 🔧 APPLY SETTINGS
 	rain.rain_enabled = enable_rain
 	world.SRC = randi() % 4
@@ -346,6 +346,8 @@ func add_score(amount: int):
 # DEATH
 # ==================================================
 func _on_player_died():
+	if not is_inside_tree():
+		return # Stop if the node is already detached
 	var messages = ["💙 You tried your best!", "🌊 The world was tough today!", "🔥 Nice run, adventurer!", "✨ You'll do even better next time!"]
 	death_label.text = "%s\nScore: %d\nSolution was %s" % [messages.pick_random(), Global.score,current_solution] 
 	death_overlay.visible = true

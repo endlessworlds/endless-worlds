@@ -1,10 +1,13 @@
 # Global.gd (Autoload)
 extends Node
 
+
 enum QuestionType {
 	MCQ,
-	FILL_BLANK
+	FILL_BLANK,
+	WORDLE
 }
+
 
 const SAVE_PATH := "user://save.json"
 var rl: DifficultyRL

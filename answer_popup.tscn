@@ -118,6 +118,24 @@ theme_override_styles/read_only = SubResource("StyleBoxFlat_mqpby")
 theme_override_styles/focus = SubResource("StyleBoxFlat_mqpby")
 alignment = 1
 
+[node name="WordleGrid" type="VBoxContainer" parent="Panel/VBoxContainer/FillContainer"]
+layout_mode = 2
+
+[node name="Row0" type="HBoxContainer" parent="Panel/VBoxContainer/FillContainer/WordleGrid"]
+layout_mode = 2
+
+[node name="Row1" type="HBoxContainer" parent="Panel/VBoxContainer/FillContainer/WordleGrid"]
+layout_mode = 2
+
+[node name="Row2" type="HBoxContainer" parent="Panel/VBoxContainer/FillContainer/WordleGrid"]
+layout_mode = 2
+
+[node name="Row3" type="HBoxContainer" parent="Panel/VBoxContainer/FillContainer/WordleGrid"]
+layout_mode = 2
+
+[node name="Row4" type="HBoxContainer" parent="Panel/VBoxContainer/FillContainer/WordleGrid"]
+layout_mode = 2
+
 [node name="SubmitButton" type="Button" parent="Panel/VBoxContainer"]
 layout_mode = 2
 theme_override_fonts/font = ExtResource("2_ddl3n")
