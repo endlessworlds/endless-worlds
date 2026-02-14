@@ -4,7 +4,7 @@ extends CanvasLayer
 class_name AnswerPopup
 
 @onready var wordle_grid := $Panel/VBoxContainer/FillContainer/WordleGrid
-
+@onready var keyboard = $Panel/VBoxContainer/CustomKeyboard # Adjust path to your sibling node
 var max_attempts := 5
 var current_row := 0
 var current_col := 0
@@ -51,6 +51,10 @@ func _hide_all_popups():
 	# Hide fill in blank
 	fill_container.visible = false
 	answer_input.text = ""
+	
+	# NEW: Hide custom keyboard by default
+	if keyboard:
+		keyboard.visible = false
 
 
 # =============================
@@ -58,7 +62,58 @@ func _ready():
 	visible = false
 	submit.pressed.connect(_on_submit)
 	close_button.pressed.connect(close)
+	
+	# --- KEYBOARD CONFIGURATION ---
+	# Disable the system virtual keyboard for mobile devices
+	answer_input.virtual_keyboard_enabled = false 
+	# Keep editable so PC users can type and LineEdit logic works
+	answer_input.editable = true 
+	# Prevent the LineEdit from grabbing focus and potentially triggering OS behaviors
+	answer_input.focus_mode = Control.FOCUS_CLICK
+	
+	# Listen to custom 2D keyboard buttons
+	if keyboard:
+		keyboard.key_pressed.connect(_on_custom_key_pressed)
+		keyboard.backspace_pressed.connect(_on_custom_backspace)
+		keyboard.enter_pressed.connect(_on_submit)
 
+func _on_custom_key_pressed(chars: String):
+	# Update LineEdit for Fill-in-the-blank
+	answer_input.text += chars
+	answer_input.caret_column = answer_input.text.length()
+	
+	# Update Wordle Grid
+	if popup_type == Global.QuestionType.WORDLE:
+		_handle_wordle_input(chars)
+
+func _on_custom_backspace():
+	# Backspace for LineEdit
+	if answer_input.text.length() > 0:
+		answer_input.text = answer_input.text.left(-1)
+	
+	# Backspace for Wordle
+	if popup_type == Global.QuestionType.WORDLE and current_col > 0:
+		current_col -= 1
+		var box = boxes[current_row][current_col]
+		box.get_child(0).text = ""
+
+
+
+# Shared logic for Wordle input (triggered by PC or Custom Buttons)
+func _handle_wordle_input(chars: String):
+	if current_row >= max_attempts: return
+	if current_col < correct_answer.length():
+		var box = boxes[current_row][current_col]
+		box.get_child(0).text = chars.to_upper()
+		
+		# Animation
+		var tween = create_tween()
+		tween.tween_property(box, "scale", Vector2(1.1, 1.1), 0.05)
+		tween.tween_property(box, "scale", Vector2(1.0, 1.0), 0.05)
+		current_col += 1
+
+		
+		
 # =============================
 # OPEN POPUP WITH MCQs
 # =============================
@@ -68,17 +123,22 @@ func open(solution: String, options: Array, heart_system: HeartSystem, map):
 		return
 
 	visible = true
+	
+	# --- BLOCK BACKGROUND INPUT ---
+	# This ensures that mouse clicks don't go through the panel
+	$Panel.mouse_filter = Control.MOUSE_FILTER_STOP
+	
+	# Optional: If you want to stop the player from moving/processing logic
+	# get_tree().paused = true # Uncomment if your game supports pausing
+	
 	hearts = heart_system
 	map_ref = map
 	correct_answer = solution.to_lower()
 	selected_answer = ""
 
 	_hide_all_popups()
-
-	# RANDOM POPUP TYPE
 	
 	popup_type = Global.current_question_type
-
 
 	match Global.current_question_type:
 		Global.QuestionType.MCQ:
@@ -87,6 +147,52 @@ func open(solution: String, options: Array, heart_system: HeartSystem, map):
 			_open_fill_blank()
 		Global.QuestionType.WORDLE:
 			_open_wordle()
+
+func close():
+	# --- RESTORE BACKGROUND INPUT ---
+	# get_tree().paused = false # Uncomment if you used the pause method
+	
+	_hide_all_popups()
+	visible = false
+	selected_answer = ""
+	message.text = ""
+
+	for btn in option_buttons:
+		btn.modulate = Color.WHITE
+		btn.disabled = false
+
+# Update _unhandled_input to "consume" the event
+func _unhandled_input(event):
+	if not visible: return
+	
+	# Stop the event from reaching nodes behind this popup
+	get_viewport().set_input_as_handled()
+	
+	# Only process if Wordle is active
+	if Global.current_question_type != Global.QuestionType.WORDLE: return
+	if current_row >= max_attempts: return
+	
+	if event is InputEventKey and event.pressed:
+		var key_text = ""
+		
+		if event.keycode == KEY_BACKSPACE:
+			key_text = "BKSP"
+			_on_custom_backspace()
+		elif event.keycode == KEY_ENTER:
+			key_text = "ENTER"
+			_on_submit()
+		elif event.keycode == KEY_SPACE:
+			key_text = "SPACE"
+			_on_custom_key_pressed(" ")
+		else:
+			# Convert physical key to string (e.g., "A")
+			key_text = char(event.unicode).to_upper()
+			if key_text != "":
+				_on_custom_key_pressed(key_text)
+		
+		# TRIGGER THE COOL ANIMATION
+		if keyboard and key_text != "":
+			keyboard.animate_key_press(key_text)
 
 func _build_wordle_grid():
 	boxes.clear()
@@ -154,7 +260,15 @@ func _open_mcq(options: Array):
 func _open_fill_blank():
 	message.text = "Fill in the correct answer"
 	fill_container.visible = true
+	if keyboard: keyboard.visible = true # NEW: Show for Fill Blank
 	answer_input.grab_focus()
+
+func _open_wordle():
+	message.text = "Guess the word"
+	fill_container.visible = true
+	answer_input.visible = false
+	if keyboard: keyboard.visible = true # NEW: Show for Wordle
+	_build_wordle_grid()
 
 
 # =============================
@@ -179,50 +293,58 @@ func _on_submit():
 	match popup_type:
 		Global.QuestionType.MCQ:
 			user_answer = selected_answer
+			_process_standard_answer(user_answer)
+			
 		Global.QuestionType.FILL_BLANK:
 			user_answer = answer_input.text.strip_edges().to_lower()
+			_process_standard_answer(user_answer)
+			
+		Global.QuestionType.WORDLE:
+			# Check if the current row is full
+			if current_col < correct_answer.length():
+				message.text = "⚠ Not enough letters"
+				# Optional: Add a shake animation here
+				return
+			
+			# You already have this! We just need to call it.
+			_evaluate_word()
 
+# Helper to handle the logic for MCQ and Fill-in-blank
+func _process_standard_answer(user_answer: String):
 	if user_answer == "":
 		message.text = "⚠ Answer required"
 		return
 
 	if user_answer == correct_answer:
-	
-	
-		$"../DifficultyRL".give_feedback(true, Global.current_hint_count)
-		Global.end_game(true)
-
-		spawn_confetti()
-		message.text = "🎉 VICTORY!"
-		victory_sound.play()
-
-
-		Global.add_score(30)
-		Global.next_level()
-
-		await get_tree().create_timer(1.5).timeout
-		close()
-		get_tree().change_scene_to_file("res://HomeScreen.tscn")
+		_handle_victory_shared()
 	else:
+		_handle_wrong_shared()
+
+func _handle_victory_shared():
+	if has_node("../DifficultyRL"):
+		$"../DifficultyRL".give_feedback(true, Global.current_hint_count)
+	Global.end_game(true)
+	spawn_confetti()
+	message.text = "🎉 VICTORY!"
+	victory_sound.play()
+	Global.add_score(30)
+	Global.next_level()
+	await get_tree().create_timer(1.5).timeout
+	close()
+	get_tree().change_scene_to_file("res://HomeScreen.tscn")
+
+func _handle_wrong_shared():
+	if has_node("../DifficultyRL"):
 		$"../DifficultyRL".give_feedback(false, Global.current_hint_count)
-		message.text = "❌ Wrong Answer"
-		gameover_sound.play()
-
-		Global.add_score(-10)
-		hearts.damage(2)
-		await get_tree().create_timer(1.0).timeout
-		close()
-
+	message.text = "❌ Wrong Answer"
+	gameover_sound.play()
+	Global.add_score(-10)
+	hearts.damage(2)
+	await get_tree().create_timer(1.0).timeout
+	close()
+	
 # =============================
-func close():
-	_hide_all_popups()
-	visible = false
-	selected_answer = ""
-	message.text = ""
 
-	for btn in option_buttons:
-		btn.modulate = Color.WHITE
-		btn.disabled = false
 
 # =============================
 # CONFETTI (UNCHANGED)
@@ -296,33 +418,7 @@ func _make_shape_texture(shape: String, size := 16) -> Texture2D:
 
 	return ImageTexture.create_from_image(img)
 
-func _open_wordle():
-	message.text = "Guess the word"
-	fill_container.visible = true
-	answer_input.visible = false
-	_build_wordle_grid()
 
-func _unhandled_input(event):
-	if not visible or Global.current_question_type != Global.QuestionType.WORDLE: return
-	if current_row >= max_attempts: return
-
-	if event is InputEventKey and event.pressed:
-		if event.keycode == KEY_BACKSPACE and current_col > 0:
-			current_col -= 1
-			boxes[current_row][current_col].get_child(0).text = ""
-		elif event.keycode == KEY_ENTER:
-			if current_col == correct_answer.length(): _evaluate_word()
-		elif event.unicode >= 65 and event.unicode <= 122:
-			if current_col < correct_answer.length():
-				var box = boxes[current_row][current_col]
-				box.get_child(0).text = char(event.unicode).to_upper()
-				
-				# Pop Animation
-				var tween = create_tween()
-				tween.tween_property(box, "scale", Vector2(1.1, 1.1), 0.05)
-				tween.tween_property(box, "scale", Vector2(1.0, 1.0), 0.05)
-				current_col += 1
-			
 func _evaluate_word():
 	var guess := ""
 	for box in boxes[current_row]:

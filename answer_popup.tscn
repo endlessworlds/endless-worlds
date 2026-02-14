@@ -1,8 +1,9 @@
-[gd_scene load_steps=8 format=3 uid="uid://dpqtvtf5uxnjn"]
+[gd_scene load_steps=10 format=3 uid="uid://dpqtvtf5uxnjn"]
 
 [ext_resource type="Script" uid="uid://cw7pmsfdaakoc" path="res://answer_popup.gd" id="1_juwdi"]
 [ext_resource type="FontFile" uid="uid://08vndck327l2" path="res://Jersey10-Regular.ttf" id="2_ddl3n"]
 [ext_resource type="AudioStream" uid="uid://c4vnxjg8208ji" path="res://assets/audio/victory/VictorySmall.wav" id="3_mqpby"]
+[ext_resource type="Script" uid="uid://webohet2yr5x" path="res://virtual_keyboard/CustomKeyboard.gd" id="3_qoqra"]
 [ext_resource type="AudioStream" uid="uid://dvlhfxpdy87b5" path="res://assets/audio/gameover.mp3" id="3_ws6o5"]
 
 [sub_resource type="StyleBoxFlat" id="StyleBoxFlat_ddl3n"]
@@ -37,6 +38,18 @@ corner_radius_top_left = 50
 corner_radius_top_right = 50
 corner_radius_bottom_right = 50
 corner_radius_bottom_left = 50
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_qoqra"]
+bg_color = Color(0, 0, 0, 0.5)
+border_width_left = 5
+border_width_top = 5
+border_width_right = 5
+border_width_bottom = 5
+border_color = Color(0.6402972, 0.6402972, 0.6402971, 1)
+corner_radius_top_left = 40
+corner_radius_top_right = 40
+corner_radius_bottom_right = 40
+corner_radius_bottom_left = 40
 
 [node name="AnswerPopup" type="CanvasLayer"]
 script = ExtResource("1_juwdi")
@@ -144,20 +157,30 @@ theme_override_styles/normal = SubResource("StyleBoxFlat_ws6o5")
 theme_override_styles/hover = SubResource("StyleBoxFlat_ws6o5")
 text = "SUBMIT"
 
+[node name="CustomKeyboard" type="PanelContainer" parent="Panel/VBoxContainer"]
+layout_mode = 2
+script = ExtResource("3_qoqra")
+
+[node name="VBoxContainer" type="VBoxContainer" parent="Panel/VBoxContainer/CustomKeyboard"]
+layout_mode = 2
+
 [node name="CloseButton" type="Button" parent="Panel"]
 layout_mode = 1
 anchors_preset = -1
 anchor_left = 1.0
 anchor_right = 1.0
-offset_left = -231.0
-offset_top = 78.0
-offset_right = -171.0
-offset_bottom = 138.0
+offset_left = -360.0
+offset_top = 8.0
+offset_right = -280.0
+offset_bottom = 88.0
 grow_horizontal = 0
 theme_override_colors/font_color = Color(0.8745098, 0, 0, 1)
 theme_override_colors/font_pressed_color = Color(1, 0.2509804, 0.22745098, 1)
 theme_override_fonts/font = ExtResource("2_ddl3n")
 theme_override_font_sizes/font_size = 35
+theme_override_styles/normal = SubResource("StyleBoxFlat_qoqra")
+theme_override_styles/pressed = SubResource("StyleBoxFlat_qoqra")
+theme_override_styles/hover = SubResource("StyleBoxFlat_qoqra")
 text = "CLOSE"
 
 [node name="VictorySound" type="AudioStreamPlayer" parent="."]
