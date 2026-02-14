@@ -12,7 +12,8 @@ jobs:
   export-web:
     name: Web Export
     runs-on: ubuntu-latest
-    # Don't use container - install Godot directly
+    # Only run on the main repository, not forks
+    if: github.repository == 'endlessworlds/endless-worlds'
     steps:
       - name: Checkout
         uses: actions/checkout@v4
