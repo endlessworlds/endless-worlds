@@ -65,6 +65,12 @@ func _ready():
 	submit.pressed.connect(_on_submit)
 	close_button.pressed.connect(close)
 	
+	# Prevent UI focus from capturing keyboard navigation (WASD/UI actions)
+	submit.focus_mode = Control.FOCUS_NONE
+	close_button.focus_mode = Control.FOCUS_NONE
+	for btn in option_buttons:
+		btn.focus_mode = Control.FOCUS_NONE
+	
 	# --- KEYBOARD CONFIGURATION ---
 	# Disable the system virtual keyboard for mobile devices
 	answer_input.virtual_keyboard_enabled = false 
@@ -128,6 +134,7 @@ func open(solution: String, options: Array, heart_system: HeartSystem, map, ques
 		return
 
 	visible = true
+	get_viewport().gui_release_focus()
 	
 	# --- BLOCK BACKGROUND INPUT ---
 	# This ensures that mouse clicks don't go through the panel
@@ -198,8 +205,8 @@ func _unhandled_input(event):
 			if key_text != "":
 				_on_custom_key_pressed(key_text)
 		
-		# TRIGGER THE COOL ANIMATION (only for Wordle keyboard)
-		if keyboard and key_text != "" and Global.current_question_type == Global.QuestionType.WORDLE:
+		# TRIGGER THE COOL ANIMATION (Wordle + Fill-in-the-blank)
+		if keyboard and key_text != "" and Global.current_question_type in [Global.QuestionType.WORDLE, Global.QuestionType.FILL_BLANK]:
 			keyboard.animate_key_press(key_text)
 
 func _build_wordle_grid():
