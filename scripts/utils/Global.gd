@@ -7,7 +7,8 @@ enum QuestionType {
 	FILL_BLANK,
 	WORDLE,
 	WHACK,
-	WORD_LOCK
+	WORD_LOCK,
+	KBC
 }
 
 

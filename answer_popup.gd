@@ -64,6 +64,23 @@ const WORDLOCK_INACTIVE_FONT := Color(0.294, 0.0,  0.510)        # dark indigo o
 var wordlock_columns: Array = []
 var wordlock_selected_chars: Array = []
 
+# ========== KBC VARIABLES ==========
+const KBC_BG_COLOR      := Color(0.043, 0.043, 0.271)   # #0B0B45 Dark Blue
+const KBC_GOLD          := Color(1.0, 0.843, 0.0)       # #FFD700 Gold
+const KBC_OPTION_BG     := Color(0.05, 0.1, 0.35)       # Dark blue option bg
+const KBC_OPTION_BORDER := Color(1.0, 0.843, 0.0, 0.6)  # Gold border
+const KBC_CORRECT_COLOR := Color(0.0, 0.7, 0.0)         # Green
+const KBC_WRONG_COLOR   := Color(0.85, 0.1, 0.1)        # Red
+const KBC_SELECTED_COLOR := Color(0.9, 0.75, 0.0)       # Yellow/Gold highlight
+
+var kbc_container: Control = null
+var kbc_option_buttons: Array = []
+var kbc_lifeline_buttons: Array = []  # [fifty_fifty, audience_poll, phone_friend]
+var kbc_selected_answer := ""
+var kbc_lifelines_used := { "fifty_fifty": false, "audience_poll": false, "phone_friend": false }
+var kbc_current_options: Array = []
+var kbc_audience_popup: Control = null
+var kbc_phone_popup: Control = null
 
 var correct_answer := ""
 var selected_answer := ""
@@ -86,6 +103,16 @@ func _hide_all_popups():
 	
 	# Hide word lock
 	wordlock_container.visible = false
+	
+	# Hide KBC
+	if kbc_container:
+		kbc_container.visible = false
+	if kbc_audience_popup:
+		kbc_audience_popup.queue_free()
+		kbc_audience_popup = null
+	if kbc_phone_popup:
+		kbc_phone_popup.queue_free()
+		kbc_phone_popup = null
 	
 	# NEW: Hide custom keyboard by default
 	if keyboard:
@@ -243,6 +270,8 @@ func open(solution: String, options: Array, heart_system: HeartSystem, map, ques
 			_open_whack(options, solution)
 		Global.QuestionType.WORD_LOCK:
 			_open_wordlock()
+		Global.QuestionType.KBC:
+			_open_kbc(options)
 
 func _open_whack(options: Array, solution: String):
 	whack_container.visible = true
@@ -372,6 +401,16 @@ func close():
 	for btn in option_buttons:
 		btn.modulate = Color.WHITE
 		btn.disabled = false
+	
+	# Reset KBC state
+	kbc_selected_answer = ""
+	kbc_lifelines_used = { "fifty_fifty": false, "audience_poll": false, "phone_friend": false }
+	kbc_current_options.clear()
+	kbc_option_buttons.clear()
+	kbc_lifeline_buttons.clear()
+	if kbc_container:
+		kbc_container.queue_free()
+		kbc_container = null
 
 # Update _unhandled_input to "consume" the event
 func _unhandled_input(event):
@@ -652,6 +691,10 @@ func _on_submit():
 		Global.QuestionType.WORD_LOCK:
 			user_answer = "".join(wordlock_selected_chars)
 			_process_standard_answer(user_answer)
+		
+		Global.QuestionType.KBC:
+			user_answer = kbc_selected_answer
+			_process_standard_answer(user_answer)
 
 # Helper to handle the logic for MCQ and Fill-in-blank
 func _process_standard_answer(user_answer: String):
@@ -688,7 +731,522 @@ func _handle_wrong_shared():
 	close()
 	
 # =============================
+# KBC (KAUN BANEGA CROREPATI)
+# =============================
+func _open_kbc(options: Array):
+	question_label.visible = false  # We'll show question in our own styled label
+	message.text = ""
+	submit.visible = false  # KBC uses direct option click, then a lock-in button
 
+	kbc_selected_answer = ""
+	kbc_current_options = options.duplicate()
+	kbc_lifelines_used = { "fifty_fifty": false, "audience_poll": false, "phone_friend": false }
+
+	# Build the entire KBC UI dynamically
+	_build_kbc_ui(options)
+
+func _build_kbc_ui(options: Array):
+	if kbc_container:
+		kbc_container.queue_free()
+		kbc_container = null
+	kbc_option_buttons.clear()
+	kbc_lifeline_buttons.clear()
+
+	# Root container
+	kbc_container = Control.new()
+	kbc_container.set_anchors_preset(Control.PRESET_FULL_RECT)
+	$Panel.add_child(kbc_container)
+
+	# Dark blue KBC background
+	var bg := ColorRect.new()
+	bg.set_anchors_preset(Control.PRESET_FULL_RECT)
+	bg.color = KBC_BG_COLOR
+	kbc_container.add_child(bg)
+
+	# Main VBox layout
+	var main_vbox := VBoxContainer.new()
+	main_vbox.set_anchors_preset(Control.PRESET_CENTER)
+	main_vbox.anchor_left = 0.05
+	main_vbox.anchor_right = 0.95
+	main_vbox.anchor_top = 0.02
+	main_vbox.anchor_bottom = 0.98
+	main_vbox.offset_left = 0
+	main_vbox.offset_right = 0
+	main_vbox.offset_top = 0
+	main_vbox.offset_bottom = 0
+	main_vbox.add_theme_constant_override("separation", 12)
+	kbc_container.add_child(main_vbox)
+
+	# === TOP BAR: Lifelines ===
+	var lifeline_bar := HBoxContainer.new()
+	lifeline_bar.alignment = BoxContainer.ALIGNMENT_CENTER
+	lifeline_bar.add_theme_constant_override("separation", 20)
+	main_vbox.add_child(lifeline_bar)
+
+	var lifeline_label := Label.new()
+	lifeline_label.text = "⚡ LIFELINES"
+	lifeline_label.add_theme_font_override("font", preload("res://Jersey10-Regular.ttf"))
+	lifeline_label.add_theme_font_size_override("font_size", 22)
+	lifeline_label.add_theme_color_override("font_color", KBC_GOLD)
+	lifeline_bar.add_child(lifeline_label)
+
+	# 50:50
+	var btn_5050 := _make_kbc_lifeline_btn("🌓 50:50")
+	btn_5050.pressed.connect(_kbc_use_fifty_fifty)
+	lifeline_bar.add_child(btn_5050)
+
+	# Audience Poll
+	var btn_audience := _make_kbc_lifeline_btn("📊 Audience Poll")
+	btn_audience.pressed.connect(_kbc_use_audience_poll)
+	lifeline_bar.add_child(btn_audience)
+
+	# Phone a Friend
+	var btn_phone := _make_kbc_lifeline_btn("📞 Phone a Friend")
+	btn_phone.pressed.connect(_kbc_use_phone_friend)
+	lifeline_bar.add_child(btn_phone)
+
+	kbc_lifeline_buttons = [btn_5050, btn_audience, btn_phone]
+
+	# === QUESTION AREA ===
+	var question_panel := PanelContainer.new()
+	var q_style := StyleBoxFlat.new()
+	q_style.bg_color = Color(0.05, 0.05, 0.25, 0.9)
+	q_style.border_width_left = 2
+	q_style.border_width_top = 2
+	q_style.border_width_right = 2
+	q_style.border_width_bottom = 2
+	q_style.border_color = KBC_GOLD
+	q_style.corner_radius_top_left = 20
+	q_style.corner_radius_top_right = 20
+	q_style.corner_radius_bottom_right = 20
+	q_style.corner_radius_bottom_left = 20
+	q_style.content_margin_left = 20
+	q_style.content_margin_right = 20
+	q_style.content_margin_top = 16
+	q_style.content_margin_bottom = 16
+	question_panel.add_theme_stylebox_override("panel", q_style)
+	main_vbox.add_child(question_panel)
+
+	var q_label := Label.new()
+	q_label.text = current_question
+	q_label.add_theme_font_override("font", preload("res://Jersey10-Regular.ttf"))
+	q_label.add_theme_font_size_override("font_size", 28)
+	q_label.add_theme_color_override("font_color", Color.WHITE)
+	q_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	q_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	q_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	question_panel.add_child(q_label)
+
+	# === OPTIONS (2x2 grid) ===
+	var options_grid := GridContainer.new()
+	options_grid.columns = 2
+	options_grid.add_theme_constant_override("h_separation", 16)
+	options_grid.add_theme_constant_override("v_separation", 12)
+	options_grid.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	main_vbox.add_child(options_grid)
+
+	var prefixes := ["A", "B", "C", "D"]
+	for i in range(min(options.size(), 4)):
+		var btn := _make_kbc_option_btn(prefixes[i] + ":  " + options[i])
+		btn.pressed.connect(_on_kbc_option_selected.bind(i, options[i]))
+		btn.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		options_grid.add_child(btn)
+		kbc_option_buttons.append(btn)
+
+	# === LOCK-IN BUTTON ===
+	var lock_btn := Button.new()
+	lock_btn.text = "LOCK IN ✅"
+	lock_btn.custom_minimum_size = Vector2(200, 50)
+	lock_btn.add_theme_font_override("font", preload("res://Jersey10-Regular.ttf"))
+	lock_btn.add_theme_font_size_override("font_size", 28)
+	lock_btn.focus_mode = Control.FOCUS_NONE
+	var lock_style := StyleBoxFlat.new()
+	lock_style.bg_color = Color(0.0, 0.5, 0.0, 0.9)
+	lock_style.corner_radius_top_left = 16
+	lock_style.corner_radius_top_right = 16
+	lock_style.corner_radius_bottom_right = 16
+	lock_style.corner_radius_bottom_left = 16
+	lock_style.border_width_left = 2
+	lock_style.border_width_top = 2
+	lock_style.border_width_right = 2
+	lock_style.border_width_bottom = 2
+	lock_style.border_color = KBC_GOLD
+	lock_btn.add_theme_stylebox_override("normal", lock_style)
+	lock_btn.add_theme_stylebox_override("hover", lock_style)
+	lock_btn.add_theme_stylebox_override("pressed", lock_style)
+	lock_btn.add_theme_color_override("font_color", Color.WHITE)
+	lock_btn.pressed.connect(_on_submit)
+	main_vbox.add_child(lock_btn)
+	lock_btn.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
+
+	# === MESSAGE LABEL (reuse existing) ===
+	# message label is already part of the Panel, we just keep it visible
+
+func _make_kbc_lifeline_btn(text: String) -> Button:
+	var btn := Button.new()
+	btn.text = text
+	btn.custom_minimum_size = Vector2(160, 40)
+	btn.add_theme_font_override("font", preload("res://Jersey10-Regular.ttf"))
+	btn.add_theme_font_size_override("font_size", 18)
+	btn.focus_mode = Control.FOCUS_NONE
+	var style := StyleBoxFlat.new()
+	style.bg_color = Color(0.1, 0.1, 0.4, 0.9)
+	style.corner_radius_top_left = 20
+	style.corner_radius_top_right = 20
+	style.corner_radius_bottom_right = 20
+	style.corner_radius_bottom_left = 20
+	style.border_width_left = 2
+	style.border_width_top = 2
+	style.border_width_right = 2
+	style.border_width_bottom = 2
+	style.border_color = KBC_GOLD
+	btn.add_theme_stylebox_override("normal", style)
+	btn.add_theme_stylebox_override("hover", style)
+	btn.add_theme_stylebox_override("pressed", style)
+	btn.add_theme_color_override("font_color", KBC_GOLD)
+	btn.add_theme_color_override("font_hover_color", Color.WHITE)
+	return btn
+
+func _make_kbc_option_btn(text: String) -> Button:
+	var btn := Button.new()
+	btn.text = text
+	btn.custom_minimum_size = Vector2(250, 55)
+	btn.add_theme_font_override("font", preload("res://Jersey10-Regular.ttf"))
+	btn.add_theme_font_size_override("font_size", 24)
+	btn.focus_mode = Control.FOCUS_NONE
+	var style := StyleBoxFlat.new()
+	style.bg_color = KBC_OPTION_BG
+	style.corner_radius_top_left = 25
+	style.corner_radius_top_right = 25
+	style.corner_radius_bottom_right = 25
+	style.corner_radius_bottom_left = 25
+	style.border_width_left = 2
+	style.border_width_top = 2
+	style.border_width_right = 2
+	style.border_width_bottom = 2
+	style.border_color = KBC_OPTION_BORDER
+	btn.add_theme_stylebox_override("normal", style)
+	btn.add_theme_stylebox_override("hover", style)
+	btn.add_theme_stylebox_override("pressed", style)
+	btn.add_theme_color_override("font_color", Color.WHITE)
+	btn.add_theme_color_override("font_hover_color", KBC_GOLD)
+	return btn
+
+func _on_kbc_option_selected(index: int, option_text: String):
+	kbc_selected_answer = option_text.to_lower()
+
+	# Reset all option highlights
+	for i in kbc_option_buttons.size():
+		var btn: Button = kbc_option_buttons[i]
+		var style := StyleBoxFlat.new()
+		style.bg_color = KBC_OPTION_BG
+		style.corner_radius_top_left = 25
+		style.corner_radius_top_right = 25
+		style.corner_radius_bottom_right = 25
+		style.corner_radius_bottom_left = 25
+		style.border_width_left = 2
+		style.border_width_top = 2
+		style.border_width_right = 2
+		style.border_width_bottom = 2
+		style.border_color = KBC_OPTION_BORDER
+		btn.add_theme_stylebox_override("normal", style)
+		btn.add_theme_stylebox_override("hover", style)
+		btn.add_theme_stylebox_override("pressed", style)
+		btn.add_theme_color_override("font_color", Color.WHITE)
+
+	# Highlight selected option in gold
+	var selected_btn: Button = kbc_option_buttons[index]
+	var sel_style := StyleBoxFlat.new()
+	sel_style.bg_color = Color(0.15, 0.15, 0.05, 0.9)
+	sel_style.corner_radius_top_left = 25
+	sel_style.corner_radius_top_right = 25
+	sel_style.corner_radius_bottom_right = 25
+	sel_style.corner_radius_bottom_left = 25
+	sel_style.border_width_left = 3
+	sel_style.border_width_top = 3
+	sel_style.border_width_right = 3
+	sel_style.border_width_bottom = 3
+	sel_style.border_color = KBC_SELECTED_COLOR
+	sel_style.shadow_color = Color(KBC_GOLD.r, KBC_GOLD.g, KBC_GOLD.b, 0.4)
+	sel_style.shadow_size = 6
+	selected_btn.add_theme_stylebox_override("normal", sel_style)
+	selected_btn.add_theme_stylebox_override("hover", sel_style)
+	selected_btn.add_theme_stylebox_override("pressed", sel_style)
+	selected_btn.add_theme_color_override("font_color", KBC_GOLD)
+
+# ========== KBC LIFELINES ==========
+
+func _kbc_disable_lifeline_btn(btn: Button):
+	btn.disabled = true
+	var grey_style := StyleBoxFlat.new()
+	grey_style.bg_color = Color(0.2, 0.2, 0.2, 0.7)
+	grey_style.corner_radius_top_left = 20
+	grey_style.corner_radius_top_right = 20
+	grey_style.corner_radius_bottom_right = 20
+	grey_style.corner_radius_bottom_left = 20
+	grey_style.border_width_left = 2
+	grey_style.border_width_top = 2
+	grey_style.border_width_right = 2
+	grey_style.border_width_bottom = 2
+	grey_style.border_color = Color(0.4, 0.4, 0.4)
+	btn.add_theme_stylebox_override("normal", grey_style)
+	btn.add_theme_stylebox_override("disabled", grey_style)
+	btn.add_theme_color_override("font_color", Color(0.5, 0.5, 0.5))
+	btn.add_theme_color_override("font_disabled_color", Color(0.5, 0.5, 0.5))
+
+func _kbc_use_fifty_fifty():
+	if kbc_lifelines_used["fifty_fifty"]:
+		return
+	kbc_lifelines_used["fifty_fifty"] = true
+	hearts.damage(2)
+	_kbc_disable_lifeline_btn(kbc_lifeline_buttons[0])
+
+	# Find wrong options and hide 2 of them
+	var wrong_indices: Array = []
+	for i in kbc_option_buttons.size():
+		var btn_text: String = kbc_current_options[i].to_lower()
+		if btn_text != correct_answer:
+			wrong_indices.append(i)
+
+	wrong_indices.shuffle()
+	var to_hide := wrong_indices.slice(0, 2)  # Hide 2 wrong options
+	for idx in to_hide:
+		var btn: Button = kbc_option_buttons[idx]
+		btn.disabled = true
+		btn.modulate = Color(1, 1, 1, 0.2)  # Fade out
+
+	message.text = "🌓 50:50 used! Two options removed. (-2 ❤️)"
+
+func _kbc_use_audience_poll():
+	if kbc_lifelines_used["audience_poll"]:
+		return
+	kbc_lifelines_used["audience_poll"] = true
+	hearts.damage(2)
+	_kbc_disable_lifeline_btn(kbc_lifeline_buttons[1])
+
+	# Generate percentages — correct answer gets highest
+	var percentages := []
+	var correct_pct := randi_range(45, 70)
+	var remaining := 100 - correct_pct
+	for i in kbc_current_options.size():
+		if kbc_current_options[i].to_lower() == correct_answer:
+			percentages.append(correct_pct)
+		else:
+			var p := randi_range(3, max(5, remaining - 6))
+			remaining -= p
+			if remaining < 0:
+				p += remaining
+				remaining = 0
+			percentages.append(p)
+	# Adjust to ensure total is 100
+	var total := 0
+	for p in percentages:
+		total += p
+	if total != 100 and percentages.size() > 0:
+		percentages[0] += (100 - total)
+
+	# Show audience poll popup
+	_show_kbc_audience_popup(percentages)
+	message.text = "📊 Audience Poll used! (-2 ❤️)"
+
+func _show_kbc_audience_popup(percentages: Array):
+	if kbc_audience_popup:
+		kbc_audience_popup.queue_free()
+
+	kbc_audience_popup = PanelContainer.new()
+	var popup_style := StyleBoxFlat.new()
+	popup_style.bg_color = Color(0.02, 0.02, 0.15, 0.95)
+	popup_style.corner_radius_top_left = 16
+	popup_style.corner_radius_top_right = 16
+	popup_style.corner_radius_bottom_right = 16
+	popup_style.corner_radius_bottom_left = 16
+	popup_style.border_width_left = 2
+	popup_style.border_width_top = 2
+	popup_style.border_width_right = 2
+	popup_style.border_width_bottom = 2
+	popup_style.border_color = KBC_GOLD
+	popup_style.content_margin_left = 20
+	popup_style.content_margin_right = 20
+	popup_style.content_margin_top = 16
+	popup_style.content_margin_bottom = 16
+	kbc_audience_popup.add_theme_stylebox_override("panel", popup_style)
+	kbc_audience_popup.set_anchors_preset(Control.PRESET_CENTER)
+	kbc_audience_popup.offset_left = -180
+	kbc_audience_popup.offset_right = 180
+	kbc_audience_popup.offset_top = -140
+	kbc_audience_popup.offset_bottom = 140
+	kbc_audience_popup.z_index = 10
+	kbc_container.add_child(kbc_audience_popup)
+
+	var vbox := VBoxContainer.new()
+	vbox.add_theme_constant_override("separation", 8)
+	kbc_audience_popup.add_child(vbox)
+
+	var title := Label.new()
+	title.text = "📊 Audience Poll Results"
+	title.add_theme_font_override("font", preload("res://Jersey10-Regular.ttf"))
+	title.add_theme_font_size_override("font_size", 22)
+	title.add_theme_color_override("font_color", KBC_GOLD)
+	title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	vbox.add_child(title)
+
+	var prefixes := ["A", "B", "C", "D"]
+	for i in range(min(percentages.size(), 4)):
+		var row := HBoxContainer.new()
+		row.add_theme_constant_override("separation", 10)
+		vbox.add_child(row)
+
+		var lbl := Label.new()
+		lbl.text = "%s: %d%%" % [prefixes[i], percentages[i]]
+		lbl.custom_minimum_size = Vector2(70, 0)
+		lbl.add_theme_font_override("font", preload("res://Jersey10-Regular.ttf"))
+		lbl.add_theme_font_size_override("font_size", 20)
+		lbl.add_theme_color_override("font_color", Color.WHITE)
+		row.add_child(lbl)
+
+		# Bar
+		var bar_bg := ColorRect.new()
+		bar_bg.custom_minimum_size = Vector2(200, 22)
+		bar_bg.color = Color(0.15, 0.15, 0.35)
+		row.add_child(bar_bg)
+
+		var bar_fill := ColorRect.new()
+		var bar_color := KBC_GOLD if kbc_current_options[i].to_lower() == correct_answer else Color(0.3, 0.5, 0.8)
+		bar_fill.color = bar_color
+		bar_fill.custom_minimum_size = Vector2(0, 22)
+		bar_fill.size = Vector2(0, 22)
+		bar_bg.add_child(bar_fill)
+
+		# Animate bar fill
+		var target_w := (percentages[i] / 100.0) * 200.0
+		var tw := create_tween()
+		tw.tween_property(bar_fill, "custom_minimum_size:x", target_w, 0.6).set_trans(Tween.TRANS_SINE)
+
+	# Close button
+	var close_btn := Button.new()
+	close_btn.text = "OK"
+	close_btn.custom_minimum_size = Vector2(80, 35)
+	close_btn.add_theme_font_override("font", preload("res://Jersey10-Regular.ttf"))
+	close_btn.add_theme_font_size_override("font_size", 20)
+	close_btn.focus_mode = Control.FOCUS_NONE
+	var close_style := StyleBoxFlat.new()
+	close_style.bg_color = Color(0.1, 0.1, 0.4)
+	close_style.corner_radius_top_left = 10
+	close_style.corner_radius_top_right = 10
+	close_style.corner_radius_bottom_right = 10
+	close_style.corner_radius_bottom_left = 10
+	close_style.border_width_left = 1
+	close_style.border_width_top = 1
+	close_style.border_width_right = 1
+	close_style.border_width_bottom = 1
+	close_style.border_color = KBC_GOLD
+	close_btn.add_theme_stylebox_override("normal", close_style)
+	close_btn.add_theme_stylebox_override("hover", close_style)
+	close_btn.add_theme_color_override("font_color", KBC_GOLD)
+	close_btn.pressed.connect(func():
+		if kbc_audience_popup:
+			kbc_audience_popup.queue_free()
+			kbc_audience_popup = null
+	)
+	vbox.add_child(close_btn)
+	close_btn.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
+
+func _kbc_use_phone_friend():
+	if kbc_lifelines_used["phone_friend"]:
+		return
+	kbc_lifelines_used["phone_friend"] = true
+	hearts.damage(2)
+	_kbc_disable_lifeline_btn(kbc_lifeline_buttons[2])
+
+	# Find the correct option text
+	var friend_answer := ""
+	for opt in kbc_current_options:
+		if opt.to_lower() == correct_answer:
+			friend_answer = opt
+			break
+
+	# Show phone-a-friend popup
+	_show_kbc_phone_popup(friend_answer)
+	message.text = "📞 Phone a Friend used! (-2 ❤️)"
+
+func _show_kbc_phone_popup(friend_answer: String):
+	if kbc_phone_popup:
+		kbc_phone_popup.queue_free()
+
+	kbc_phone_popup = PanelContainer.new()
+	var popup_style := StyleBoxFlat.new()
+	popup_style.bg_color = Color(0.02, 0.02, 0.15, 0.95)
+	popup_style.corner_radius_top_left = 16
+	popup_style.corner_radius_top_right = 16
+	popup_style.corner_radius_bottom_right = 16
+	popup_style.corner_radius_bottom_left = 16
+	popup_style.border_width_left = 2
+	popup_style.border_width_top = 2
+	popup_style.border_width_right = 2
+	popup_style.border_width_bottom = 2
+	popup_style.border_color = KBC_GOLD
+	popup_style.content_margin_left = 24
+	popup_style.content_margin_right = 24
+	popup_style.content_margin_top = 20
+	popup_style.content_margin_bottom = 20
+	kbc_phone_popup.add_theme_stylebox_override("panel", popup_style)
+	kbc_phone_popup.set_anchors_preset(Control.PRESET_CENTER)
+	kbc_phone_popup.offset_left = -160
+	kbc_phone_popup.offset_right = 160
+	kbc_phone_popup.offset_top = -90
+	kbc_phone_popup.offset_bottom = 90
+	kbc_phone_popup.z_index = 10
+	kbc_container.add_child(kbc_phone_popup)
+
+	var vbox := VBoxContainer.new()
+	vbox.add_theme_constant_override("separation", 12)
+	kbc_phone_popup.add_child(vbox)
+
+	var title := Label.new()
+	title.text = "📞 Calling Friend..."
+	title.add_theme_font_override("font", preload("res://Jersey10-Regular.ttf"))
+	title.add_theme_font_size_override("font_size", 22)
+	title.add_theme_color_override("font_color", KBC_GOLD)
+	title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	vbox.add_child(title)
+
+	var hint_label := Label.new()
+	hint_label.text = "\"I think the answer is %s\"" % friend_answer
+	hint_label.add_theme_font_override("font", preload("res://Jersey10-Regular.ttf"))
+	hint_label.add_theme_font_size_override("font_size", 24)
+	hint_label.add_theme_color_override("font_color", Color.WHITE)
+	hint_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	hint_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	vbox.add_child(hint_label)
+
+	# Close button
+	var close_btn := Button.new()
+	close_btn.text = "OK"
+	close_btn.custom_minimum_size = Vector2(80, 35)
+	close_btn.add_theme_font_override("font", preload("res://Jersey10-Regular.ttf"))
+	close_btn.add_theme_font_size_override("font_size", 20)
+	close_btn.focus_mode = Control.FOCUS_NONE
+	var close_style := StyleBoxFlat.new()
+	close_style.bg_color = Color(0.1, 0.1, 0.4)
+	close_style.corner_radius_top_left = 10
+	close_style.corner_radius_top_right = 10
+	close_style.corner_radius_bottom_right = 10
+	close_style.corner_radius_bottom_left = 10
+	close_style.border_width_left = 1
+	close_style.border_width_top = 1
+	close_style.border_width_right = 1
+	close_style.border_width_bottom = 1
+	close_style.border_color = KBC_GOLD
+	close_btn.add_theme_stylebox_override("normal", close_style)
+	close_btn.add_theme_stylebox_override("hover", close_style)
+	close_btn.add_theme_color_override("font_color", KBC_GOLD)
+	close_btn.pressed.connect(func():
+		if kbc_phone_popup:
+			kbc_phone_popup.queue_free()
+			kbc_phone_popup = null
+	)
+	vbox.add_child(close_btn)
+	close_btn.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
 
 # =============================
 # CONFETTI (UNCHANGED)
