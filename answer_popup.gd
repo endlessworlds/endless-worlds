@@ -840,12 +840,12 @@ func _kbc_highlight_answer(selected: String):
 		var btn: Button = kbc_option_buttons[i]
 		var opt_text: String = kbc_current_options[i].to_lower()
 		if opt_text == correct_answer:
-			var green_style := _make_kbc_gradient_style(
-				320, 64,
+			var green_style := _make_kbc_option_hex_style(
+				320, 44,
 				Color(0.0, 0.55, 0.05, 0.96),
 				Color(0.0, 0.38, 0.03, 0.96),
 				Color(0.0, 0.22, 0.02, 0.96),
-				KBC_CORRECT_COLOR, 25, 3
+				KBC_CORRECT_COLOR, 14, 3
 			)
 			btn.add_theme_stylebox_override("normal", green_style)
 			btn.add_theme_stylebox_override("hover", green_style)
@@ -854,12 +854,12 @@ func _kbc_highlight_answer(selected: String):
 			btn.add_theme_color_override("font_color", Color.WHITE)
 			btn.add_theme_color_override("font_disabled_color", Color.WHITE)
 		elif opt_text == selected:
-			var red_style := _make_kbc_gradient_style(
-				320, 64,
+			var red_style := _make_kbc_option_hex_style(
+				320, 44,
 				Color(0.65, 0.0, 0.0, 0.96),
 				Color(0.42, 0.0, 0.0, 0.96),
 				Color(0.22, 0.0, 0.0, 0.96),
-				KBC_WRONG_COLOR, 25, 3
+				KBC_WRONG_COLOR, 14, 3
 			)
 			btn.add_theme_stylebox_override("normal", red_style)
 			btn.add_theme_stylebox_override("hover", red_style)
@@ -1123,21 +1123,53 @@ func _make_kbc_gradient_style(width: int, height: int, top_color: Color, mid_col
 	style.texture_margin_bottom = corner_cut
 	return style
 
+func _make_kbc_option_hex_style(width: int, height: int, top_color: Color, mid_color: Color, bottom_color: Color, border_color: Color, side_cut: int, border_width: int) -> StyleBoxTexture:
+	var image := Image.create(width, height, false, Image.FORMAT_RGBA8)
+	var half_h :Variant= max(1.0, (height - 1) / 2.0)
+	for y in range(height):
+		var t :Variant= float(y) / max(1.0, float(height - 1))
+		var vertical := top_color.lerp(bottom_color, t)
+		var mid_boost :Variant= 1.0 - abs(t - 0.5) * 2.0
+		var side_inset := int(round(side_cut * abs(float(y) - half_h) / half_h))
+		var left_edge := side_inset
+		var right_edge := width - 1 - side_inset
+
+		for x in range(width):
+			if x < left_edge or x > right_edge:
+				image.set_pixel(x, y, Color(0, 0, 0, 0))
+				continue
+
+			var center_glow :Variant= 1.0 - abs((float(x) / max(1.0, float(width - 1))) - 0.5) * 2.0
+			var fill := vertical.lerp(mid_color, clamp(mid_boost * 0.55 + center_glow * 0.20, 0.0, 0.65))
+
+			var is_border := x - left_edge < border_width or right_edge - x < border_width
+			is_border = is_border or y < border_width or (height - 1 - y) < border_width
+			image.set_pixel(x, y, border_color if is_border else fill)
+
+	var texture := ImageTexture.create_from_image(image)
+	var style := StyleBoxTexture.new()
+	style.texture = texture
+	style.texture_margin_left = side_cut
+	style.texture_margin_top = 2
+	style.texture_margin_right = side_cut
+	style.texture_margin_bottom = 2
+	return style
+
 func _make_kbc_option_btn(text: String) -> Button:
 	var btn := Button.new()
 	btn.text = text
-	btn.custom_minimum_size = Vector2(250, 42)
+	btn.custom_minimum_size = Vector2(250, 36)
 	btn.add_theme_font_override("font", preload("res://Jersey10-Regular.ttf"))
-	btn.add_theme_font_size_override("font_size", 24)
+	btn.add_theme_font_size_override("font_size", 22)
 	btn.focus_mode = Control.FOCUS_NONE
-	var style := _make_kbc_gradient_style(
+	var style := _make_kbc_option_hex_style(
 		320,
-		64,
+		44,
 		KBC_GRADIENT_TOP,
 		KBC_GRADIENT_MID,
 		KBC_GRADIENT_BOTTOM,
 		KBC_OPTION_BORDER,
-		25,
+		14,
 		2
 	)
 	btn.add_theme_stylebox_override("normal", style)
@@ -1153,14 +1185,14 @@ func _on_kbc_option_selected(index: int, option_text: String):
 	# Reset all option highlights
 	for i in kbc_option_buttons.size():
 		var btn: Button = kbc_option_buttons[i]
-		var style := _make_kbc_gradient_style(
+		var style := _make_kbc_option_hex_style(
 			320,
-			64,
+			44,
 			KBC_GRADIENT_TOP,
 			KBC_GRADIENT_MID,
 			KBC_GRADIENT_BOTTOM,
 			KBC_OPTION_BORDER,
-			25,
+			14,
 			2
 		)
 		btn.add_theme_stylebox_override("normal", style)
@@ -1170,14 +1202,14 @@ func _on_kbc_option_selected(index: int, option_text: String):
 
 	# Highlight selected option in gold
 	var selected_btn: Button = kbc_option_buttons[index]
-	var sel_style := _make_kbc_gradient_style(
+	var sel_style := _make_kbc_option_hex_style(
 		320,
-		64,
+		44,
 		KBC_SELECTED_TOP,
 		KBC_SELECTED_MID,
 		KBC_SELECTED_BOTTOM,
 		KBC_SELECTED_COLOR,
-		25,
+		14,
 		3
 	)
 	selected_btn.add_theme_stylebox_override("normal", sel_style)
