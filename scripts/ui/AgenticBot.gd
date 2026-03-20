@@ -2,22 +2,37 @@ extends CanvasLayer
 class_name AgenticBot
 
 # ============================================================
-# AgenticBot – a 5×5 spritesheet bot displayed at the bottom-right
-# of the screen. When a hint bulb is collected it "speaks" the hint
-# text inside a speech cloud using a smooth typewriter animation.
+# AgenticBot – 6×5 spritesheet bot displayed at the bottom-right.
+#
+# Spritesheet layout (6 cols × 5 rows = 30 frames):
+#   Row 0 (frames  0– 5) → idle      – neutral waiting loop
+#   Row 1 (frames  6–11) → talking   – mouth / chest waveform loop
+#   Row 2 (frames 12–17) → thinking  – hand-to-chin, one-shot
+#   Row 3 (frames 18–23) → happy     – curved eyes / hover, one-shot
+#   Row 4 (frames 24–29) → waving    – arm wave, one-shot
+#
+# Animation sequence triggered by speak():
+#   waving → thinking → talking (+ typewriter) → happy → idle
 # ============================================================
 
-const COLS        := 5
-const ROWS        := 5
-const BOT_SCALE   := Vector2(0.6, 0.6)   # display size
-const MARGIN      := Vector2(14, 14)      # padding from screen edges
-const BUBBLE_W    := 220.0
-const BUBBLE_H    := 110.0
-const CHAR_DELAY  := 0.045               # seconds per character
-const DONE_WAIT   := 5.0                 # seconds bubble stays after typing
-const FONT_PATH   := "res://Jersey10-Regular.ttf"
+const COLS       := 6
+const ROWS       := 5
+const BOT_SCALE  := Vector2(0.6, 0.6)
+const MARGIN     := Vector2(14, 14)    # padding from screen edges
+const BUBBLE_W   := 220.0
+const BUBBLE_H   := 110.0
+const CHAR_DELAY := 0.045              # seconds per character
+const DONE_WAIT  := 5.0               # seconds bubble stays after happy anim
+const FONT_PATH  := "res://Jersey10-Regular.ttf"
 
-enum _State { IDLE, SPEAKING, DONE }
+# Animation names match the spritesheet rows
+const ANIM_IDLE     := "idle"
+const ANIM_TALKING  := "talking"
+const ANIM_THINKING := "thinking"
+const ANIM_HAPPY    := "happy"
+const ANIM_WAVING   := "waving"
+
+enum _State { IDLE, GREETING, THINKING, SPEAKING, CELEBRATING, DONE }
 
 # ---- nodes ----
 var _bot: AnimatedSprite2D
@@ -26,12 +41,12 @@ var _label: Label
 
 # ---- state ----
 var _state: _State = _State.IDLE
-var _full_text := ""
+var _full_text  := ""
 var _chars_shown := 0
-var _elapsed := 0.0
+var _elapsed    := 0.0
 var _done_timer := 0.0
-var _frame_w := 0.0
-var _frame_h := 0.0
+var _frame_w    := 0.0
+var _frame_h    := 0.0
 
 
 # ==============================================================
@@ -39,39 +54,36 @@ func _ready() -> void:
 	layer = 20   # above all game UI
 
 	var bot_tex: Texture2D = load("res://assets/agentic_bot.png")
-	# Use float division for accurate per-frame boundaries
-	var fw := bot_tex.get_width()  / float(COLS)
-	var fh := bot_tex.get_height() / float(ROWS)
-	_frame_w = fw
-	_frame_h = fh
+	_frame_w = bot_tex.get_width()  / float(COLS)
+	_frame_h = bot_tex.get_height() / float(ROWS)
 
-	_build_sprite(bot_tex, fw, fh)
+	_build_sprite(bot_tex, _frame_w, _frame_h)
 	_build_bubble()
 
-	# position once viewport is ready
 	await get_tree().process_frame
 	_layout()
 
 
 # ==============================================================
-# Public API – call this to make the bot say something
+# Public API
 # ==============================================================
 func speak(text: String) -> void:
-	_full_text   = text
-	_chars_shown = 0
-	_elapsed     = 0.0
-	_done_timer  = 0.0
-	_state       = _State.SPEAKING
+	# If already mid-sequence, reset cleanly
+	_full_text    = text
+	_chars_shown  = 0
+	_elapsed      = 0.0
+	_done_timer   = 0.0
+	_state        = _State.GREETING
 
-	_label.text       = ""
+	_label.text        = ""
 	_bubble.modulate.a = 0.0
-	_bubble.visible   = true
+	_bubble.visible    = true
 
+	# Fade the bubble in while the bot waves
 	var tw := create_tween()
-	tw.tween_property(_bubble, "modulate:a", 1.0, 0.3)
+	tw.tween_property(_bubble, "modulate:a", 1.0, 0.4)
 
-	if _bot.sprite_frames.has_animation("speak"):
-		_bot.play("speak")
+	_bot.play(ANIM_WAVING)
 
 
 # ==============================================================
@@ -85,9 +97,8 @@ func _process(delta: float) -> void:
 				_chars_shown = target
 				_label.text  = _full_text.substr(0, _chars_shown)
 			if _chars_shown >= _full_text.length():
-				_state = _State.DONE
-				if _bot.sprite_frames.has_animation("idle"):
-					_bot.play("idle")
+				_state = _State.CELEBRATING
+				_bot.play(ANIM_HAPPY)
 
 		_State.DONE:
 			_done_timer += delta
@@ -116,7 +127,7 @@ func _layout() -> void:
 		vp.y - MARGIN.y - bh * 0.5
 	)
 
-	# Bubble is above and to the left of the bot
+	# Bubble sits above and to the left of the bot
 	_bubble.size     = Vector2(BUBBLE_W, BUBBLE_H)
 	_bubble.position = Vector2(
 		_bot.position.x - BUBBLE_W + bw * 0.5,
@@ -128,46 +139,37 @@ func _build_sprite(bot_tex: Texture2D, fw: float, fh: float) -> void:
 	var frames := SpriteFrames.new()
 	frames.remove_animation("default")
 
-	# Row 0 → "idle"
-	frames.add_animation("idle")
-	frames.set_animation_speed("idle", 5.0)
-	frames.set_animation_loop("idle", true)
-	for col in range(COLS):
-		var at := AtlasTexture.new()
-		at.atlas  = bot_tex
-		at.region = Rect2(col * fw, 0, fw, fh)
-		frames.add_frame("idle", at)
+	# ── helper: add one row as a named animation ──────────────
+	var add_anim := func(name: String, row: int, fps: float, loop: bool) -> void:
+		frames.add_animation(name)
+		frames.set_animation_speed(name, fps)
+		frames.set_animation_loop(name, loop)
+		for col in range(COLS):
+			var at := AtlasTexture.new()
+			at.atlas  = bot_tex
+			at.region = Rect2(col * fw, row * fh, fw, fh)
+			frames.add_frame(name, at)
 
-	# Row 1 → "speak"
-	frames.add_animation("speak")
-	frames.set_animation_speed("speak", 9.0)
-	frames.set_animation_loop("speak", true)
-	for col in range(COLS):
-		var at := AtlasTexture.new()
-		at.atlas  = bot_tex
-		at.region = Rect2(col * fw, fh, fw, fh)
-		frames.add_frame("speak", at)
-
-	# Row 2 → "wave" (played once when hint is first collected, then returns)
-	frames.add_animation("wave")
-	frames.set_animation_speed("wave", 7.0)
-	frames.set_animation_loop("wave", false)
-	for col in range(COLS):
-		var at := AtlasTexture.new()
-		at.atlas  = bot_tex
-		at.region = Rect2(col * fw, 2 * fh, fw, fh)
-		frames.add_frame("wave", at)
+	# Row 0 – idle:      neutral waiting loop
+	add_anim.call(ANIM_IDLE,     0, 5.0, true)
+	# Row 1 – talking:   mouth/waveform loop while typing
+	add_anim.call(ANIM_TALKING,  1, 9.0, true)
+	# Row 2 – thinking:  one-shot, used before speaking starts
+	add_anim.call(ANIM_THINKING, 2, 7.0, false)
+	# Row 3 – happy:     one-shot, played when typing is finished
+	add_anim.call(ANIM_HAPPY,    3, 8.0, false)
+	# Row 4 – waving:    one-shot, played as greeting on hint pickup
+	add_anim.call(ANIM_WAVING,   4, 8.0, false)
 
 	_bot = AnimatedSprite2D.new()
 	_bot.sprite_frames = frames
 	_bot.scale         = BOT_SCALE
-	_bot.play("idle")
+	_bot.play(ANIM_IDLE)
 	_bot.animation_finished.connect(_on_animation_finished)
 	add_child(_bot)
 
 
 func _build_bubble() -> void:
-	# Panel styling – white speech cloud
 	var style := StyleBoxFlat.new()
 	style.bg_color                   = Color(1.0, 1.0, 1.0, 0.93)
 	style.corner_radius_top_left     = 12
@@ -182,7 +184,7 @@ func _build_bubble() -> void:
 
 	_bubble = Panel.new()
 	_bubble.add_theme_stylebox_override("panel", style)
-	_bubble.visible   = false
+	_bubble.visible    = false
 	_bubble.modulate.a = 0.0
 	add_child(_bubble)
 
@@ -199,10 +201,25 @@ func _build_bubble() -> void:
 	_bubble.add_child(_label)
 
 
+# ==============================================================
+# Animation sequencing – drives the state machine forward
+# ==============================================================
 func _on_animation_finished() -> void:
-	# "wave" is a one-shot – return to the right looping anim
-	if _bot.animation == "wave":
-		if _state == _State.SPEAKING:
-			_bot.play("speak")
-		else:
-			_bot.play("idle")
+	match _bot.animation:
+		ANIM_WAVING:
+			# Greeting done → now think before speaking
+			_state = _State.THINKING
+			_bot.play(ANIM_THINKING)
+
+		ANIM_THINKING:
+			# Thinking done → start typing and loop talking
+			_state = _State.SPEAKING
+			_elapsed = 0.0
+			_bot.play(ANIM_TALKING)
+
+		ANIM_HAPPY:
+			# Celebration done → return to idle, start DONE countdown
+			_state = _State.DONE
+			_done_timer = 0.0
+			_bot.play(ANIM_IDLE)
+

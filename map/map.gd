@@ -122,7 +122,7 @@ func _ready():
 		riddle_ui.unlock_next_hint()
 		# Tell the bot to speak the newly unlocked hint
 		var hint_idx := riddle_ui.unlocked_count - 1
-		if hint_idx >= 0 and hint_idx < riddle_ui.hints.size() and agentic_bot != null:
+		if hint_idx < riddle_ui.hints.size() and agentic_bot != null:
 			agentic_bot.speak(riddle_ui.hints[hint_idx])
 	)
 
