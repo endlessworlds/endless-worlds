@@ -15,17 +15,22 @@ class_name AgenticBot
 #   waving → thinking → talking (+ typewriter) → happy → idle
 # ============================================================
 
-const COLS          := 6
-const ROWS          := 5
-const BOT_SCALE     := Vector2(1.2, 1.2)  # doubled from 0.6
-const MARGIN        := Vector2(14, 14)    # padding from screen edges
-const CLOCK_RESERVE := 130.0             # pixels reserved for the clock at bottom-right
-const BUBBLE_W      := 260.0
-const BUBBLE_H      := 130.0
-const BUBBLE_ALPHA  := 0.70              # speech bubble background opacity
-const CHAR_DELAY    := 0.045              # seconds per character
-const DONE_WAIT     := 5.0               # seconds bubble stays after happy anim
-const FONT_PATH     := "res://Jersey10-Regular.ttf"
+const COLS           := 6
+const ROWS           := 5
+const BOT_SCALE      := Vector2(1.2, 1.2)  # doubled from 0.6
+const MARGIN         := Vector2(14, 14)    # padding from screen edges
+const CLOCK_RESERVE  := 130.0             # pixels reserved for the clock at bottom-right
+const BUBBLE_W       := 260.0
+const BUBBLE_H       := 130.0
+const BUBBLE_ALPHA   := 0.70              # speech bubble background opacity
+const BUBBLE_BORDER  := 2                 # border width (px) shared by panel and tail
+const BUBBLE_COLOR   := Color(1.0, 1.0, 1.0, 0.70)   # fill, matches BUBBLE_ALPHA
+const BORDER_COLOR   := Color(0.35, 0.45, 0.9, 1.0)  # stroke color shared by panel and tail
+const TAIL_W         := 22.0             # width of the tail base on the bubble's bottom edge
+const TAIL_H         := 18.0             # height of the tail (how far it points downward)
+const CHAR_DELAY     := 0.045              # seconds per character
+const DONE_WAIT      := 5.0               # seconds bubble stays after happy anim
+const FONT_PATH      := "res://Jersey10-Regular.ttf"
 
 # Animation names match the spritesheet rows
 const ANIM_IDLE     := "idle"
@@ -39,6 +44,7 @@ enum _State { IDLE, GREETING, THINKING, SPEAKING, CELEBRATING, DONE }
 # ---- nodes ----
 var _bot: AnimatedSprite2D
 var _bubble: Panel
+var _tail_ctrl: Control
 var _label: Label
 
 # ---- state ----
@@ -173,22 +179,48 @@ func _build_sprite(bot_tex: Texture2D, fw: float, fh: float) -> void:
 
 func _build_bubble() -> void:
 	var style := StyleBoxFlat.new()
-	style.bg_color                   = Color(1.0, 1.0, 1.0, BUBBLE_ALPHA)
+	style.bg_color                   = BUBBLE_COLOR
 	style.corner_radius_top_left     = 12
 	style.corner_radius_top_right    = 12
 	style.corner_radius_bottom_right = 12
 	style.corner_radius_bottom_left  = 4
-	style.border_width_left          = 2
-	style.border_width_top           = 2
-	style.border_width_right         = 2
-	style.border_width_bottom        = 2
-	style.border_color               = Color(0.35, 0.45, 0.9, 1.0)
+	style.border_width_left          = BUBBLE_BORDER
+	style.border_width_top           = BUBBLE_BORDER
+	style.border_width_right         = BUBBLE_BORDER
+	style.border_width_bottom        = BUBBLE_BORDER
+	style.border_color               = BORDER_COLOR
 
 	_bubble = Panel.new()
 	_bubble.add_theme_stylebox_override("panel", style)
 	_bubble.visible    = false
 	_bubble.modulate.a = 0.0
 	add_child(_bubble)
+
+	# ── Speech-bubble tail: triangle at the bottom-right corner ──
+	# _tail_ctrl is a child of _bubble so it inherits visibility & modulate.
+	# Panel does not clip children by default, so the tail can extend below.
+	_tail_ctrl = Control.new()
+	_tail_ctrl.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	# Positioned so its top edge sits 2 px inside the bubble bottom (hides the seam)
+	_tail_ctrl.position = Vector2(BUBBLE_W - TAIL_W, BUBBLE_H - 2.0)
+	_tail_ctrl.size     = Vector2(TAIL_W + 2.0, TAIL_H + 4.0)
+	_tail_ctrl.draw.connect(func() -> void:
+		# Triangle vertices in _tail_ctrl local space:
+		#   P0 – top-left  (left anchor on bubble bottom)
+		#   P1 – top-right (right corner of bubble)
+		#   P2 – apex      (points straight down from P1)
+		var p0 := Vector2(0.0,    2.0)
+		var p1 := Vector2(TAIL_W, 2.0)
+		var p2 := Vector2(TAIL_W, TAIL_H + 2.0)
+		# Filled body
+		_tail_ctrl.draw_colored_polygon(PackedVector2Array([p0, p1, p2]), BUBBLE_COLOR)
+		# Erase seam: covers the panel border where the tail meets the bubble bottom
+		_tail_ctrl.draw_line(p0, p1, BUBBLE_COLOR, float(BUBBLE_BORDER) + 1.0)
+		# Border on the two exposed outer edges
+		_tail_ctrl.draw_line(p0, p2, BORDER_COLOR, float(BUBBLE_BORDER), true)
+		_tail_ctrl.draw_line(p1, p2, BORDER_COLOR, float(BUBBLE_BORDER), true)
+	)
+	_bubble.add_child(_tail_ctrl)
 
 	_label = Label.new()
 	_label.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
