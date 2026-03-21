@@ -20,6 +20,8 @@ extends Node2D
 @onready var riddle_ui: RiddleUI = $RiddleUI
 @onready var tasks: Tasks = $Tasks
 
+var agentic_bot: AgenticBot
+
 var current_solution: String = ""
 var current_options: Array = []   # ✅ ADD THIS
 var current_question: String = ""
@@ -118,7 +120,15 @@ func _ready():
 
 	tasks.hint_collected.connect(func():
 		riddle_ui.unlock_next_hint()
+		# Tell the bot to speak the newly unlocked hint
+		var hint_idx := riddle_ui.unlocked_count - 1
+		if agentic_bot != null and hint_idx < riddle_ui.hints.size():
+			agentic_bot.speak(riddle_ui.hints[hint_idx])
 	)
+
+	# 🤖 AGENTIC BOT
+	agentic_bot = AgenticBot.new()
+	add_child(agentic_bot)
 
 	joystick.modulate.a = 0.3
 
