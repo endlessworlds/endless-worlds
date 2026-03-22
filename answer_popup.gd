@@ -763,6 +763,9 @@ func _handle_victory_shared():
 	victory_sound.play()
 	Global.add_score(30)
 	Global.next_level()
+	# Store solved riddle in Learning Journal
+	Global.add_riddle_to_journal(current_question, correct_answer)
+	Global.show_journal_on_home = true
 	await get_tree().create_timer(1.5).timeout
 	close()
 	get_tree().change_scene_to_file("res://HomeScreen.tscn")
@@ -818,6 +821,9 @@ func _kbc_process_answer(user_answer: String):
 			kbc_msg_label.visible = true
 		Global.add_score(30)
 		Global.next_level()
+		# Store solved riddle in Learning Journal
+		Global.add_riddle_to_journal(current_question, correct_answer)
+		Global.show_journal_on_home = true
 		await get_tree().create_timer(2.5).timeout
 		close()
 		get_tree().change_scene_to_file("res://HomeScreen.tscn")
@@ -1644,6 +1650,9 @@ func _wordle_victory():
 	Global.end_game(true)
 	Global.add_score(30)
 	Global.next_level()
+	# Store solved riddle in Learning Journal
+	Global.add_riddle_to_journal(current_question, correct_answer)
+	Global.show_journal_on_home = true
 
 	await get_tree().create_timer(1.5).timeout
 	close()

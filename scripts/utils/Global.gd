@@ -35,7 +35,8 @@ func save_game():
 	var data := {
 		"stats": stats,
 		"high_score": high_score,
-		"selected_topic": selected_topic
+		"selected_topic": selected_topic,
+		"learning_journal": learning_journal
 	}
 
 	var file = FileAccess.open(SAVE_PATH, FileAccess.WRITE)
@@ -61,6 +62,14 @@ func load_game():
 	stats = data.get("stats", stats)
 	high_score = data.get("high_score", high_score)
 	selected_topic = data.get("selected_topic", selected_topic)
+	if data.has("learning_journal"):
+		var lj = data["learning_journal"]
+		if lj.has("solved_riddles"):
+			learning_journal.solved_riddles = lj["solved_riddles"]
+		if lj.has("concepts"):
+			learning_journal.concepts = lj["concepts"]
+		if lj.has("fun_facts"):
+			learning_journal.fun_facts = lj["fun_facts"]
 
 	print("✅ Save loaded")
 
@@ -93,6 +102,9 @@ func reset_all_stats():
 	selected_topic = "programming"
 	session_start_time = 0.0
 	current_hint_count = 0
+
+	# Reset learning journal
+	learning_journal = {"solved_riddles": [], "concepts": [], "fun_facts": []}
 
 	# Delete saved file
 	delete_save()
@@ -131,6 +143,53 @@ var level: int = 1
 # ================= SESSION TRACKING =================
 var session_start_time := 0.0
 var current_hint_count := 0
+
+# ================= LEARNING JOURNAL =================
+var show_journal_on_home: bool = false
+
+var learning_journal := {
+	"solved_riddles": [],  # {question, answer, topic, timestamp}
+	"concepts": [],        # {name, definition, topic, timestamp}
+	"fun_facts": []        # {text, topic, timestamp}
+}
+
+func add_riddle_to_journal(question: String, answer: String) -> void:
+	learning_journal.solved_riddles.append({
+		"question": question,
+		"answer": answer,
+		"topic": selected_topic,
+		"timestamp": Time.get_unix_time_from_system()
+	})
+	save_game()
+
+func add_concept_to_journal(concept_text: String) -> void:
+	if concept_text.strip_edges().is_empty():
+		return
+	# Avoid duplicates (compare full text)
+	for entry in learning_journal.concepts:
+		if entry.get("definition", "") == concept_text:
+			return
+	learning_journal.concepts.append({
+		"name": concept_text.left(60),
+		"definition": concept_text,
+		"topic": selected_topic,
+		"timestamp": Time.get_unix_time_from_system()
+	})
+	save_game()
+
+func add_fact_to_journal(fact_text: String) -> void:
+	if fact_text.strip_edges().is_empty():
+		return
+	# Avoid duplicates
+	for entry in learning_journal.fun_facts:
+		if entry.get("text", "") == fact_text:
+			return
+	learning_journal.fun_facts.append({
+		"text": fact_text,
+		"topic": selected_topic,
+		"timestamp": Time.get_unix_time_from_system()
+	})
+	save_game()
 
 # ================= LIFETIME STATS =================
 var stats := {
