@@ -2,8 +2,8 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://ii8wztn1xeoz"
-path="res://.godot/imported/agentic_bot.png-40a2ddf914dccd7a07c7ea73c77803ef.ctex"
+uid="uid://ii8w0tn1xeo0"
+path="res://.godot/imported/agentic_bot.png-363608d4fb65cb91219ea88f045638a5.ctex"
 metadata={
 "vram_texture": false
 }
@@ -11,7 +11,7 @@ metadata={
 [deps]
 
 source_file="res://assets/agentic_bot.png"
-dest_files=["res://.godot/imported/agentic_bot.png-40a2ddf914dccd7a07c7ea73c77803ef.ctex"]
+dest_files=["res://.godot/imported/agentic_bot.png-363608d4fb65cb91219ea88f045638a5.ctex"]
 
 [params]
 
