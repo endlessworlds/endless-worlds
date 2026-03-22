@@ -132,6 +132,9 @@ func _ready():
 
 	joystick.modulate.a = 0.3
 
+	# ⏱ Random fact timer – every 2 minutes the bot shares a fact
+	_start_fact_timer()
+
 func _on_well_interacted():
 	if current_options.is_empty():
 		push_error("❌ No MCQ options available")
@@ -149,6 +152,11 @@ func _on_riddle_generated(data: Dictionary) -> void:
 	current_solution = str(data["solution"]).strip_edges().to_lower()
 	current_options = data.get("options", []).duplicate()
 	current_question = str(data.get("riddle", ""))
+
+	# ── Store concept/fact in Learning Journal ──────────────────────────────
+	var fact_ref: String = str(data.get("fact_reference", "")).strip_edges()
+	if not fact_ref.is_empty():
+		Global.add_concept_to_journal(fact_ref)
 
 	riddle_ui.setup_riddle(data)
 
@@ -407,3 +415,41 @@ func create_death_overlay():
 	death_label.modulate.a = 0.0
 	death_overlay.add_child(death_label)
 	death_overlay.visible = false
+
+# ==================================================
+# 2-MINUTE RANDOM FACT TIMER
+# ==================================================
+func _start_fact_timer() -> void:
+	var fact_timer := Timer.new()
+	fact_timer.wait_time = 120.0   # 2 minutes
+	fact_timer.autostart = true
+	fact_timer.timeout.connect(_on_fact_timer_timeout)
+	add_child(fact_timer)
+
+func _on_fact_timer_timeout() -> void:
+	if agentic_bot == null:
+		return
+
+	# Build a pool: concepts + fun_facts already in the journal
+	var pool: Array = []
+	for entry in Global.learning_journal.get("concepts", []):
+		var txt: String = entry.get("definition", entry.get("name", ""))
+		if not txt.is_empty():
+			pool.append("📚 Did you know? " + txt)
+	for entry in Global.learning_journal.get("fun_facts", []):
+		var txt: String = entry.get("text", "")
+		if not txt.is_empty():
+			pool.append("✨ Fun fact: " + txt)
+
+	# If journal is empty, use a generic motivational message
+	if pool.is_empty():
+		var topic: String = Global.selected_topic.capitalize()
+		pool = [
+			"Keep exploring! Every question you answer teaches you something new about " + topic + ".",
+			"Collect hints by exploring the world — they'll help you solve the riddle!",
+			"Your Learning Journal grows every time you answer a question. Check it on the home screen! 📖",
+		]
+
+	var fact: String = pool[randi() % pool.size()]
+	Global.add_fact_to_journal(fact)
+	agentic_bot.speak(fact)
