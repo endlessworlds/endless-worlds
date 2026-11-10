@@ -887,9 +887,6 @@ func _process_standard_answer(user_answer: String):
 		_handle_wrong_shared()
 
 func _handle_victory_shared():
-	if has_node("../DifficultyRL"):
-		$"../DifficultyRL".give_feedback(true, Global.current_hint_count)
-	Global.end_game(true)
 	spawn_confetti()
 	message.text = "🎉 VICTORY!"
 	if kbc_msg_label:
@@ -897,18 +894,12 @@ func _handle_victory_shared():
 		kbc_msg_label.add_theme_color_override("font_color", KBC_GOLD)
 		kbc_msg_label.visible = true
 	victory_sound.play()
-	Global.add_score(30)
-	Global.next_level()
-	# Store solved riddle in Learning Journal
-	Global.add_riddle_to_journal(current_question, correct_answer)
-	Global.show_journal_on_home = true
+	_record_victory()
 	await get_tree().create_timer(1.5).timeout
 	close()
-	get_tree().change_scene_to_file("res://ui/home_screen/home_screen.tscn")
+	map_ref.on_round_won()
 
 func _handle_wrong_shared():
-	if has_node("../DifficultyRL"):
-		$"../DifficultyRL".give_feedback(false, Global.current_hint_count)
 	message.text = "❌ Wrong Answer"
 	if kbc_msg_label:
 		kbc_msg_label.text = "❌ Wrong Answer"
@@ -946,27 +937,18 @@ func _kbc_process_answer(user_answer: String):
 
 	if user_answer == correct_answer:
 		kbc_right_answer_player.play()
-		if has_node("../DifficultyRL"):
-			$"../DifficultyRL".give_feedback(true, Global.current_hint_count)
-		Global.end_game(true)
 		spawn_confetti()
 		message.text = "🎉 VICTORY!"
 		if kbc_msg_label:
 			kbc_msg_label.text = "🎉 VICTORY!"
 			kbc_msg_label.add_theme_color_override("font_color", KBC_GOLD)
 			kbc_msg_label.visible = true
-		Global.add_score(30)
-		Global.next_level()
-		# Store solved riddle in Learning Journal
-		Global.add_riddle_to_journal(current_question, correct_answer)
-		Global.show_journal_on_home = true
+		_record_victory()
 		await get_tree().create_timer(2.5).timeout
 		close()
-		get_tree().change_scene_to_file("res://ui/home_screen/home_screen.tscn")
+		map_ref.on_round_won()
 	else:
 		kbc_wrong_answer_player.play()
-		if has_node("../DifficultyRL"):
-			$"../DifficultyRL".give_feedback(false, Global.current_hint_count)
 		message.text = "❌ Wrong Answer"
 		if kbc_msg_label:
 			kbc_msg_label.text = "❌ Wrong Answer"
@@ -1770,9 +1752,6 @@ func _wordle_defeat():
 	gameover_sound.play()
 
 	
-	# Optional: Give feedback to your RL system if applicable
-	if has_node("../DifficultyRL"):
-		get_node("../DifficultyRL").give_feedback(false, Global.current_hint_count)
 
 	# Wait a moment so the player can see their last row, then close
 	await get_tree().create_timer(1.5).timeout
@@ -1783,13 +1762,16 @@ func _wordle_victory():
 	victory_sound.play()
 	message.text = "🎉 VICTORY!"
 
-	Global.end_game(true)
-	Global.add_score(30)
-	Global.next_level()
-	# Store solved riddle in Learning Journal
-	Global.add_riddle_to_journal(current_question, correct_answer)
-	Global.show_journal_on_home = true
+	_record_victory()
 
 	await get_tree().create_timer(1.5).timeout
 	close()
-	get_tree().change_scene_to_file("res://ui/home_screen/home_screen.tscn")
+	map_ref.on_round_won()
+
+
+# Single source of truth for a solved riddle: score first, then end_game saves it.
+func _record_victory() -> void:
+	Global.add_score(30 + 10 * Global.win_streak)  # streak bonus rewards consecutive wins
+	Global.next_level()
+	Global.end_game(true)
+	Global.add_riddle_to_journal(current_question, correct_answer)

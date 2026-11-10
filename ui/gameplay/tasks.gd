@@ -10,6 +10,9 @@ var collected_hints: int = 0
 
 signal hint_collected
 signal all_hints_collected
+signal hint_taken(idx: int)  # local player picked hint idx (multiplayer broadcasts it)
+
+var _pickups := {}  # idx -> pickup node
 
 func _ready():
 	if coin_sound:
@@ -26,6 +29,7 @@ func spawn_hints(_count: int, tilemap: TileMapLayer, water_border: int, width: i
 	# FORCE 6 HINTS to make the game easier
 	total_hints = 6 
 	collected_hints = 0
+	_pickups.clear()
 	
 	var WATER_COORDS = Vector2i(3, 1)
 	var placed_positions: Array[Vector2i] = [] # To keep track of where we put hints
@@ -60,13 +64,31 @@ func spawn_hints(_count: int, tilemap: TileMapLayer, water_border: int, width: i
 				
 				pickup.position = tilemap.map_to_local(tile_pos)
 				placed_positions.append(tile_pos)
+				pickup.add_to_group("hints")
+				_pickups[placed] = pickup
 				
 				if pickup.has_signal("collected"):
-					pickup.collected.connect(_on_hint_collected)
+					pickup.collected.connect(_on_hint_collected.bind(placed))
 				
 				placed += 1
 
-func _on_hint_collected() -> void:
+func _on_hint_collected(idx: int = -1) -> void:
+	_pickups.erase(idx)
+	hint_taken.emit(idx)
+	_count_hint()
+
+
+# A teammate grabbed this hint: remove it here too and share the unlock.
+func remove_hint(idx: int) -> void:
+	var p = _pickups.get(idx)
+	if p == null or not is_instance_valid(p):
+		return
+	_pickups.erase(idx)
+	p.queue_free()
+	_count_hint()
+
+
+func _count_hint() -> void:
 	collected_hints += 1
 	Global.record_hint()
 

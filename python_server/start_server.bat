@@ -3,5 +3,6 @@ cd %~dp0
 python -m venv venv
 call venv\Scripts\activate.bat
 pip install -r requirements.txt
+set DISABLE_SSL_VERIFY=1
 python main.py
 pause

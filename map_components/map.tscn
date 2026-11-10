@@ -2,7 +2,6 @@
 
 [ext_resource type="Script" uid="uid://b221v61dem8vf" path="res://map_components/map.gd" id="1_iqbtl"]
 [ext_resource type="PackedScene" uid="uid://olx1k0r0di2" path="res://player/player.tscn" id="2_81obp"]
-[ext_resource type="Script" uid="uid://1qj6pglanx3e" path="res://ai/difficulty_rl.gd" id="2_gw5x3"]
 [ext_resource type="Script" uid="uid://ccc36y8bo0jyy" path="res://map_components/flower_spawner.gd" id="3_gw5x3"]
 [ext_resource type="Script" uid="uid://q37t7m6c2agj" path="res://map_components/tree_spawner.gd" id="4_wwcqt"]
 [ext_resource type="TileSet" uid="uid://crg0orous800e" path="res://resources/tile_set.tres" id="5_ofiht"]
@@ -57,9 +56,6 @@ shader_parameter/speed = Vector2(0.02, 0.01)
 [node name="Map" type="Node2D"]
 scale = Vector2(2, 2)
 script = ExtResource("1_iqbtl")
-
-[node name="DifficultyRL" type="Node" parent="."]
-script = ExtResource("2_gw5x3")
 
 [node name="Player" parent="." instance=ExtResource("2_81obp")]
 

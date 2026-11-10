@@ -1,0 +1,1158 @@
+[
+ {
+  "tags": [
+   "programming",
+   "coding",
+   "code",
+   "python",
+   "java",
+   "javascript",
+   "cs",
+   "computer",
+   "loop",
+   "loops"
+  ],
+  "riddle": "I repeat a block of code\nuntil my condition turns false. What am I?",
+  "options": [
+   "Loop",
+   "Variable",
+   "Function",
+   "Array"
+  ],
+  "solution": "Loop",
+  "hints": [
+   "Used for repetition",
+   "Can be while or for",
+   "Beware of running forever",
+   "A core control structure"
+  ],
+  "fact_reference": "Loops let a program repeat work without copying code.",
+  "source": "offline"
+ },
+ {
+  "tags": [
+   "programming",
+   "coding",
+   "code",
+   "python",
+   "java",
+   "javascript",
+   "cs",
+   "computer",
+   "variable",
+   "variables"
+  ],
+  "riddle": "I hold a value that can change\nwhile the program runs. What am I?",
+  "options": [
+   "Constant",
+   "Variable",
+   "Keyword",
+   "Comment"
+  ],
+  "solution": "Variable",
+  "hints": [
+   "I have a name",
+   "I store data",
+   "My value can be reassigned",
+   "Declared before use"
+  ],
+  "fact_reference": "Variables are named storage locations whose values can change at runtime.",
+  "source": "offline"
+ },
+ {
+  "tags": [
+   "programming",
+   "coding",
+   "code",
+   "python",
+   "java",
+   "javascript",
+   "cs",
+   "computer",
+   "function",
+   "functions"
+  ],
+  "riddle": "Give me inputs, call my name,\nand I return a result. What am I?",
+  "options": [
+   "Function",
+   "Loop",
+   "Class",
+   "Module"
+  ],
+  "solution": "Function",
+  "hints": [
+   "I can take parameters",
+   "I can return a value",
+   "I help you avoid repetition",
+   "def in Python creates me"
+  ],
+  "fact_reference": "Functions package reusable logic behind a name and parameters.",
+  "source": "offline"
+ },
+ {
+  "tags": [
+   "programming",
+   "coding",
+   "code",
+   "python",
+   "java",
+   "javascript",
+   "cs",
+   "computer",
+   "recursion",
+   "recursive"
+  ],
+  "riddle": "I solve a problem by calling myself\non a smaller piece of it. What am I?",
+  "options": [
+   "Recursion",
+   "Iteration",
+   "Pointer",
+   "Lambda"
+  ],
+  "solution": "Recursion",
+  "hints": [
+   "I need a base case",
+   "Too deep and the stack overflows",
+   "Factorial loves me",
+   "I call myself"
+  ],
+  "fact_reference": "Recursion solves a problem by reducing it to smaller instances of itself.",
+  "source": "offline"
+ },
+ {
+  "tags": [
+   "programming",
+   "coding",
+   "code",
+   "python",
+   "java",
+   "javascript",
+   "cs",
+   "computer",
+   "oop",
+   "class",
+   "object"
+  ],
+  "riddle": "I am the blueprint;\nobjects are built from me. What am I?",
+  "options": [
+   "Class",
+   "Object",
+   "Method",
+   "Package"
+  ],
+  "solution": "Class",
+  "hints": [
+   "I define attributes",
+   "I define methods",
+   "Objects are my instances",
+   "Inheritance extends me"
+  ],
+  "fact_reference": "A class is a template that describes the data and behaviour of its objects.",
+  "source": "offline"
+ },
+ {
+  "tags": [
+   "programming",
+   "coding",
+   "code",
+   "python",
+   "java",
+   "javascript",
+   "cs",
+   "computer",
+   "bug",
+   "debug",
+   "debugging"
+  ],
+  "riddle": "I am an error hiding in your code\nthat makes it misbehave. What am I?",
+  "options": [
+   "Bug",
+   "Patch",
+   "Commit",
+   "Branch"
+  ],
+  "solution": "Bug",
+  "hints": [
+   "Named after an insect",
+   "Debuggers hunt me",
+   "Tests catch me early",
+   "Grace Hopper found a real one"
+  ],
+  "fact_reference": "The term 'bug' was popularised when a moth was found in the Harvard Mark II in 1947.",
+  "source": "offline"
+ },
+ {
+  "tags": [
+   "programming",
+   "coding",
+   "code",
+   "python",
+   "java",
+   "javascript",
+   "cs",
+   "computer",
+   "python"
+  ],
+  "riddle": "In Python I am the ordered, mutable sequence\nwritten with square brackets. What am I?",
+  "options": [
+   "List",
+   "Tuple",
+   "Set",
+   "Dict"
+  ],
+  "solution": "List",
+  "hints": [
+   "Square brackets",
+   "I can change size",
+   "Indexed from zero",
+   "append() adds to me"
+  ],
+  "fact_reference": "Python lists are dynamic arrays that keep insertion order.",
+  "source": "offline"
+ },
+ {
+  "tags": [
+   "programming",
+   "coding",
+   "code",
+   "python",
+   "java",
+   "javascript",
+   "cs",
+   "computer",
+   "python",
+   "dictionary"
+  ],
+  "riddle": "I map unique keys to values\nusing curly braces in Python. What am I?",
+  "options": [
+   "Dict",
+   "List",
+   "Tuple",
+   "String"
+  ],
+  "solution": "Dict",
+  "hints": [
+   "Curly braces",
+   "Key-value pairs",
+   "Keys must be hashable",
+   "Lookups are about O(1)"
+  ],
+  "fact_reference": "Python dicts are hash tables with average constant-time lookup.",
+  "source": "offline"
+ },
+ {
+  "tags": [
+   "programming",
+   "coding",
+   "code",
+   "python",
+   "java",
+   "javascript",
+   "cs",
+   "computer",
+   "git",
+   "version"
+  ],
+  "riddle": "I save a snapshot of your project\nwith a message, in Git. What am I?",
+  "options": [
+   "Commit",
+   "Merge",
+   "Clone",
+   "Fork"
+  ],
+  "solution": "Commit",
+  "hints": [
+   "I have a hash",
+   "I carry a message",
+   "git log lists me",
+   "Made after staging"
+  ],
+  "fact_reference": "A Git commit records a snapshot of the staged project with a unique hash.",
+  "source": "offline"
+ },
+ {
+  "tags": [
+   "data structures",
+   "dsa",
+   "algorithms",
+   "algorithm",
+   "array",
+   "arrays",
+   "stack",
+   "queue",
+   "tree",
+   "graph",
+   "sorting",
+   "search",
+   "programming",
+   "coding",
+   "code",
+   "python",
+   "java",
+   "javascript",
+   "cs",
+   "computer"
+  ],
+  "riddle": "Last in, first out:\nplates pile up on me. What am I?",
+  "options": [
+   "Stack",
+   "Queue",
+   "Heap",
+   "Graph"
+  ],
+  "solution": "Stack",
+  "hints": [
+   "LIFO",
+   "push and pop",
+   "Undo buttons use me",
+   "Function calls live on me"
+  ],
+  "fact_reference": "A stack is a LIFO structure; the call stack tracks active function calls.",
+  "source": "offline"
+ },
+ {
+  "tags": [
+   "data structures",
+   "dsa",
+   "algorithms",
+   "algorithm",
+   "array",
+   "arrays",
+   "stack",
+   "queue",
+   "tree",
+   "graph",
+   "sorting",
+   "search",
+   "programming",
+   "coding",
+   "code",
+   "python",
+   "java",
+   "javascript",
+   "cs",
+   "computer"
+  ],
+  "riddle": "First in, first out,\nlike people waiting in line. What am I?",
+  "options": [
+   "Queue",
+   "Stack",
+   "Tree",
+   "Array"
+  ],
+  "solution": "Queue",
+  "hints": [
+   "FIFO",
+   "enqueue and dequeue",
+   "Printers use me",
+   "BFS relies on me"
+  ],
+  "fact_reference": "Queues serve items in arrival order, which is why breadth-first search uses one.",
+  "source": "offline"
+ },
+ {
+  "tags": [
+   "data structures",
+   "dsa",
+   "algorithms",
+   "algorithm",
+   "array",
+   "arrays",
+   "stack",
+   "queue",
+   "tree",
+   "graph",
+   "sorting",
+   "search",
+   "programming",
+   "coding",
+   "code",
+   "python",
+   "java",
+   "javascript",
+   "cs",
+   "computer"
+  ],
+  "riddle": "I store elements side by side in memory,\nreached by an index. What am I?",
+  "options": [
+   "Array",
+   "Graph",
+   "Tree",
+   "Hash"
+  ],
+  "solution": "Array",
+  "hints": [
+   "Contiguous memory",
+   "Index starts at 0",
+   "O(1) random access",
+   "Fixed size in C"
+  ],
+  "fact_reference": "Arrays give constant-time indexed access because elements are contiguous.",
+  "source": "offline"
+ },
+ {
+  "tags": [
+   "data structures",
+   "dsa",
+   "algorithms",
+   "algorithm",
+   "array",
+   "arrays",
+   "stack",
+   "queue",
+   "tree",
+   "graph",
+   "sorting",
+   "search",
+   "programming",
+   "coding",
+   "code",
+   "python",
+   "java",
+   "javascript",
+   "cs",
+   "computer"
+  ],
+  "riddle": "I halve the search space each step\nbut need sorted data. What am I?",
+  "options": [
+   "Binary",
+   "Linear",
+   "Bubble",
+   "Hashing"
+  ],
+  "solution": "Binary",
+  "hints": [
+   "Divide and conquer",
+   "O(log n)",
+   "Check the middle",
+   "Needs sorting first"
+  ],
+  "fact_reference": "Binary search finds an item in O(log n) by repeatedly halving a sorted range.",
+  "source": "offline"
+ },
+ {
+  "tags": [
+   "data structures",
+   "dsa",
+   "algorithms",
+   "algorithm",
+   "array",
+   "arrays",
+   "stack",
+   "queue",
+   "tree",
+   "graph",
+   "sorting",
+   "search",
+   "programming",
+   "coding",
+   "code",
+   "python",
+   "java",
+   "javascript",
+   "cs",
+   "computer"
+  ],
+  "riddle": "I have a root, branches and leaves,\nbut I grow in memory. What am I?",
+  "options": [
+   "Tree",
+   "Stack",
+   "Queue",
+   "List"
+  ],
+  "solution": "Tree",
+  "hints": [
+   "Hierarchical",
+   "Nodes have children",
+   "No cycles",
+   "BSTs keep me sorted"
+  ],
+  "fact_reference": "Trees are acyclic hierarchical structures; binary search trees keep keys ordered.",
+  "source": "offline"
+ },
+ {
+  "tags": [
+   "data structures",
+   "dsa",
+   "algorithms",
+   "algorithm",
+   "array",
+   "arrays",
+   "stack",
+   "queue",
+   "tree",
+   "graph",
+   "sorting",
+   "search",
+   "programming",
+   "coding",
+   "code",
+   "python",
+   "java",
+   "javascript",
+   "cs",
+   "computer"
+  ],
+  "riddle": "Nodes joined by edges,\nmaps and social networks are made of me. What am I?",
+  "options": [
+   "Graph",
+   "Array",
+   "Stack",
+   "Heap"
+  ],
+  "solution": "Graph",
+  "hints": [
+   "Vertices and edges",
+   "Can be directed",
+   "Dijkstra walks me",
+   "Friends lists form me"
+  ],
+  "fact_reference": "Graphs model relationships as vertices connected by edges.",
+  "source": "offline"
+ },
+ {
+  "tags": [
+   "data structures",
+   "dsa",
+   "algorithms",
+   "algorithm",
+   "array",
+   "arrays",
+   "stack",
+   "queue",
+   "tree",
+   "graph",
+   "sorting",
+   "search",
+   "programming",
+   "coding",
+   "code",
+   "python",
+   "java",
+   "javascript",
+   "cs",
+   "computer"
+  ],
+  "riddle": "I repeatedly swap neighbours\nuntil the list is sorted. What am I?",
+  "options": [
+   "Bubble",
+   "Merge",
+   "Quick",
+   "Heap"
+  ],
+  "solution": "Bubble",
+  "hints": [
+   "Simple but slow",
+   "O(n^2)",
+   "Big values float up",
+   "Taught first in class"
+  ],
+  "fact_reference": "Bubble sort swaps adjacent items and runs in O(n^2) time.",
+  "source": "offline"
+ },
+ {
+  "tags": [
+   "web",
+   "internet",
+   "network",
+   "networks",
+   "networking",
+   "html",
+   "css",
+   "http",
+   "programming",
+   "coding",
+   "code",
+   "python",
+   "java",
+   "javascript",
+   "cs",
+   "computer"
+  ],
+  "riddle": "I am the language that gives\nevery web page its structure. What am I?",
+  "options": [
+   "HTML",
+   "CSS",
+   "SQL",
+   "JSON"
+  ],
+  "solution": "HTML",
+  "hints": [
+   "Tags everywhere",
+   "Angle brackets",
+   "Browsers render me",
+   "Tim Berners-Lee made me"
+  ],
+  "fact_reference": "HTML is the markup language that structures web pages.",
+  "source": "offline"
+ },
+ {
+  "tags": [
+   "web",
+   "internet",
+   "network",
+   "networks",
+   "networking",
+   "html",
+   "css",
+   "http",
+   "programming",
+   "coding",
+   "code",
+   "python",
+   "java",
+   "javascript",
+   "cs",
+   "computer"
+  ],
+  "riddle": "I make web pages pretty\nwith colors, fonts and layouts. What am I?",
+  "options": [
+   "CSS",
+   "HTML",
+   "PHP",
+   "XML"
+  ],
+  "solution": "CSS",
+  "hints": [
+   "Selectors and rules",
+   "Cascading",
+   "Flexbox and Grid",
+   "Styles, not structure"
+  ],
+  "fact_reference": "CSS (Cascading Style Sheets) controls the presentation of HTML.",
+  "source": "offline"
+ },
+ {
+  "tags": [
+   "web",
+   "internet",
+   "network",
+   "networks",
+   "networking",
+   "html",
+   "css",
+   "http"
+  ],
+  "riddle": "I turn names like example.com\ninto IP addresses. What am I?",
+  "options": [
+   "DNS",
+   "HTTP",
+   "FTP",
+   "SMTP"
+  ],
+  "solution": "DNS",
+  "hints": [
+   "The internet's phonebook",
+   "Uses port 53",
+   "Resolvers cache me",
+   "Domain Name System"
+  ],
+  "fact_reference": "DNS translates human-friendly domain names into IP addresses.",
+  "source": "offline"
+ },
+ {
+  "tags": [
+   "web",
+   "internet",
+   "network",
+   "networks",
+   "networking",
+   "html",
+   "css",
+   "http"
+  ],
+  "riddle": "I am the protocol your browser speaks\nto fetch web pages. What am I?",
+  "options": [
+   "HTTP",
+   "SSH",
+   "DNS",
+   "UDP"
+  ],
+  "solution": "HTTP",
+  "hints": [
+   "Request and response",
+   "GET and POST",
+   "Add S to secure me",
+   "Port 80"
+  ],
+  "fact_reference": "HTTP is the request/response protocol of the web; HTTPS adds TLS encryption.",
+  "source": "offline"
+ },
+ {
+  "tags": [
+   "ai",
+   "artificial intelligence",
+   "machine learning",
+   "ml",
+   "deep learning",
+   "neural",
+   "programming",
+   "coding",
+   "code",
+   "python",
+   "java",
+   "javascript",
+   "cs",
+   "computer"
+  ],
+  "riddle": "I learn patterns from examples\ninstead of explicit rules. What am I?",
+  "options": [
+   "Learning",
+   "Compiling",
+   "Parsing",
+   "Hashing"
+  ],
+  "solution": "Learning",
+  "hints": [
+   "Machine ___",
+   "Needs data",
+   "Training improves me",
+   "Models are my result"
+  ],
+  "fact_reference": "Machine learning fits models to data rather than following hand-written rules.",
+  "source": "offline"
+ },
+ {
+  "tags": [
+   "ai",
+   "artificial intelligence",
+   "machine learning",
+   "ml",
+   "deep learning",
+   "neural"
+  ],
+  "riddle": "Layers of connected neurons,\ninspired by the brain. What am I?",
+  "options": [
+   "Network",
+   "Database",
+   "Compiler",
+   "Kernel"
+  ],
+  "solution": "Network",
+  "hints": [
+   "Neural ___",
+   "Weights and biases",
+   "Backpropagation trains me",
+   "Deep learning stacks me"
+  ],
+  "fact_reference": "Neural networks learn by adjusting connection weights with backpropagation.",
+  "source": "offline"
+ },
+ {
+  "tags": [
+   "ai",
+   "artificial intelligence",
+   "machine learning",
+   "ml",
+   "deep learning",
+   "neural"
+  ],
+  "riddle": "I learn by trial and reward,\nlike a game-playing agent. What am I?",
+  "options": [
+   "Rewards",
+   "Labels",
+   "Clusters",
+   "Pixels"
+  ],
+  "solution": "Rewards",
+  "hints": [
+   "Reinforcement learning",
+   "Agents chase me",
+   "Q-learning maximises me",
+   "This game uses them!"
+  ],
+  "fact_reference": "Reinforcement learning trains agents to maximise reward through trial and error.",
+  "source": "offline"
+ },
+ {
+  "tags": [
+   "science",
+   "space",
+   "astronomy",
+   "physics",
+   "planets",
+   "solar system"
+  ],
+  "riddle": "I am the red planet,\nfourth from the Sun. What am I?",
+  "options": [
+   "Mars",
+   "Venus",
+   "Jupiter",
+   "Mercury"
+  ],
+  "solution": "Mars",
+  "hints": [
+   "Iron oxide dust",
+   "Two small moons",
+   "Olympus Mons is here",
+   "Rovers explore me"
+  ],
+  "fact_reference": "Mars looks red because its surface is rich in iron oxide.",
+  "source": "offline"
+ },
+ {
+  "tags": [
+   "science",
+   "space",
+   "astronomy",
+   "physics",
+   "planets",
+   "solar system"
+  ],
+  "riddle": "I am the largest planet,\nwith a storm bigger than Earth. What am I?",
+  "options": [
+   "Jupiter",
+   "Saturn",
+   "Neptune",
+   "Earth"
+  ],
+  "solution": "Jupiter",
+  "hints": [
+   "Gas giant",
+   "Great Red Spot",
+   "Dozens of moons",
+   "Fifth from the Sun"
+  ],
+  "fact_reference": "Jupiter is the largest planet; its Great Red Spot is a centuries-old storm.",
+  "source": "offline"
+ },
+ {
+  "tags": [
+   "science",
+   "space",
+   "astronomy",
+   "physics",
+   "planets",
+   "solar system"
+  ],
+  "riddle": "I pull every object toward Earth\nand keep the Moon in orbit. What am I?",
+  "options": [
+   "Gravity",
+   "Friction",
+   "Magnetism",
+   "Inertia"
+  ],
+  "solution": "Gravity",
+  "hints": [
+   "Newton's apple",
+   "9.8 m/s^2",
+   "Einstein bent me into spacetime",
+   "Keeps planets in orbit"
+  ],
+  "fact_reference": "Gravity is the attraction between masses; on Earth it accelerates objects at about 9.8 m/s^2.",
+  "source": "offline"
+ },
+ {
+  "tags": [
+   "science",
+   "space",
+   "astronomy",
+   "physics",
+   "planets",
+   "solar system",
+   "light"
+  ],
+  "riddle": "I travel about 300,000 km per second,\nfaster than anything else. What am I?",
+  "options": [
+   "Light",
+   "Sound",
+   "Heat",
+   "Wind"
+  ],
+  "solution": "Light",
+  "hints": [
+   "Photons",
+   "Speed limit of the universe",
+   "Rainbows split me",
+   "Sunlight takes 8 minutes to arrive"
+  ],
+  "fact_reference": "Light travels at roughly 299,792 km/s in a vacuum.",
+  "source": "offline"
+ },
+ {
+  "tags": [
+   "biology",
+   "science",
+   "cells",
+   "cell",
+   "human body",
+   "life"
+  ],
+  "riddle": "I am the powerhouse of the cell,\nmaking energy as ATP. What am I?",
+  "options": [
+   "Mitochondria",
+   "Nucleus",
+   "Ribosome",
+   "Membrane"
+  ],
+  "solution": "Mitochondria",
+  "hints": [
+   "Powerhouse",
+   "Makes ATP",
+   "Has its own DNA",
+   "Cellular respiration"
+  ],
+  "fact_reference": "Mitochondria produce ATP through cellular respiration.",
+  "source": "offline"
+ },
+ {
+  "tags": [
+   "biology",
+   "science",
+   "cells",
+   "cell",
+   "human body",
+   "life",
+   "plants"
+  ],
+  "riddle": "I am the green pigment plants use\nto catch sunlight. What am I?",
+  "options": [
+   "Chlorophyll",
+   "Glucose",
+   "Oxygen",
+   "Starch"
+  ],
+  "solution": "Chlorophyll",
+  "hints": [
+   "Lives in chloroplasts",
+   "Makes leaves green",
+   "Absorbs red and blue light",
+   "Key to photosynthesis"
+  ],
+  "fact_reference": "Chlorophyll absorbs light energy that drives photosynthesis.",
+  "source": "offline"
+ },
+ {
+  "tags": [
+   "biology",
+   "science",
+   "cells",
+   "cell",
+   "human body",
+   "life",
+   "genetics",
+   "dna"
+  ],
+  "riddle": "I am the double helix\nthat carries your genetic code. What am I?",
+  "options": [
+   "DNA",
+   "RNA",
+   "ATP",
+   "Protein"
+  ],
+  "solution": "DNA",
+  "hints": [
+   "Double helix",
+   "A, T, G and C",
+   "Lives in the nucleus",
+   "Watson, Crick and Franklin"
+  ],
+  "fact_reference": "DNA stores genetic instructions in sequences of four bases.",
+  "source": "offline"
+ },
+ {
+  "tags": [
+   "history",
+   "world history",
+   "ancient",
+   "egypt"
+  ],
+  "riddle": "Ancient Egyptians built me\nas giant tombs for pharaohs. What am I?",
+  "options": [
+   "Pyramid",
+   "Castle",
+   "Temple",
+   "Colosseum"
+  ],
+  "solution": "Pyramid",
+  "hints": [
+   "Giza is famous for me",
+   "Built of stone blocks",
+   "Triangular faces",
+   "Tomb of Khufu"
+  ],
+  "fact_reference": "The Great Pyramid of Giza was built around 2560 BC for Pharaoh Khufu.",
+  "source": "offline"
+ },
+ {
+  "tags": [
+   "history",
+   "world history",
+   "ancient",
+   "rome"
+  ],
+  "riddle": "Gladiators fought inside me\nin ancient Rome. What am I?",
+  "options": [
+   "Colosseum",
+   "Pyramid",
+   "Parthenon",
+   "Forum"
+  ],
+  "solution": "Colosseum",
+  "hints": [
+   "Amphitheatre",
+   "Held about 50,000 people",
+   "Completed in 80 AD",
+   "Still stands in Rome"
+  ],
+  "fact_reference": "The Colosseum, completed in 80 AD, could seat around 50,000 spectators.",
+  "source": "offline"
+ },
+ {
+  "tags": [
+   "math",
+   "maths",
+   "mathematics",
+   "numbers",
+   "algebra",
+   "geometry"
+  ],
+  "riddle": "I am the ratio of a circle's circumference\nto its diameter. What am I?",
+  "options": [
+   "Pi",
+   "Phi",
+   "Euler",
+   "Root"
+  ],
+  "solution": "Pi",
+  "hints": [
+   "About 3.14159",
+   "Irrational",
+   "Has its own day: March 14",
+   "Greek letter"
+  ],
+  "fact_reference": "Pi (about 3.14159) is the ratio of a circle's circumference to its diameter.",
+  "source": "offline"
+ },
+ {
+  "tags": [
+   "math",
+   "maths",
+   "mathematics",
+   "numbers",
+   "algebra",
+   "geometry"
+  ],
+  "riddle": "Divisible only by 1 and myself,\n2, 3, 5 and 7 are my kind. What am I?",
+  "options": [
+   "Prime",
+   "Even",
+   "Square",
+   "Fraction"
+  ],
+  "solution": "Prime",
+  "hints": [
+   "Only two divisors",
+   "2 is the only even one",
+   "Infinitely many",
+   "RSA encryption needs me"
+  ],
+  "fact_reference": "Prime numbers have exactly two divisors; cryptography relies on large primes.",
+  "source": "offline"
+ },
+ {
+  "tags": [
+   "math",
+   "maths",
+   "mathematics",
+   "numbers",
+   "algebra",
+   "geometry"
+  ],
+  "riddle": "I have three sides and my angles\nalways add up to 180 degrees. What am I?",
+  "options": [
+   "Triangle",
+   "Square",
+   "Circle",
+   "Hexagon"
+  ],
+  "solution": "Triangle",
+  "hints": [
+   "Three corners",
+   "Pythagoras loves my right form",
+   "180 degrees",
+   "Strongest shape in bridges"
+  ],
+  "fact_reference": "The interior angles of any triangle sum to 180 degrees.",
+  "source": "offline"
+ },
+ {
+  "tags": [
+   "general",
+   "riddle",
+   "riddles",
+   "fun",
+   "nature",
+   "geography"
+  ],
+  "riddle": "The more you take, the more you leave behind.\nWhat am I?",
+  "options": [
+   "Footsteps",
+   "Time",
+   "Memories",
+   "Breath"
+  ],
+  "solution": "Footsteps",
+  "hints": [
+   "You make me walking",
+   "I appear on sand",
+   "Detectives follow me",
+   "Left behind as you move"
+  ],
+  "fact_reference": "Classic riddles use wordplay: taking steps leaves footprints behind.",
+  "source": "offline"
+ },
+ {
+  "tags": [
+   "general",
+   "riddle",
+   "riddles",
+   "fun",
+   "nature",
+   "geography"
+  ],
+  "riddle": "I have keys but open no locks,\nspace but no room. What am I?",
+  "options": [
+   "Keyboard",
+   "Piano",
+   "Map",
+   "Door"
+  ],
+  "solution": "Keyboard",
+  "hints": [
+   "You are near one now",
+   "QWERTY",
+   "Has a space bar",
+   "Typing tool"
+  ],
+  "fact_reference": "The QWERTY layout dates back to typewriters of the 1870s.",
+  "source": "offline"
+ },
+ {
+  "tags": [
+   "general",
+   "riddle",
+   "riddles",
+   "fun",
+   "nature",
+   "geography",
+   "geography"
+  ],
+  "riddle": "I am the longest river in Africa,\nflowing north to the sea. What am I?",
+  "options": [
+   "Nile",
+   "Congo",
+   "Niger",
+   "Zambezi"
+  ],
+  "solution": "Nile",
+  "hints": [
+   "Flows through Egypt",
+   "About 6,650 km",
+   "Ends in the Mediterranean",
+   "Ancient civilisations grew on me"
+  ],
+  "fact_reference": "The Nile flows about 6,650 km north into the Mediterranean Sea.",
+  "source": "offline"
+ }
+]

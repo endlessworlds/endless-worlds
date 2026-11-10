@@ -14,12 +14,18 @@ config/name="endless-worlds"
 run/main_scene="res://ui/home_screen/home_screen.tscn"
 config/features=PackedStringArray("4.5", "GL Compatibility")
 config/icon="res://icon.svg"
+config/api_base_url="http://127.0.0.1:8000"
+config/relay_url="wss://endless-worlds-relay.srujanmpadmashali.workers.dev"
 
 [autoload]
 
 Global="*res://core/global.gd"
-DifficultyRl="*res://ai/difficulty_rl.gd"
-env_loader="*res://core/env_loader.gd"
+Net="*res://core/net.gd"
+
+[audio]
+
+driver/enable_input=true
+general/text_to_speech=true
 
 [display]
 

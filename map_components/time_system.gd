@@ -37,13 +37,23 @@ var clock_label : Label
 # ==================================================
 # INIT
 # ==================================================
+var canvas_mod: CanvasModulate
+
 func init_time():
 	current_light_color = day_color
 	target_light_color = day_color
-	get_parent().modulate = day_color
+	# CanvasModulate (not node modulate) so PointLight2Ds can light up the night.
+	canvas_mod = CanvasModulate.new()
+	canvas_mod.color = day_color
+	get_parent().add_child(canvas_mod)
 
 	game_hour = randi_range(0, 23)
 	game_minute = [0, 15, 30, 45].pick_random()
+	for arg in OS.get_cmdline_user_args():  # dev: godot ... -- --hour=22
+		if arg.begins_with("--hour="):
+			game_hour = int(arg.get_slice("=", 1))
+			update_time_state()
+			current_light_color = target_light_color
 
 	create_clock_ui()
 	update_time_state()
@@ -90,24 +100,9 @@ func _process(delta):
 		light_transition_speed * delta
 	)
 
-	get_parent().modulate = current_light_color
-	update_flower_lighting()
+	canvas_mod.color = current_light_color
 	update_morning_fog(delta)
 
-
-# ==================================================
-# FLOWER LIGHTING
-# ==================================================
-func update_flower_lighting():
-	if flower_spawner != null:
-		for child in flower_spawner.get_children():
-			if child is Sprite2D:
-				child.modulate = current_light_color
-
-	if tree_spawner != null:
-		for child in tree_spawner.get_children():
-			if child is Sprite2D:
-				child.modulate = current_light_color
 
 # ==================================================
 # TIME LOGIC (UNCHANGED)

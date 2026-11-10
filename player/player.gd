@@ -26,6 +26,18 @@ extends CharacterBody2D
 @onready var footstep_timer: Timer = $FootstepTimer
 
 @onready var foot_trail: CPUParticles2D = $FootTrail
+@onready var shadow: Sprite2D = $Shadow
+
+# ================= JUMP =================
+const JUMP_TIME := 0.42
+const JUMP_HEIGHT := 14.0
+var jump_t := -1.0           # < 0 = on the ground
+var jump_h := 0.0            # current height above ground (px, player-local)
+var airborne := false        # map skips lava / water checks while true
+var _squash := 0.0           # +stretch (take-off) / -squash (landing)
+var _base_scale := Vector2.ONE
+var _shadow_scale := Vector2.ONE
+var _dust: CPUParticles2D
 
 
 
@@ -58,6 +70,7 @@ func _ready():
 	camera.zoom = Vector2.ONE
 	load_footstep_sounds()
 	footstep_timer.timeout.connect(play_footstep)
+	_setup_jump()
 	
 	foot_trail.position = Vector2(0, 7) # near feet
 	
@@ -73,17 +86,16 @@ func load_footstep_sounds():
 
 func load_folder(path: String) -> Array:
 	var sounds := []
-	var dir := DirAccess.open(path)
-	if dir:
-		for file in dir.get_files():
-			if file.ends_with(".ogg"):
-				sounds.append(load(path + "/" + file))
+	# ResourceLoader sees imported files in exported builds too (DirAccess only sees .import/.remap there).
+	for file in ResourceLoader.list_directory(path):
+		if file.ends_with(".ogg"):
+			sounds.append(load(path + "/" + file))
 	return sounds
 
 # ==================================================
 func _physics_process(delta):
 	# Check if answer popup is visible - if so, disable movement
-	var movement_blocked = answer_popup_cached and answer_popup_cached.visible
+	var movement_blocked = (answer_popup_cached and answer_popup_cached.visible) or Global.input_locked
 	
 	var dir := Vector2.ZERO
 	
@@ -114,8 +126,15 @@ func _physics_process(delta):
 	else:
 		bubble_timer = 0.0
 
+	# JUMP: Space / gamepad A. Arc + squash & stretch; you can hop over small lava patches.
+	if not movement_blocked and jump_t < 0.0 and not in_water and Input.is_action_just_pressed("jump"):
+		jump_t = 0.0
+		_squash = 0.18
+		stop_footsteps()
+	_update_jump(delta)
+
 	# VISUAL SINK (sprite only)
-	sprite.position = base_sprite_pos + Vector2(0, sink_px)
+	sprite.position = base_sprite_pos + Vector2(0, sink_px - jump_h)
 
 	# MOVEMENT
 	if dir != Vector2.ZERO:
@@ -123,7 +142,8 @@ func _physics_process(delta):
 		last_dir = dir
 		velocity = dir * current_speed
 		play_animation(dir)
-		start_footsteps(sprinting)
+		if not airborne:
+			start_footsteps(sprinting)
 	else:
 		velocity = Vector2.ZERO
 		set_idle_frame()
@@ -132,7 +152,7 @@ func _physics_process(delta):
 	move_and_slide()
 	
 	# 🟤 Smoky walking marks
-	if dir != Vector2.ZERO:
+	if dir != Vector2.ZERO and not airborne:
 		foot_trail.emitting = true
 	else:
 		foot_trail.emitting = false
@@ -224,3 +244,60 @@ func spawn_water_bubble():
 	)
 
 	bubble.global_position = bubble_spawner.global_position + offset
+
+
+# ==================================================
+# 🦘 JUMP
+# ==================================================
+func _setup_jump() -> void:
+	if not InputMap.has_action("jump"):
+		InputMap.add_action("jump")
+		var key := InputEventKey.new()
+		key.physical_keycode = KEY_SPACE
+		InputMap.action_add_event("jump", key)
+		var pad := InputEventJoypadButton.new()
+		pad.button_index = JOY_BUTTON_A
+		InputMap.action_add_event("jump", pad)
+	_base_scale = sprite.scale
+	_shadow_scale = shadow.scale
+	_dust = CPUParticles2D.new()
+	_dust.emitting = false
+	_dust.one_shot = true
+	_dust.explosiveness = 0.9
+	_dust.amount = 10
+	_dust.lifetime = 0.45
+	_dust.local_coords = false
+	_dust.position = Vector2(0, 8)
+	_dust.direction = Vector2(0, -1)
+	_dust.spread = 80.0
+	_dust.initial_velocity_min = 12.0
+	_dust.initial_velocity_max = 28.0
+	_dust.gravity = Vector2(0, 30)
+	_dust.scale_amount_min = 1.0
+	_dust.scale_amount_max = 2.2
+	var ramp := Gradient.new()
+	ramp.set_color(0, Color(0.85, 0.8, 0.7, 0.7))
+	ramp.set_color(1, Color(0.85, 0.8, 0.7, 0.0))
+	_dust.color_ramp = ramp
+	_dust.z_index = -1
+	add_child(_dust)
+
+
+func _update_jump(delta: float) -> void:
+	if jump_t >= 0.0:
+		jump_t += delta
+		var p := jump_t / JUMP_TIME
+		if p >= 1.0:
+			jump_t = -1.0
+			jump_h = 0.0
+			_squash = -0.22  # landing squash
+			_dust.restart()
+			_dust.emitting = true
+		else:
+			jump_h = sin(p * PI) * JUMP_HEIGHT
+	airborne = jump_t >= 0.0
+	_squash = move_toward(_squash, 0.0, delta * 1.4)
+	sprite.scale = _base_scale * Vector2(1.0 - _squash, 1.0 + _squash)
+	var k := 1.0 - (jump_h / JUMP_HEIGHT) * 0.45
+	shadow.scale = _shadow_scale * k
+	shadow.modulate.a = 0.3 * k

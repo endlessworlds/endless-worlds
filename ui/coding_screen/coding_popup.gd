@@ -201,6 +201,7 @@ func _build_ui() -> void:
 	get_tree().root.size_changed.connect(func(): _close_btn.position = Vector2(get_viewport().get_visible_rect().size.x - 50, 10))
 
 	_http = HTTPRequest.new()
+	_http.timeout = 30.0
 	_http.request_completed.connect(_on_http_completed)
 	add_child(_http)
 
@@ -263,7 +264,7 @@ func _on_run_pressed() -> void:
 	}
 	
 	var headers = PackedStringArray(["Content-Type: application/json"])
-	var err = _http.request("http://localhost:8000/api/evaluate_code", headers, HTTPClient.METHOD_POST, JSON.stringify(payload))
+	var err = _http.request(Global.api_url("/api/evaluate_code"), headers, HTTPClient.METHOD_POST, JSON.stringify(payload))
 	if err != OK:
 		_output.text = "[color=red]❌ Request failed.[/color]"
 		_finish_run()

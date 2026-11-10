@@ -21,9 +21,51 @@ var is_coding_mode: bool = false
 var current_coding_question: Dictionary = {}
 
 
+# Backend for AI riddles / code checks. Override per deployment with the project
+# setting "application/config/api_base_url", or on the web build by defining
+# `window.ENDLESS_WORLDS_API = "https://..."` in the HTML shell (export head_include).
+var api_base_url: String = "http://127.0.0.1:8000"
+var win_streak: int = 0
+var player_name: String = "Explorer"
+var torch_mode := 0  # 0 auto (night), 1 always on, 2 off
+var input_locked := false  # true while typing (chat / ask-the-bot) so WASD doesn't move the player
+
+
+# Pixel-art icon font mapped onto emoji code points (assets/fonts/pixel_icons.fnt).
+# Installed as the first fallback of every UI font, so any emoji in any label renders
+# as a matching 16px pixel icon instead of a glossy system emoji.
+var _fonts_keepalive: Array = []
+
+func _install_icon_font() -> void:
+	var icons: FontFile = load("res://assets/fonts/pixel_icons.fnt")
+	if icons == null:
+		return
+	icons.fixed_size_scale_mode = TextServer.FIXED_SIZE_SCALE_INTEGER_ONLY  # crisp 1x/2x/3x pixels
+	for f in [load("res://assets/fonts/Jersey10-Regular.ttf"), ThemeDB.fallback_font]:
+		if f is Font and not f.fallbacks.has(icons):
+			var fb: Array[Font] = [icons]
+			fb.append_array(f.fallbacks)
+			f.fallbacks = fb
+			_fonts_keepalive.append(f)  # keep the patched resource cached for later load() calls
+	_fonts_keepalive.append(icons)
+
+
 func _ready():
+	_install_icon_font()
+	api_base_url = ProjectSettings.get_setting("application/config/api_base_url", api_base_url)
+	# The packaged .env can point a shared build at a hosted AI server (API_URL=https://...).
+	api_base_url = str(EnvLoader.load_env().get("API_URL", api_base_url))
+	if OS.has_feature("web"):
+		var js_url = JavaScriptBridge.eval("window.ENDLESS_WORLDS_API || ''")
+		if typeof(js_url) == TYPE_STRING and not js_url.is_empty():
+			api_base_url = js_url
+	api_base_url = api_base_url.trim_suffix("/")
 	load_game()
 	_init_rl()
+
+
+func api_url(path: String) -> String:
+	return api_base_url + path
 
 func _init_rl():
 	if rl != null and is_instance_valid(rl):
@@ -39,6 +81,8 @@ func save_game():
 		"stats": stats,
 		"high_score": high_score,
 		"selected_topic": selected_topic,
+		"win_streak": win_streak,
+		"player_name": player_name,
 		"learning_journal": learning_journal
 	}
 
@@ -65,6 +109,8 @@ func load_game():
 	stats = data.get("stats", stats)
 	high_score = data.get("high_score", high_score)
 	selected_topic = data.get("selected_topic", selected_topic)
+	win_streak = int(data.get("win_streak", 0))
+	player_name = str(data.get("player_name", player_name))
 	if data.has("learning_journal"):
 		var lj = data["learning_journal"]
 		if lj.has("solved_riddles"):
@@ -103,6 +149,7 @@ func reset_all_stats():
 	selected_topic = "programming"
 	session_start_time = 0.0
 	current_hint_count = 0
+	win_streak = 0
 
 	# Reset learning journal
 	learning_journal = {"solved_riddles": [], "concepts": []}
@@ -246,9 +293,11 @@ func end_game(win: bool):
 	if win:
 		stats.total_wins += 1
 		t.wins += 1
+		win_streak += 1
 	else:
 		stats.total_losses += 1
 		t.losses += 1
+		win_streak = 0
 		
 	update_difficulty(win, current_hint_count)
 	save_game()

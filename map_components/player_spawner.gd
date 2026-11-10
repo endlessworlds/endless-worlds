@@ -22,7 +22,14 @@ func spawn_player_at_center():
 			var p = center_tile + Vector2i(x, y)
 			# Create a mix of Grass and Dirt for a natural look
 			var tile_type = GRASS if randf() > 0.2 else DIRT
-			tilemap.set_cell(p, SRC, tile_type)
+			tilemap.set_cell(p, maxi(tilemap.get_cell_source_id(p), 0), tile_type)  # keep the biome tileset
+	# Never start next to lava/magma/water: clear a wider safe circle of hazards.
+	const HAZARDS := [Vector2i(1, 1), Vector2i(2, 1), Vector2i(3, 1)]
+	for x in range(-7, 8):
+		for y in range(-7, 8):
+			var p = center_tile + Vector2i(x, y)
+			if x * x + y * y <= 49 and tilemap.get_cell_atlas_coords(p) in HAZARDS:
+				tilemap.set_cell(p, tilemap.get_cell_source_id(p), GRASS)
 
 	# 3. Teleport player
 	# map_to_local centers the player exactly in the middle of tile 140,140

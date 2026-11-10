@@ -65,14 +65,27 @@ func apply_weather_type():
 		rain_far.material.set_shader_parameter("is_snow", snow_val)
 		rain_near.material.set_shader_parameter("is_snow", snow_val)
 	
-	if is_snow:
-		# Snow behavior: Slow and floaty
-		rain_far.speed_scale = 0.2
-		rain_near.speed_scale = 0.2
-	else:
-		# Rain behavior: Fast
-		rain_far.speed_scale = 1.0
-		rain_near.speed_scale = 1.0
+	# Above every depth-sorted sprite (player z = feet_y / 4 can exceed 2000).
+	rain_far.z_index = 4050
+	rain_near.z_index = 4060
+	for p: CPUParticles2D in [rain_far, rain_near]:
+		var near := p == rain_near
+		if is_snow:
+			# Real snow: round flakes drifting and swirling, not slowed-down rain streaks.
+			p.texture = _flake_texture()
+			p.speed_scale = 1.0
+			p.lifetime = 9.0 if near else 12.0
+			p.gravity = Vector2(18, 55 if near else 35)
+			p.initial_velocity_min = 10.0
+			p.initial_velocity_max = 40.0
+			p.spread = 40.0
+			p.tangential_accel_min = -25.0
+			p.tangential_accel_max = 25.0
+			p.scale_amount_min = 0.6 if near else 0.35
+			p.scale_amount_max = 1.4 if near else 0.8
+			p.amount = 420 if near else 260
+		else:
+			p.speed_scale = 1.0
 
 func start_rain():
 	raining = true
@@ -85,3 +98,17 @@ func stop_rain():
 	if intensity <= 0.01:
 		rain_far.emitting = false
 		rain_near.emitting = false
+
+
+func _flake_texture() -> Texture2D:
+	var g := GradientTexture2D.new()
+	g.width = 8
+	g.height = 8
+	g.fill = GradientTexture2D.FILL_RADIAL
+	g.fill_from = Vector2(0.5, 0.5)
+	g.fill_to = Vector2(1.0, 0.5)
+	var grad := Gradient.new()
+	grad.set_color(0, Color(1, 1, 1, 1))
+	grad.set_color(1, Color(1, 1, 1, 0))
+	g.gradient = grad
+	return g
