@@ -189,7 +189,7 @@
 <!-- 6. Messages -->
 <section class="slide">
   <div class="kicker">What travels over the wire</div>
-  <h2>Thirteen small JSON messages</h2>
+  <h2>Fourteen small JSON messages</h2>
   <table>
     <tr><th>Type</th><th>Who sends</th><th>Fields</th><th>When</th></tr>
     <tr><td><code>welcome</code></td><td>relay → joiner</td><td>id, peers[]</td><td>on connect</td></tr>
@@ -199,6 +199,7 @@
     <tr><td><code>riddle</code></td><td>host → all</td><td>riddle, options, solution, hints, fact</td><td>once per round</td></tr>
     <tr><td><code>pos</code></td><td>everyone</td><td>x, y, anim, frame, flip, score, torch</td><td>12 Hz while moving, ~1 Hz idle</td></tr>
     <tr><td><code>hint</code></td><td>whoever grabbed it</td><td>idx</td><td>bulb collected</td></tr>
+    <tr><td><code>hello</code></td><td>everyone</td><td>c (character)</td><td>on joining · to newcomers</td></tr>
     <tr><td><code>chat</code></td><td>anyone</td><td>text (≤120 chars)</td><td>press T</td></tr>
     <tr><td><code>won</code></td><td>the winner</td><td>name, answer</td><td>correct answer</td></tr>
     <tr><td><code>api</code> / <code>api_reply</code></td><td>guest ⇄ host</td><td>path, base64 body / code, body</td><td>guest talks to Bolt</td></tr>
