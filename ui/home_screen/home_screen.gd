@@ -294,6 +294,8 @@ func _dev_autoplay() -> void:
 	for a in OS.get_cmdline_user_args():
 		if a.begins_with("--") and "=" in a:
 			args[a.get_slice("=", 0).trim_prefix("--")] = a.get_slice("=", 1)
+	if args.has("tutorial"):
+		$JoyStickUI/TutorialButton._open()
 	if args.has("lobby"):
 		Lobby.open(self, func(): return topic_input.text.strip_edges())
 	if args.has("host-room"):
