@@ -16,6 +16,13 @@ static func open(parent: Node, on_reset: Callable) -> CanvasLayer:
 
 func _ready() -> void:
 	var v := PixelUI.page(self, "📊 Your Stats", 680, queue_free)
+	# The only door into Survival mode: a small bug button next to close.
+	var head: HBoxContainer = v.get_child(0)
+	var bug := PixelUI.button("🐛", func(): get_tree().change_scene_to_file("res://survival/survival.tscn"))
+	bug.custom_minimum_size = Vector2(48, 48)
+	bug.tooltip_text = "Survival mode"
+	head.add_child(bug)
+	head.move_child(bug, 1)
 	var s: Dictionary = Global.stats
 	var n := func(k: String) -> String: return str(int(s.get(k, 0)))
 	var games := int(s.total_games)
@@ -47,7 +54,9 @@ func _ready() -> void:
 		box.add_child(PixelUI.label(t[2], 44, t[3]))
 		grid.add_child(p)
 
-	v.add_child(PixelUI.label("AI difficulty right now: %s" % Global.difficulty.capitalize(), 24, PixelUI.MUTED))
+	var surv := int(s.get("survival_best_round", 0))
+	v.add_child(PixelUI.label("AI difficulty right now: %s%s" % [Global.difficulty.capitalize(),
+		("   ·   💀 Survival best: round %d" % surv) if surv > 0 else ""], 24, PixelUI.MUTED))
 
 	# reset asks twice
 	var reset := PixelUI.button("Reset all progress", func(): pass)
