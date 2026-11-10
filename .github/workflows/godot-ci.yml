@@ -1,56 +1,87 @@
-name: godot-ci
+name: build-and-deploy
 
 on:
   push:
-    branches: [ main ]
+    branches: [main]
+  workflow_dispatch:
 
 env:
-  EXPORT_NAME: endless-world
   GODOT_VERSION: 4.5.1
 
 jobs:
-  export-web:
-    name: Web Export
+  export:
+    name: Export Web + Windows
     runs-on: ubuntu-latest
-    # Only run on the main repository, not forks
-    if: github.repository == 'endlessworlds/endless-worlds'
     steps:
-      - name: Checkout
-        uses: actions/checkout@v4
+      - uses: actions/checkout@v4
         with:
           lfs: true
 
-      - name: Install Godot 4.5.1
+      - name: Install Godot + export templates
         run: |
-          wget https://github.com/godotengine/godot/releases/download/4.5.1-stable/Godot_v4.5.1-stable_linux.x86_64.zip
-          unzip Godot_v4.5.1-stable_linux.x86_64.zip
-          chmod +x Godot_v4.5.1-stable_linux.x86_64
-          sudo mv Godot_v4.5.1-stable_linux.x86_64 /usr/local/bin/godot
-          godot --version
+          wget -q https://github.com/godotengine/godot/releases/download/${GODOT_VERSION}-stable/Godot_v${GODOT_VERSION}-stable_linux.x86_64.zip
+          unzip -q Godot_v${GODOT_VERSION}-stable_linux.x86_64.zip
+          sudo mv Godot_v${GODOT_VERSION}-stable_linux.x86_64 /usr/local/bin/godot
+          wget -q https://github.com/godotengine/godot/releases/download/${GODOT_VERSION}-stable/Godot_v${GODOT_VERSION}-stable_export_templates.tpz
+          mkdir -p ~/.local/share/godot/export_templates/${GODOT_VERSION}.stable
+          unzip -q Godot_v${GODOT_VERSION}-stable_export_templates.tpz
+          mv templates/* ~/.local/share/godot/export_templates/${GODOT_VERSION}.stable/
 
-      - name: Download Export Templates
+      # The game only needs URLs; API keys belong to the AI server, never to public builds.
+      - name: Create .env
         run: |
-          wget https://github.com/godotengine/godot/releases/download/4.5.1-stable/Godot_v4.5.1-stable_export_templates.tpz
-          mkdir -v -p ~/.local/share/godot/export_templates/4.5.1.stable
-          unzip Godot_v4.5.1-stable_export_templates.tpz
-          mv templates/* ~/.local/share/godot/export_templates/4.5.1.stable/
+          {
+            echo "RELAY_URL=${{ vars.RELAY_URL || 'wss://endless-worlds-relay.srujanmpadmashali.workers.dev' }}"
+            if [ -n "${{ vars.API_URL }}" ]; then echo "API_URL=${{ vars.API_URL }}"; fi
+          } > .env
 
-      - name: Create .env file
+      - name: Import + export
         run: |
-          echo "GROQ_API_KEY=${{ secrets.GROQ_API_KEY }}" > .env
-          echo "SERPER_API_KEY=${{ secrets.SERPER_API_KEY }}" >> .env
+          godot --headless --import || true
+          mkdir -p build/web build/windows
+          godot --headless --export-release "Web" build/web/index.html
+          godot --headless --export-release "Windows Desktop" build/windows/EndlessWorlds.exe
+          cp build/web/index.html build/web/404.html
 
-      - name: Import project assets
-        run: |
-          godot --headless --verbose --editor --quit-after 2
-
-      - name: Web Build
-        run: |
-          mkdir -v -p build/web
-          godot --headless --verbose --export-release "Web" build/web/index.html
-
-      - name: Upload Artifacts
-        uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v4
         with:
-          name: web
+          name: EndlessWorlds-Windows
+          path: build/windows
+
+      - uses: actions/upload-pages-artifact@v3
+        with:
           path: build/web
+
+  pages:
+    # Repo Settings → Pages → Source: "GitHub Actions"
+    name: Deploy web build to GitHub Pages
+    needs: export
+    runs-on: ubuntu-latest
+    permissions:
+      pages: write
+      id-token: write
+    environment:
+      name: github-pages
+      url: ${{ steps.deploy.outputs.page_url }}
+    steps:
+      - id: deploy
+        uses: actions/deploy-pages@v4
+
+  deploy-relay:
+    # Optional: add CLOUDFLARE_API_TOKEN + CLOUDFLARE_ACCOUNT_ID secrets to enable (see relay/README.md).
+    name: Deploy multiplayer relay
+    runs-on: ubuntu-latest
+    env:
+      CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+      CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+    steps:
+      - uses: actions/checkout@v4
+        if: env.CLOUDFLARE_API_TOKEN != ''
+      - uses: actions/setup-node@v4
+        if: env.CLOUDFLARE_API_TOKEN != ''
+        with:
+          node-version: 20
+      - name: Deploy
+        if: env.CLOUDFLARE_API_TOKEN != ''
+        working-directory: relay
+        run: npm install --no-audit --no-fund && npx wrangler deploy

@@ -1,0 +1,40 @@
+@font-face { font-family: "Jersey"; src: url("../../assets/fonts/Jersey10-Regular.ttf"); }
+@page { size: 1280px 720px; margin: 0; }
+:root {
+  --bg: #0f1424; --panel: #182038; --panel2: #1f2a4a; --line: #2e3a62;
+  --gold: #ffc846; --gold2: #c4801e; --cream: #f6ecd2; --muted: #a9b3cf;
+  --blue: #60baff; --green: #6edc78; --red: #e84848; --pink: #f72585; --yellow: #ffd60a;
+}
+* { box-sizing: border-box; }
+html, body { margin: 0; background: var(--bg); color: var(--cream); font-family: "Segoe UI", system-ui, sans-serif; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+.slide { width: 1280px; height: 720px; padding: 48px 64px; position: relative; overflow: hidden; page-break-after: always;
+  background: radial-gradient(1200px 500px at 85% -10%, #26335c 0%, transparent 60%), var(--bg); }
+.slide:last-child { page-break-after: auto; }
+h1, h2, .pix { font-family: "Jersey", monospace; font-weight: 400; letter-spacing: 0.5px; }
+h1 { font-size: 92px; line-height: 0.95; margin: 0; color: var(--gold); text-shadow: 0 5px 0 #6b3a08; }
+h2 { font-size: 54px; margin: 0 0 6px; color: var(--gold); }
+.kicker { font-family: "Jersey", monospace; color: var(--blue); font-size: 26px; letter-spacing: 2px; text-transform: uppercase; }
+.sub { color: var(--muted); font-size: 20px; margin: 0 0 22px; max-width: 980px; line-height: 1.4; }
+p, li { font-size: 19px; line-height: 1.45; }
+ul { margin: 6px 0; padding-left: 22px; }
+li { margin: 4px 0; }
+b, strong { color: var(--gold); font-weight: 600; }
+code { font-family: Consolas, monospace; font-size: 0.92em; background: #0b1020; border: 1px solid var(--line); padding: 1px 6px; border-radius: 4px; color: #ffe08a; }
+.row { display: flex; gap: 28px; }
+.col { flex: 1; min-width: 0; }
+.card { background: var(--panel); border: 2px solid var(--gold2); border-radius: 10px; padding: 18px 22px; box-shadow: 0 0 0 2px #0a0d18, 0 10px 30px rgba(0,0,0,.35); }
+.card h3 { font-family: "Jersey", monospace; font-weight: 400; color: var(--gold); font-size: 30px; margin: 0 0 6px; }
+.shot { border: 3px solid var(--gold2); border-radius: 8px; box-shadow: 0 0 0 3px #0a0d18, 0 14px 40px rgba(0,0,0,.5); display: block; width: 100%; image-rendering: pixelated; }
+.cap { color: var(--muted); font-size: 15px; margin-top: 8px; }
+.big { font-family: "Jersey", monospace; font-size: 64px; color: var(--gold); line-height: 1; }
+.stat { text-align: center; }
+.stat .lbl { color: var(--muted); font-size: 16px; margin-top: 4px; }
+table { border-collapse: collapse; width: 100%; font-size: 16px; }
+th { font-family: "Jersey", monospace; font-weight: 400; font-size: 22px; color: var(--gold); text-align: left; border-bottom: 2px solid var(--gold2); padding: 6px 10px; }
+td { padding: 7px 10px; border-bottom: 1px solid var(--line); vertical-align: top; }
+td code { white-space: nowrap; }
+.foot { position: absolute; left: 64px; right: 64px; bottom: 22px; display: flex; justify-content: space-between; color: #5d6890; font-size: 14px; font-family: "Jersey", monospace; letter-spacing: 1px; }
+.tag { display: inline-block; font-family: "Jersey", monospace; font-size: 20px; padding: 2px 12px; border-radius: 6px; border: 2px solid var(--gold2); background: #0b1020; color: var(--gold); margin: 0 6px 6px 0; }
+.good { color: var(--green); } .bad { color: var(--red); }
+svg text { font-family: "Segoe UI", sans-serif; }
+svg .px { font-family: "Jersey", monospace; }

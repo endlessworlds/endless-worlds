@@ -1,0 +1,347 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><title>Endless Worlds Pitch</title>
+<link rel="stylesheet" href="deck.css">
+<style>
+.hero { position:absolute; inset:0; background: url("../images/night_torch.jpg") center/cover; }
+.hero::after { content:""; position:absolute; inset:0; background: linear-gradient(90deg, rgba(10,13,24,.96) 0%, rgba(10,13,24,.75) 45%, rgba(10,13,24,.15) 100%); }
+.over { position: relative; z-index: 2; }
+.vs td { font-size: 17px; }
+.vs td:first-child { color: var(--muted); }
+.pill { display:inline-block; padding: 3px 12px; border-radius: 99px; font-size: 15px; background:#0b1020; border:1px solid var(--line); color: var(--muted); margin: 0 6px 6px 0; }
+.grid2 { display:grid; grid-template-columns: 1fr 1fr; gap: 18px; }
+.grid3 { display:grid; grid-template-columns: 1fr 1fr 1fr; gap: 16px; }
+.mini { font-size: 16px; } .mini li { font-size: 16px; }
+.q { font-family:"Jersey",monospace; font-size: 26px; color: var(--gold); }
+</style></head>
+<body>
+
+<!-- 1 -->
+<section class="slide">
+  <div class="hero"></div>
+  <div class="over" style="max-width:640px;margin-top:70px">
+    <div class="kicker">AI-powered exploration learning</div>
+    <h1 style="font-size:120px;margin-top:10px">ENDLESS<br>WORLDS</h1>
+    <p style="font-size:26px;line-height:1.35;margin-top:22px">Type <b>any topic</b>. Get a living pixel island, a riddle written from the live web, a robot guide you can <b>talk to</b>, and friends to race to the answer.</p>
+    <p style="margin-top:26px"><span class="tag">Godot 4.5</span><span class="tag">Groq LLM + RAG</span><span class="tag">Whisper voice</span><span class="tag">Q-learning</span><span class="tag">10-player online</span></p>
+  </div>
+  <div class="foot"><span>ENDLESS WORLDS</span><span>1</span></div>
+</section>
+
+<!-- 2 -->
+<section class="slide">
+  <div class="kicker">The problem</div>
+  <h2>Most learning games are quizzes in costume</h2>
+  <div class="row" style="margin-top:14px">
+    <div class="col card"><h3>Fixed content</h3><p>A finished question bank. Once you've seen it, the "game" is over, and it can't teach a topic nobody wrote questions for.</p></div>
+    <div class="col card"><h3>One-size difficulty</h3><p>The same level for everyone: too easy gets boring, too hard makes players quit. Nothing adapts.</p></div>
+    <div class="col card"><h3>Learning alone</h3><p>No voice, no companion and no friends, just a screen of multiple choice.</p></div>
+  </div>
+  <div class="card" style="margin-top:22px"><h3>What the research says about AI companions</h3>
+    <p class="mini">Studies of AI companions in serious games report more engagement when the AI <b>scaffolds with hints and questions instead of giving answers</b>, and warn that learners can over-rely on an AI that solves things for them.¹ Endless Worlds follows that rule: its bot is prompted never to say the answer.</p>
+    <p class="cap">¹ e.g. SPARC/CAP multiplayer serious-game pilot (Frontiers in Computer Science); AI verbal &amp; visual scaffolding in a serious game (arXiv 2602.08893); 90-participant human-agent collaboration study (arXiv 2605.27384).</p></div>
+  <div class="foot"><span>ENDLESS WORLDS</span><span>2</span></div>
+</section>
+
+<!-- 3 -->
+<section class="slide">
+  <div class="kicker">How it plays</div>
+  <h2>One loop: explore → collect → answer → level up</h2>
+  <svg width="1152" height="250" viewBox="0 0 1152 250" style="margin-top:6px">
+    <defs><marker id="k" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0,0 L10,5 L0,10 z" fill="#ffc846"/></marker></defs>
+    <g font-size="15" fill="#f6ecd2">
+      <rect x="0" y="20" width="200" height="130" rx="10" fill="#182038" stroke="#c4801e" stroke-width="2.5"/><text x="14" y="52" class="px" font-size="26" fill="#ffc846">TOPIC</text><text x="14" y="80">"black holes",</text><text x="14" y="100">"Python", "Rome"…</text><text x="14" y="120">or tap a chip</text>
+      <rect x="236" y="20" width="200" height="130" rx="10" fill="#182038" stroke="#c4801e" stroke-width="2.5"/><text x="250" y="52" class="px" font-size="26" fill="#ffc846">NEW ISLAND</text><text x="250" y="80">procedural terrain,</text><text x="250" y="100">4 biomes, weather,</text><text x="250" y="120">day/night, wildlife</text>
+      <rect x="472" y="20" width="200" height="130" rx="10" fill="#182038" stroke="#c4801e" stroke-width="2.5"/><text x="486" y="52" class="px" font-size="26" fill="#ffc846">RIDDLE</text><text x="486" y="80">written from a live</text><text x="486" y="100">web page by the LLM,</text><text x="486" y="120">at your difficulty</text>
+      <rect x="708" y="20" width="200" height="130" rx="10" fill="#182038" stroke="#c4801e" stroke-width="2.5"/><text x="722" y="52" class="px" font-size="26" fill="#ffc846">EXPLORE</text><text x="722" y="80">compass → 6 hint bulbs;</text><text x="722" y="100">avoid lava, water;</text><text x="722" y="120">ask Bolt out loud</text>
+      <rect x="944" y="20" width="200" height="130" rx="10" fill="#182038" stroke="#80ed99" stroke-width="2.5"/><text x="958" y="52" class="px" font-size="26" fill="#80ed99">ANSWER</text><text x="958" y="80">at any well, in one</text><text x="958" y="100">of 6 mini-game</text><text x="958" y="120">formats</text>
+      <line x1="200" y1="85" x2="234" y2="85" stroke="#ffc846" stroke-width="3" marker-end="url(#k)"/>
+      <line x1="436" y1="85" x2="470" y2="85" stroke="#ffc846" stroke-width="3" marker-end="url(#k)"/>
+      <line x1="672" y1="85" x2="706" y2="85" stroke="#ffc846" stroke-width="3" marker-end="url(#k)"/>
+      <line x1="908" y1="85" x2="942" y2="85" stroke="#ffc846" stroke-width="3" marker-end="url(#k)"/>
+      <path d="M1044 150 C1044 230, 336 230, 336 152" fill="none" stroke="#80ed99" stroke-width="3" stroke-dasharray="8 6" marker-end="url(#k)"/>
+      <text x="470" y="222" fill="#80ed99">win → fact saved to Learning Journal → streak bonus → harder next level</text>
+    </g>
+  </svg>
+  <div class="row">
+    <div class="col"><img class="shot" src="../images/day.jpg" style="height:250px;object-fit:cover"></div>
+    <div class="col"><img class="shot" src="../images/level_cleared.jpg" style="height:250px;object-fit:cover"></div>
+  </div>
+  <div class="foot"><span>ENDLESS WORLDS</span><span>3</span></div>
+</section>
+
+<!-- 4 -->
+<section class="slide">
+  <div class="kicker">Before → after</div>
+  <h2>Same game, levelled up</h2>
+  <div class="grid2" style="margin-top:6px">
+    <div><img class="shot" src="../images/before_home.jpg" style="height:215px;object-fit:cover"><div class="cap">Before: flat menu, plain input</div></div>
+    <div><img class="shot" src="../images/home.jpg" style="height:215px;object-fit:cover"><div class="cap">After: topic chips, live AI status + RL difficulty, multiplayer, pixel icons</div></div>
+    <div><img class="shot" src="../images/before_map.jpg" style="height:215px;object-fit:cover"><div class="cap">Before: no goal shown, stuck on "Searching Web…" if the server was off</div></div>
+    <div><img class="shot" src="../images/night_torch.jpg" style="height:215px;object-fit:cover"><div class="cap">After: objective bar, compass to hints/wells, torch lighting, living wildlife</div></div>
+  </div>
+  <div class="foot"><span>ENDLESS WORLDS</span><span>4</span></div>
+</section>
+
+<!-- 5 -->
+<section class="slide">
+  <div class="kicker">A world that's alive</div>
+  <h2>Every island reacts to you</h2>
+  <div class="row">
+    <div class="col" style="flex:1.15">
+      <img class="shot" src="../images/snow_day.jpg">
+      <div class="row" style="margin-top:14px">
+        <div class="col"><img class="shot" src="../images/torch_zoom.png" style="height:150px;object-fit:cover"></div>
+        <div class="col"><img class="shot" src="../images/wildlife_sprites.png" style="height:150px;object-fit:contain;background:#4a7a3a"></div>
+      </div>
+    </div>
+    <div class="col mini">
+      <ul>
+        <li><b>Wildlife:</b> sparrows peck and fly off when anyone gets close; rabbits hop away and turn at the shoreline; butterflies by day, fireflies by night, flies buzzing</li>
+        <li><b>More life:</b> deer and foxes bolt, frogs hop along the shore, and V-shaped flocks of birds cross the sky with soft shadows on the ground</li>
+        <li><b>Jump:</b> Space for an arc with squash-and-stretch and landing dust; it clears small lava patches and syncs online</li>
+        <li><b>Real snow:</b> round drifting flakes instead of slowed-down rain streaks</li>
+        <li><b>Lighting:</b> CanvasModulate night with real point lights: a hand torch (auto at night, F to toggle), glowing wells and hint bulbs, and lava light</li>
+        <li><b>Post-processing:</b> bloom on lava and flames, vignette, colour grade per biome, film grain</li>
+        <li>All sprites are <b>original pixel art</b> drawn for this game, so there are no licence issues</li>
+      </ul>
+    </div>
+  </div>
+  <div class="foot"><span>ENDLESS WORLDS</span><span>5</span></div>
+</section>
+
+<!-- 6 -->
+<section class="slide">
+  <div class="kicker">Bolt · the voice companion</div>
+  <h2>Ask out loud. Get a nudge, not the answer.</h2>
+  <svg width="1152" height="150" viewBox="0 0 1152 150">
+    <defs><marker id="z" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0,0 L10,5 L0,10 z" fill="#ffc846"/></marker></defs>
+    <g font-size="15" fill="#f6ecd2">
+      <rect x="0" y="10" width="200" height="110" rx="10" fill="#182038" stroke="#f72585" stroke-width="2.5"/><text x="14" y="42" class="px" font-size="24" fill="#f72585">MIC</text><text x="14" y="68">hold V · or hands-free</text><text x="14" y="88">voice-activity detection</text><text x="14" y="108">with pre-roll</text>
+      <rect x="236" y="10" width="200" height="110" rx="10" fill="#182038" stroke="#c4801e" stroke-width="2.5"/><text x="250" y="42" class="px" font-size="24" fill="#ffc846">WAV 16 kHz</text><text x="250" y="68">AudioEffectCapture</text><text x="250" y="88">downsampled in</text><text x="250" y="108">GDScript</text>
+      <rect x="472" y="10" width="200" height="110" rx="10" fill="#182038" stroke="#60baff" stroke-width="2.5"/><text x="486" y="42" class="px" font-size="24" fill="#60baff">WHISPER</text><text x="486" y="68">/api/transcribe</text><text x="486" y="88">Groq whisper-large-v3-</text><text x="486" y="108">turbo · 0.47 s</text>
+      <rect x="708" y="10" width="200" height="110" rx="10" fill="#182038" stroke="#6edc78" stroke-width="2.5"/><text x="722" y="42" class="px" font-size="24" fill="#6edc78">RAG GUIDE</text><text x="722" y="68">/api/rag + riddle</text><text x="722" y="88">"never say the answer"</text><text x="722" y="108">≈ 1 s reply</text>
+      <rect x="944" y="10" width="200" height="110" rx="10" fill="#182038" stroke="#f72585" stroke-width="2.5"/><text x="958" y="42" class="px" font-size="24" fill="#f72585">SPEAKS</text><text x="958" y="68">bubble + OS/browser</text><text x="958" y="88">text-to-speech;</text><text x="958" y="108">reads hints aloud</text>
+      <line x1="200" y1="65" x2="234" y2="65" stroke="#ffc846" stroke-width="3" marker-end="url(#z)"/>
+      <line x1="436" y1="65" x2="470" y2="65" stroke="#ffc846" stroke-width="3" marker-end="url(#z)"/>
+      <line x1="672" y1="65" x2="706" y2="65" stroke="#ffc846" stroke-width="3" marker-end="url(#z)"/>
+      <line x1="908" y1="65" x2="942" y2="65" stroke="#ffc846" stroke-width="3" marker-end="url(#z)"/>
+    </g>
+  </svg>
+  <div class="row">
+    <div class="col"><img class="shot" src="../images/bolt_menu.jpg" style="height:300px;object-fit:cover;object-position:right bottom"></div>
+    <div class="col card mini"><h3>Designed to stay out of the way</h3>
+      <ul><li>Click Bolt and a <b>pixel-icon tray</b> slides out: talk, hands-free, type, voice on/off, torch, chat</li>
+      <li>A pulsing red ring follows your mic level while he listens</li>
+      <li>The speech bubble grows upward and never covers the controls</li>
+      <li>Offline? He still gives a helpful tip instead of an error</li>
+      <li>Real test: a spoken "what is a tuple in Python?" was transcribed word-for-word and answered without naming the riddle's answer</li></ul></div>
+  </div>
+  <div class="foot"><span>ENDLESS WORLDS</span><span>6</span></div>
+</section>
+
+<!-- 7 -->
+<section class="slide">
+  <div class="kicker">The content engine</div>
+  <h2>Any topic → a riddle grounded in a real web page</h2>
+  <svg width="1152" height="210" viewBox="0 0 1152 210">
+    <defs><marker id="c" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0,0 L10,5 L0,10 z" fill="#ffc846"/></marker></defs>
+    <g font-size="14" fill="#f6ecd2">
+      <rect x="0" y="10" width="150" height="96" rx="8" fill="#182038" stroke="#c4801e" stroke-width="2"/><text x="12" y="38" class="px" font-size="22" fill="#ffc846">SEARCH</text><text x="12" y="60">DuckDuckGo →</text><text x="12" y="78">Bing → Brave</text><text x="12" y="96">fallback chain</text>
+      <rect x="168" y="10" width="150" height="96" rx="8" fill="#182038" stroke="#c4801e" stroke-width="2"/><text x="180" y="38" class="px" font-size="22" fill="#ffc846">SCRAPE</text><text x="180" y="60">5 pages in parallel,</text><text x="180" y="78">first clean one wins</text><text x="180" y="96">(nav/ads stripped)</text>
+      <rect x="336" y="10" width="150" height="96" rx="8" fill="#182038" stroke="#c4801e" stroke-width="2"/><text x="348" y="38" class="px" font-size="22" fill="#ffc846">CHUNK+EMBED</text><text x="348" y="60">500-char chunks,</text><text x="348" y="78">MiniLM-L6 vectors</text><text x="348" y="96">(384-d)</text>
+      <rect x="504" y="10" width="150" height="96" rx="8" fill="#182038" stroke="#c4801e" stroke-width="2"/><text x="516" y="38" class="px" font-size="22" fill="#ffc846">FAISS</text><text x="516" y="60">one index per topic,</text><text x="516" y="78">LRU cache of 64 →</text><text x="516" y="96">repeat topics instant</text>
+      <rect x="672" y="10" width="150" height="96" rx="8" fill="#182038" stroke="#c4801e" stroke-width="2"/><text x="684" y="38" class="px" font-size="22" fill="#ffc846">LLM</text><text x="684" y="60">Groq gpt-oss-120b,</text><text x="684" y="78">JSON mode, topic +</text><text x="684" y="96">RL difficulty</text>
+      <rect x="840" y="10" width="150" height="96" rx="8" fill="#182038" stroke="#6edc78" stroke-width="2"/><text x="852" y="38" class="px" font-size="22" fill="#6edc78">VALIDATE</text><text x="852" y="60">1-word answer ≤12,</text><text x="852" y="78">answer ∈ options,</text><text x="852" y="96">4 hints · 1 retry</text>
+      <rect x="1008" y="10" width="140" height="96" rx="8" fill="#182038" stroke="#6edc78" stroke-width="2"/><text x="1020" y="38" class="px" font-size="22" fill="#6edc78">GAME</text><text x="1020" y="60">riddle, options,</text><text x="1020" y="78">hints, fact →</text><text x="1020" y="96">journal</text>
+      <line x1="150" y1="58" x2="166" y2="58" stroke="#ffc846" stroke-width="3" marker-end="url(#c)"/>
+      <line x1="318" y1="58" x2="334" y2="58" stroke="#ffc846" stroke-width="3" marker-end="url(#c)"/>
+      <line x1="486" y1="58" x2="502" y2="58" stroke="#ffc846" stroke-width="3" marker-end="url(#c)"/>
+      <line x1="654" y1="58" x2="670" y2="58" stroke="#ffc846" stroke-width="3" marker-end="url(#c)"/>
+      <line x1="822" y1="58" x2="838" y2="58" stroke="#ffc846" stroke-width="3" marker-end="url(#c)"/>
+      <line x1="990" y1="58" x2="1006" y2="58" stroke="#ffc846" stroke-width="3" marker-end="url(#c)"/>
+      <rect x="0" y="134" width="1148" height="60" rx="8" fill="#0b1020" stroke="#2e3a62"/>
+      <text x="16" y="160" fill="#ffc846" class="px" font-size="22">OFFLINE PATH</text>
+      <text x="16" y="182" fill="#a9b3cf">Server down or slow (25–30 s timeouts)? The game switches instantly to a topic-matched built-in bank of 38 validated riddles. It never hangs.</text>
+    </g>
+  </svg>
+  <div class="grid3">
+    <div class="card stat"><div class="big">≈2 s</div><div class="lbl">riddle generation (measured)</div></div>
+    <div class="card stat"><div class="big">0 s</div><div class="lbl">scrape for a cached topic</div></div>
+    <div class="card stat"><div class="big">4/4</div><div class="lbl">validator unit tests pass</div></div>
+  </div>
+  <div class="foot"><span>ENDLESS WORLDS</span><span>7</span></div>
+</section>
+
+<!-- 8 -->
+<section class="slide">
+  <div class="kicker">Adaptive difficulty</div>
+  <h2>A Q-learning agent keeps you in the flow zone</h2>
+  <div class="row">
+    <div class="col">
+      <svg width="600" height="360" viewBox="0 0 600 360">
+        <defs><marker id="q" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0,0 L10,5 L0,10 z" fill="#ffc846"/></marker></defs>
+        <g font-size="15" fill="#f6ecd2">
+          <rect x="10" y="20" width="170" height="80" rx="10" fill="#182038" stroke="#60baff" stroke-width="2.5"/><text x="24" y="52" class="px" font-size="24" fill="#60baff">BORING</text><text x="24" y="78">won, 0 hints</text>
+          <rect x="10" y="140" width="170" height="80" rx="10" fill="#182038" stroke="#6edc78" stroke-width="2.5"/><text x="24" y="172" class="px" font-size="24" fill="#6edc78">CHALLENGED</text><text x="24" y="198">won with hints</text>
+          <rect x="10" y="260" width="170" height="80" rx="10" fill="#182038" stroke="#e84848" stroke-width="2.5"/><text x="24" y="292" class="px" font-size="24" fill="#e84848">TOO HARD</text><text x="24" y="318">lost</text>
+          <rect x="400" y="20" width="180" height="80" rx="10" fill="#182038" stroke="#c4801e" stroke-width="2.5"/><text x="414" y="66" class="px" font-size="26" fill="#ffc846">UP ▲</text>
+          <rect x="400" y="140" width="180" height="80" rx="10" fill="#182038" stroke="#c4801e" stroke-width="2.5"/><text x="414" y="186" class="px" font-size="26" fill="#ffc846">SAME ●</text>
+          <rect x="400" y="260" width="180" height="80" rx="10" fill="#182038" stroke="#c4801e" stroke-width="2.5"/><text x="414" y="306" class="px" font-size="26" fill="#ffc846">DOWN ▼</text>
+          <line x1="180" y1="60" x2="398" y2="60" stroke="#60baff" stroke-width="3" marker-end="url(#q)"/>
+          <line x1="180" y1="180" x2="398" y2="180" stroke="#6edc78" stroke-width="3" marker-end="url(#q)"/>
+          <line x1="180" y1="300" x2="398" y2="300" stroke="#e84848" stroke-width="3" marker-end="url(#q)"/>
+          <text x="200" y="164" fill="#a9b3cf">argmax Q (reward +2)</text>
+        </g>
+      </svg>
+    </div>
+    <div class="col mini">
+      <p>Five levels from <b>VERY_EASY</b> to <b>VERY_HARD</b>. After every game the agent updates its Q-table:</p>
+      <p><code>Q ← Q + 0.3 · (r + 0.5 · max Q′ − Q)</code></p>
+      <ul><li>The chosen difficulty is sent to the LLM, so the riddle itself gets harder or easier</li>
+      <li>Persisted to <code>user://difficulty_rl.json</code> across sessions</li>
+      <li>Fixed in this version: three separate RL copies were writing the same save file, and wrong answers were fed back twice. Now there is <b>one model and one update per game</b>.</li></ul>
+      <p style="margin-top:12px"><span class="tag">Streak bonus +10 / win</span><span class="tag">Learning Journal</span></p>
+    </div>
+  </div>
+  <div class="foot"><span>ENDLESS WORLDS</span><span>8</span></div>
+</section>
+
+<!-- 9 -->
+<section class="slide">
+  <div class="kicker">Variety</div>
+  <h2>Six answer formats + 50 coding quests</h2>
+  <div class="grid3" style="margin-top:12px">
+    <div class="card"><div class="q">Multiple choice</div><p class="mini">Classic four options from the LLM.</p></div>
+    <div class="card"><div class="q">Fill in the blank</div><p class="mini">Type it: recall beats recognition.</p></div>
+    <div class="card"><div class="q">Wordle</div><p class="mini">Coloured letter feedback; each wrong row costs a heart.</p></div>
+    <div class="card"><div class="q">Whack-a-answer</div><p class="mini">Hit the right word as options pop out of holes.</p></div>
+    <div class="card"><div class="q">Word lock</div><p class="mini">Spin letter wheels to spell the answer.</p></div>
+    <div class="card"><div class="q">Quiz show</div><p class="mini">Gold-and-blue stage, 50:50, audience poll and phone-a-friend lifelines, dramatic lock-in.</p></div>
+  </div>
+  <div class="card" style="margin-top:18px"><h3>Coding mode</h3><p class="mini">50 programming quests checked by an LLM "compiler" that explains what's right or wrong. They're picked at random and use the same hearts, score and stats.</p></div>
+  <div class="foot"><span>ENDLESS WORLDS</span><span>9</span></div>
+</section>
+
+<!-- 10 -->
+<section class="slide">
+  <div class="kicker">Play together</div>
+  <h2>Up to 10 players, one island, live</h2>
+  <div class="row">
+    <div class="col" style="flex:1.2"><img class="shot" src="../images/mp_guest.jpg"><div class="cap">Live over the Cloudflare relay: colour rings, translucent name tags, shared hint, chat bubble, scoreboard</div></div>
+    <div class="col mini">
+      <ul><li><b>Room codes</b>: create, share 5 letters, join. Works across cities with no port forwarding</li>
+      <li><b>One master laptop</b>: the host's game picks the world seed and generates the riddle; everyone builds the identical island from <b>one number</b></li>
+      <li>Shared hints, chat (T), first correct answer wins the round, auto next round</li>
+      <li>Guests talk to Bolt <b>through the host's AI</b>, so they don't need Python</li>
+      <li>Relay: Cloudflare Worker + Durable Object, <b>free plan</b>, deployed and tested</li></ul>
+      <p class="cap" style="font-size:15px">Full technical walkthrough: <b>Multiplayer-How-It-Works.pdf</b></p>
+    </div>
+  </div>
+  <div class="foot"><span>ENDLESS WORLDS</span><span>10</span></div>
+</section>
+
+<!-- 11 -->
+<section class="slide">
+  <div class="kicker">Architecture</div>
+  <h2>Small, separate parts</h2>
+  <svg width="1152" height="400" viewBox="0 0 1152 400">
+    <defs><marker id="h" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#ffc846"/></marker></defs>
+    <g font-size="14" fill="#f6ecd2">
+      <rect x="0" y="0" width="560" height="390" rx="12" fill="#182038" stroke="#c4801e" stroke-width="3"/>
+      <text x="18" y="34" class="px" font-size="30" fill="#ffc846">GODOT 4.5 CLIENT (GDScript)</text>
+      <rect x="18" y="52" width="255" height="96" rx="8" fill="#1f2a4a"/><text x="30" y="76" font-weight="600">World</text><text x="30" y="96" fill="#a9b3cf">simplex terrain · biomes · wells</text><text x="30" y="114" fill="#a9b3cf">wildlife · flocks · weather</text><text x="30" y="132" fill="#a9b3cf">time system · atmosphere/lights</text>
+      <rect x="287" y="52" width="255" height="96" rx="8" fill="#1f2a4a"/><text x="299" y="76" font-weight="600">Play</text><text x="299" y="96" fill="#a9b3cf">player · hearts · tasks/hints</text><text x="299" y="114" fill="#a9b3cf">6 answer popups · coding</text><text x="299" y="132" fill="#a9b3cf">guide HUD · round card</text>
+      <rect x="18" y="162" width="255" height="96" rx="8" fill="#1f2a4a"/><text x="30" y="186" font-weight="600">AI glue</text><text x="30" y="206" fill="#a9b3cf">question generator + offline bank</text><text x="30" y="224" fill="#a9b3cf">DifficultyRL (Q-learning)</text><text x="30" y="242" fill="#a9b3cf">Bolt + VoiceAssistant</text>
+      <rect x="287" y="162" width="255" height="96" rx="8" fill="#1f2a4a"/><text x="299" y="186" font-weight="600">Online</text><text x="299" y="206" fill="#a9b3cf">Net autoload (WebSocketPeer)</text><text x="299" y="224" fill="#a9b3cf">MultiplayerSync · puppets</text><text x="299" y="242" fill="#a9b3cf">Lobby · host voice proxy</text>
+      <rect x="18" y="272" width="524" height="100" rx="8" fill="#1f2a4a"/><text x="30" y="296" font-weight="600">Global (autoload)</text><text x="30" y="316" fill="#a9b3cf">save/load · stats · journal · streak · API/relay URLs from .env · pixel icon font</text><text x="30" y="336" fill="#a9b3cf">Exports: Windows .exe (one file) · Web (HTML5, single-threaded for GitHub Pages)</text>
+      <rect x="640" y="0" width="510" height="210" rx="12" fill="#182038" stroke="#60baff" stroke-width="3"/>
+      <text x="658" y="34" class="px" font-size="30" fill="#60baff">PYTHON AI SERVER (FastAPI)</text>
+      <text x="658" y="64">/api/scrape · /api/generate_riddle · /api/rag</text><text x="658" y="86">/api/transcribe · /api/evaluate_code · /health</text>
+      <text x="658" y="116" fill="#a9b3cf">ddgs search · BeautifulSoup · sentence-transformers</text><text x="658" y="136" fill="#a9b3cf">FAISS per topic · Groq LLM + Whisper · validator</text>
+      <text x="658" y="166" fill="#a9b3cf">sync endpoints (thread pool) · CORS · size limits</text><text x="658" y="186" fill="#a9b3cf">Dockerfile → Hugging Face Spaces / Render</text>
+      <rect x="640" y="250" width="510" height="140" rx="12" fill="#2a1d0a" stroke="#ff8c42" stroke-width="3"/>
+      <text x="658" y="284" class="px" font-size="30" fill="#ff8c42">CLOUDFLARE RELAY (JS)</text>
+      <text x="658" y="314">Worker + Durable Object per room · hibernation</text><text x="658" y="336" fill="#a9b3cf">10-player cap · sender stamping · 768 KB msgs</text><text x="658" y="358" fill="#a9b3cf">114 lines · integration-tested locally + live</text>
+      <line x1="560" y1="110" x2="638" y2="110" stroke="#ffc846" stroke-width="3" marker-end="url(#h)" marker-start="url(#h)"/><text x="566" y="100" fill="#ffc846" font-size="13">HTTP</text>
+      <line x1="560" y1="300" x2="638" y2="300" stroke="#ffc846" stroke-width="3" marker-end="url(#h)" marker-start="url(#h)"/><text x="566" y="290" fill="#ffc846" font-size="13">WSS</text>
+    </g>
+  </svg>
+  <div class="foot"><span>ENDLESS WORLDS · ≈ 9,600 LINES (GDSCRIPT · PYTHON · JS)</span><span>11</span></div>
+</section>
+
+<!-- 12 -->
+<section class="slide">
+  <div class="kicker">Engineering quality</div>
+  <h2>Bugs found and fixed in this pass</h2>
+  <table class="vs">
+    <tr><th>Problem</th><th>Effect before</th><th>Fix</th></tr>
+    <tr><td>Three DifficultyRL copies sharing one save file</td><td>Feedback double-counted; copies overwrote each other</td><td>One model in Global, one update per game</td></tr>
+    <tr><td>Win recorded before +30 score / level up</td><td>Stats and best level always one win behind</td><td>Single <code>_record_victory()</code> in the right order</td></tr>
+    <tr><td>No HTTP timeouts; no offline path</td><td>Stuck on "Searching Web…" forever if the server was down</td><td>Timeouts + instant offline bank</td></tr>
+    <tr><td>One global vector index on the server</td><td>Two players' topics overwrote each other</td><td>Per-topic FAISS + LRU cache</td></tr>
+    <tr><td>Blocking work inside <code>async</code> endpoints</td><td>One slow scrape froze every request</td><td>Sync endpoints in the thread pool</td></tr>
+    <tr><td>LLM output trusted blindly</td><td>Multi-word answers broke Wordle; answer missing from options</td><td>Validator + repair + 1 retry, unit-tested</td></tr>
+    <tr><td>Footsteps loaded via <code>DirAccess</code></td><td>Silent footsteps in exported builds</td><td><code>ResourceLoader.list_directory</code></td></tr>
+    <tr><td>Player could spawn in lava; spawn pad used the wrong biome tiles</td><td>Instant damage; mismatched tile patch</td><td>Hazard-free spawn circle in the biome's tileset</td></tr>
+    <tr><td>Hard-coded <code>localhost:8000</code>, no CORS</td><td>Couldn't be hosted; web build couldn't reach the API</td><td>URL from .env / project / page, CORS</td></tr>
+  </table>
+  <div class="foot"><span>ENDLESS WORLDS</span><span>12</span></div>
+</section>
+
+<!-- 13 -->
+<section class="slide">
+  <div class="kicker">Shipping</div>
+  <h2>One script, three deliverables, free hosting</h2>
+  <div class="grid3" style="margin-top:12px">
+    <div class="card"><h3>Players</h3><p class="mini"><code>EndlessWorlds-Windows.zip</code>: one 108 MB .exe with the relay address built in. Unzip and play solo or online.</p></div>
+    <div class="card"><h3>Host's AI</h3><p class="mini"><code>EndlessWorlds-AI-Server.zip</code>: double-click <code>start_server.bat</code>. Or run the Dockerfile on Hugging Face Spaces for everyone.</p></div>
+    <div class="card"><h3>Browser</h3><p class="mini"><code>build/web</code>: single-threaded HTML5 export, so it runs on GitHub Pages or itch.io without special headers.</p></div>
+  </div>
+  <div class="card" style="margin-top:18px">
+    <h3>tools/package.ps1</h3>
+    <p class="mini"><code>powershell -ExecutionPolicy Bypass -File tools\package.ps1 -Godot &lt;godot.exe&gt;</code>: imports, exports Windows + Web, zips the game and the AI server. Verified: two packaged .exe copies joined a room over the live relay and shared a riddle and hints.</p>
+  </div>
+  <div class="row" style="margin-top:18px">
+    <div class="card col stat"><div class="big">$0</div><div class="lbl">Cloudflare Workers Free relay</div></div>
+    <div class="card col stat"><div class="big">$0</div><div class="lbl">GitHub Pages / itch.io web build</div></div>
+    <div class="card col stat"><div class="big">$0</div><div class="lbl">Groq free tier · HF Spaces CPU</div></div>
+  </div>
+  <div class="foot"><span>ENDLESS WORLDS</span><span>13</span></div>
+</section>
+
+<!-- 14 -->
+<section class="slide">
+  <div class="kicker">Why it's better</div>
+  <h2>Endless Worlds vs. the usual</h2>
+  <table class="vs" style="margin-top:10px">
+    <tr><th></th><th>Typical quiz app</th><th>Typical edu game</th><th>Endless Worlds</th></tr>
+    <tr><td>Topics</td><td>fixed bank</td><td>a few hand-made levels</td><td class="good">any topic, sourced from the live web</td></tr>
+    <tr><td>Difficulty</td><td>static</td><td>manual levels</td><td class="good">Q-learning adapts per player</td></tr>
+    <tr><td>Help</td><td>show answer</td><td>static hint text</td><td class="good">voice companion that nudges, never spoils</td></tr>
+    <tr><td>World</td><td>none</td><td>fixed map</td><td class="good">new procedural island every round, living wildlife</td></tr>
+    <tr><td>Formats</td><td>1</td><td>1–2</td><td class="good">6 mini-games + 50 coding quests</td></tr>
+    <tr><td>Social</td><td>leaderboard</td><td>rarely</td><td class="good">10-player live rooms with chat</td></tr>
+    <tr><td>Offline</td><td>often fails</td><td>yes</td><td class="good">yes: built-in bank, no hangs</td></tr>
+    <tr><td>Memory</td><td>score only</td><td>progress bar</td><td class="good">Learning Journal of every solved riddle + fact</td></tr>
+  </table>
+  <div class="foot"><span>ENDLESS WORLDS</span><span>14</span></div>
+</section>
+
+<!-- 15 -->
+<section class="slide">
+  <div class="hero" style="background-image:url('../images/snow_day.jpg')"></div>
+  <div class="over" style="max-width:640px;margin-top:90px">
+    <div class="kicker">Next</div>
+    <h1 style="font-size:96px">Learn anything.<br>Together.</h1>
+    <ul style="margin-top:22px">
+      <li>Host migration so a room survives the host leaving</li>
+      <li>Shared AI server on Hugging Face Spaces, so no one needs Python</li>
+      <li>Daily riddle and global leaderboard on the same relay</li>
+      <li>Browser speech recognition for the web build</li>
+    </ul>
+    <p style="margin-top:20px"><span class="tag">relay live on workers.dev</span><span class="tag">Windows package ready</span></p>
+  </div>
+  <div class="foot"><span>ENDLESS WORLDS</span><span>15</span></div>
+</section>
+
+</body></html>

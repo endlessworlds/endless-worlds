@@ -1,17 +1,21 @@
 import logging
-import time
-import faiss
-import numpy as np
 import os
-import ssl
+import threading
+import time
+from collections import OrderedDict
 from typing import List
 
-# Disable SSL verify globally for model downloads (proxy/AV compat)
-os.environ["CURL_CA_BUNDLE"] = ""
-os.environ["REQUESTS_CA_BUNDLE"] = ""
-ssl._create_default_https_context = ssl._create_unverified_context
+import faiss
+import numpy as np
 
 logger = logging.getLogger("EndlessWorlds.VectorDB")
+
+if os.getenv("DISABLE_SSL_VERIFY") == "1":
+    # Opt-in only: lets model downloads work behind proxies/AV that intercept HTTPS.
+    import ssl
+    os.environ["CURL_CA_BUNDLE"] = ""
+    os.environ["REQUESTS_CA_BUNDLE"] = ""
+    ssl._create_default_https_context = ssl._create_unverified_context
 
 from sentence_transformers import SentenceTransformer
 
@@ -20,28 +24,26 @@ logger.info("Loading embedding model: all-MiniLM-L6-v2...")
 _load_start = time.time()
 try:
     embedder = SentenceTransformer('all-MiniLM-L6-v2')
-    _load_time = time.time() - _load_start
-    logger.info("Embedding model loaded successfully in %.2f seconds", _load_time)
+    logger.info("Embedding model loaded successfully in %.2f seconds", time.time() - _load_start)
 except Exception as e:
-    _load_time = time.time() - _load_start
-    logger.error("Failed to load embedding model after %.2f seconds — %s", _load_time, str(e))
+    logger.error("Failed to load embedding model after %.2f seconds — %s", time.time() - _load_start, str(e))
     embedder = None
 
-# ─── Initialise FAISS Index ──────────────────────────────────────────────────
 VECTOR_DIMENSION = 384
-index = faiss.IndexFlatL2(VECTOR_DIMENSION)
-stored_chunks: List[str] = []
-logger.info("FAISS index initialised — dimension: %d, metric: L2", VECTOR_DIMENSION)
+MAX_TOPICS = 64  # LRU cap so a public server can't grow memory without bound
+
+# One FAISS index per topic, so concurrent players never read each other's context.
+_stores: "OrderedDict[str, tuple[faiss.IndexFlatL2, List[str]]]" = OrderedDict()
+_lock = threading.Lock()
 
 
-def reset_index() -> None:
-    """Clears the FAISS index and stored chunks so stale context doesn't leak
-    into new riddle generations."""
-    global index, stored_chunks
-    old_count = index.ntotal
-    index.reset()
-    stored_chunks.clear()
-    logger.info("FAISS index reset — cleared %d stale vectors", old_count)
+def topic_key(topic: str) -> str:
+    return " ".join(topic.lower().split())
+
+
+def has_topic(topic: str) -> bool:
+    with _lock:
+        return topic_key(topic) in _stores
 
 
 def chunk_text(text: str, chunk_size: int = 500, overlap: int = 50) -> List[str]:
@@ -58,10 +60,8 @@ def chunk_text(text: str, chunk_size: int = 500, overlap: int = 50) -> List[str]
     return chunks
 
 
-def store_in_vectordb(chunks: List[str]) -> None:
-    """Embeds text chunks and stores them in the FAISS index."""
-    global index, stored_chunks
-
+def store_in_vectordb(topic: str, chunks: List[str]) -> None:
+    """Embeds text chunks into a fresh FAISS index owned by this topic."""
     if not chunks:
         logger.warning("No chunks to store — skipping")
         return
@@ -69,42 +69,31 @@ def store_in_vectordb(chunks: List[str]) -> None:
         logger.error("Embedder not available — cannot store chunks")
         return
 
-    logger.info("Embedding %d chunks...", len(chunks))
     start = time.time()
     embeddings = embedder.encode(chunks, batch_size=64, show_progress_bar=False)
-    embed_time = time.time() - start
-    logger.info("  ✔ Embedding completed in %.2f seconds", embed_time)
-
+    index = faiss.IndexFlatL2(VECTOR_DIMENSION)
     index.add(np.array(embeddings, dtype=np.float32))
-    stored_chunks.extend(chunks)
-    logger.info("  ✔ Stored in FAISS — index now contains %d vectors total", index.ntotal)
+    logger.info("  ✔ Embedded %d chunks in %.2f seconds", len(chunks), time.time() - start)
+
+    key = topic_key(topic)
+    with _lock:
+        _stores[key] = (index, list(chunks))
+        _stores.move_to_end(key)
+        while len(_stores) > MAX_TOPICS:
+            _stores.popitem(last=False)
 
 
-def retrieve_docs(query: str, top_k: int = 3) -> List[str]:
-    """Retrieves the most similar chunks from the FAISS index for a given query."""
-    if index.ntotal == 0:
-        logger.info("Retrieval skipped — FAISS index is empty")
+def retrieve_docs(topic: str, query: str, top_k: int = 3) -> List[str]:
+    """Retrieves the most similar chunks for a query from the topic's index."""
+    with _lock:
+        store = _stores.get(topic_key(topic))
+    if store is None or not embedder:
+        logger.info("Retrieval skipped — no index for topic \"%s\"", topic[:60])
         return []
-    if not embedder:
-        logger.error("Retrieval skipped — embedder not available")
-        return []
 
-    logger.info("Retrieving top-%d documents for query: \"%s\"", top_k, query[:60])
-    start = time.time()
-
+    index, chunks = store
     query_vector = embedder.encode([query])
-    distances, indices_arr = index.search(np.array(query_vector, dtype=np.float32), top_k)
-
-    results = []
-    for idx in indices_arr[0]:
-        if idx != -1 and idx < len(stored_chunks):
-            results.append(stored_chunks[idx])
-
-    elapsed = time.time() - start
-    logger.info("  ✔ Retrieved %d/%d documents in %.4f seconds", len(results), top_k, elapsed)
-
-    if results:
-        for i, doc in enumerate(results, 1):
-            logger.info("  [%d] %.80s...", i, doc.replace("\n", " "))
-
+    _, indices_arr = index.search(np.array(query_vector, dtype=np.float32), min(top_k, index.ntotal))
+    results = [chunks[i] for i in indices_arr[0] if 0 <= i < len(chunks)]
+    logger.info("  ✔ Retrieved %d/%d documents", len(results), top_k)
     return results

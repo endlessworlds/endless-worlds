@@ -1,326 +1,143 @@
-# Endless Worlds — Short Interview Prep Guide
+# Endless Worlds
 
-A very simple guide to explain this project in interviews.
+**Type any topic. Get a living pixel island, a riddle written from the live web, a robot guide you
+can talk to, and up to 9 friends to race to the answer.**
 
-## 30-second elevator pitch
-Endless Worlds is a 2D Godot game for learning. The player explores a generated island, gets AI-based questions, collects hints, and answers at wells. A Python FastAPI server scrapes web content, stores context in a vector index, and asks a Groq LLM to generate questions.
+Endless Worlds is an educational 2D exploration game built in **Godot 4.5**. A Python AI server turns
+any topic into a validated riddle with hints (web search → RAG → Groq LLM). A Q-learning agent
+adapts the difficulty to each player, and a free Cloudflare relay connects players into
+10-player online rooms.
 
-## 2-minute explanation
-- Frontend: Godot 4 game (player, world, UI, question flows).
-- Backend: FastAPI server for scraping + retrieval + LLM generation.
-- AI: RL model adjusts difficulty based on wins/losses and hint usage.
-- Learning loop: topic -> scrape -> generate riddle -> collect hints -> answer -> score/stats/journal update.
-- Coding mode: player solves coding tasks and gets AI evaluation feedback.
+![Endless Worlds at night](docs/images/night_torch.jpg)
 
-## 5-minute explanation (simple structure)
-1. Player picks a topic on home screen.
-2. Game loads map scene, generates world, spawns player and interactables.
-3. `AiQuestionGenerator` calls backend `/api/scrape` then `/api/generate_riddle`.
-4. Backend scrapes web pages, chunks text, embeds with MiniLM, stores in FAISS, retrieves top chunks, asks Groq for strict JSON riddle.
-5. Player collects hint pickups, opens well popup (MCQ/Wordle/KBC/etc.), submits answer.
-6. `Global` updates score, stats, journal, save file, and RL feedback.
-7. Player returns to home screen with updated progress.
+| | |
+|---|---|
+| ![Multiplayer](docs/images/mp_guest.jpg) | ![Bolt](docs/images/bolt_menu.jpg) |
+| **Online rooms:** same island, shared hints, chat, live scores | **Bolt:** voice companion that nudges, never spoils |
 
----
+## Documents
 
-## System architecture
-```mermaid
-flowchart LR
-  A[Godot Home Screen] --> B[Map + World + Player]
-  B --> C[AiQuestionGenerator]
-  C --> D[/FastAPI: /api/scrape/]
-  D --> E[DuckDuckGo + Web scrape]
-  E --> F[Chunk + Embed + FAISS]
-  C --> G[/FastAPI: /api/generate_riddle/]
-  G --> F
-  G --> H[Groq LLM]
-  H --> I[Riddle JSON]
-  I --> J[Answer Popup]
-  J --> K[Global stats/journal/save + RL update]
+| | |
+|---|---|
+| [docs/USER_GUIDE.md](docs/USER_GUIDE.md) | How to install and play (solo, online, Bolt, controls, troubleshooting) |
+| [docs/Endless-Worlds-Pitch-Deck.pdf](docs/Endless-Worlds-Pitch-Deck.pdf) | 15-slide deck: why the game is better, with architecture, pipelines and before/after |
+| [docs/Multiplayer-How-It-Works.pdf](docs/Multiplayer-How-It-Works.pdf) | 10-page visual and technical walkthrough of multiplayer |
+| [relay/README.md](relay/README.md) | Cloudflare developer guide: run, deploy for free, protocol, limits |
+| [python_server/ARCHITECTURE.md](python_server/ARCHITECTURE.md) | AI server pipelines and endpoints |
+| [docs/INTERVIEW_PREP.md](docs/INTERVIEW_PREP.md) | Interview prep guide for explaining the project (written for the v1 single-player architecture) |
+
+The PDFs are generated from `docs/src/*.html`; see *Rebuild the PDFs* below.
+
+## Features
+
+**Learning**
+- Any topic → riddle grounded in a scraped web page (DuckDuckGo → Bing → Brave fallback), FAISS per-topic cache, Groq `gpt-oss-120b`
+- Every LLM answer is **validated** (one word, ≤ 12 chars, present in the options, 4 hints) with one retry
+- **Offline bank** of 38 topic-tagged riddles, so the game never hangs when the server is down
+- Six answer formats: MCQ, fill-in, Wordle, whack-a-answer, word lock, quiz show with lifelines, plus 50 coding quests
+- **Q-learning difficulty** (5 levels), win streak bonus, Learning Journal of solved riddles and facts
+
+**Bolt, the voice companion**
+- Push-to-talk (**V**), hands-free voice-activity detection, or typing
+- Whisper speech-to-text (`/api/transcribe`), spoiler-free RAG answers (`/api/rag`), OS/browser text-to-speech
+- Click Bolt for a pixel-icon tray: talk · hands-free · type · voice · torch · chat
+
+**World**
+- Procedural islands in four biomes, day/night, rain and real drifting snow
+- Wildlife: sparrows fly off, rabbits, deer and foxes run away, frogs hop at the shore when any player comes close; flocks of birds cross the sky; butterflies, fireflies and flies
+- Real lighting: CanvasModulate night with a hand-held torch (auto at night / **F**), glowing wells, hints and lava; bloom, vignette, per-biome grade
+- Jump (**Space**) with squash-and-stretch and landing dust; hop over small lava patches
+- Objective bar + faint compass arrows to the nearest hint and well; F3 tile/coords panel; pause menu (**Esc**)
+- Pixel-art icon font: every emoji in the UI renders as a matching 16 px pixel icon
+
+**Multiplayer** (details in the PDF)
+- Room codes, up to 10 players, coloured rings + translucent name tags, chat bubbles, live scoreboard
+- The host is the authority: one seed → identical worlds; the host's riddle and hints are shared; first correct answer wins
+- Guests' voice questions are answered by the **host's** AI server through the relay, so guests need no Python
+- Relay: Cloudflare Worker + Durable Object on the **free plan**, deployed at `wss://endless-worlds-relay.srujanmpadmashali.workers.dev`
+
+## Quick start
+
+### Players
+Unzip `EndlessWorlds-Windows.zip` → run `EndlessWorlds.exe`. See the [user guide](docs/USER_GUIDE.md).
+
+### Developers
+1. Install **Godot 4.5.1** and open `project.godot`.
+2. Copy `.env.example` to `.env` and add your free Groq key (`GROQ_API_KEY`, used only by the AI server).
+3. AI server: `python_server\start_server.bat` (Windows) or `python_server/start_server.sh`.
+4. Press **F5** in Godot.
+
+## Package for players
+
+```powershell
+powershell -ExecutionPolicy Bypass -File tools\package.ps1 -Godot "C:\path\to\Godot_v4.5.1-stable_win64_console.exe"
 ```
 
-## Flow diagram
-```mermaid
-sequenceDiagram
-  participant P as Player
-  participant G as Godot
-  participant S as FastAPI
-  participant V as FAISS
-  participant L as Groq
-  P->>G: choose topic
-  G->>S: POST /api/scrape
-  S->>V: store scraped chunks
-  G->>S: POST /api/generate_riddle
-  S->>V: retrieve relevant chunks
-  S->>L: generate JSON riddle
-  L-->>S: riddle
-  S-->>G: riddle JSON
-  G-->>P: show question + hints
-  P->>G: answer
-  G-->>P: score/stats result
+Needs the Godot 4.5.1 export templates (*Editor → Manage Export Templates*). It produces:
+
+| Output | For |
+|---|---|
+| `build/EndlessWorlds-Windows.zip` | everyone: one .exe with `.env` baked in, plus `PLAY.txt` |
+| `build/EndlessWorlds-AI-Server.zip` | the host: Python server + `.env` + `start_server.bat` |
+| `build/web/` | GitHub Pages / itch.io (single-threaded export, no special headers needed) |
+
+> The game build gets a filtered `.env` with only `RELAY_URL` / `API_URL`; the game never needs API keys.
+> The AI-server zip includes your `.env` keys for private sharing; add `-Public` to ship `.env.example`
+> instead (used for GitHub releases).
+
+## Hosting (all free tiers)
+
+| Part | Where | How |
+|---|---|---|
+| Multiplayer relay | Cloudflare Workers Free | `cd relay && npx wrangler login && npm run deploy`: [guide](relay/README.md) |
+| Web build | GitHub Pages | push to `main`; `.github/workflows/godot-ci.yml` exports and deploys (Settings → Pages → Source: GitHub Actions) |
+| AI server (optional, shared) | Hugging Face Spaces (Docker, free CPU) / Render / Railway | `python_server/Dockerfile`; set `GROQ_API_KEY` as a secret, then `API_URL` in `.env` |
+| Windows builds | GitHub Actions artifact | same workflow; or `tools/package.ps1` locally |
+
+CI needs no API keys. Optional secrets `CLOUDFLARE_API_TOKEN` + `CLOUDFLARE_ACCOUNT_ID` auto-deploy the
+relay; optional repo variables `RELAY_URL`, `API_URL` point the builds elsewhere.
+
+## Project layout
+
+```text
+core/            Global (save, stats, URLs, icon font), Net (multiplayer client), env loader
+map_components/  world generator, time/weather, wildlife, atmosphere + hand torch, multiplayer sync
+player/          movement, footsteps, camera
+ai/              question generator + offline bank, Q-learning difficulty, Bolt + voice assistant
+ui/              home, lobby, answer popups, coding, journal, HUD (guide, round card), pixel icons
+data/            riddles.json (offline bank), coding_questions.json
+python_server/   FastAPI AI server (scrape, RAG, riddles, Whisper, code checks), Dockerfile, tests
+relay/           Cloudflare Worker relay + integration test
+tools/           package.ps1
+docs/            user guide, PDFs, their HTML sources and screenshots
 ```
 
----
+## Tests
 
-## Folder structure (what each part does)
-- `/core`: global state, env loader, ambience manager.
-- `/map_components`: world generation, weather, time, wells, hint spawns.
-- `/player`: movement, animation, camera shake.
-- `/ai`: question generation client, RL difficulty, bot assistant.
-- `/ui`: home, answer popups, journal, tutorial, stats, keyboard.
-- `/python_server`: FastAPI, scraping, vector DB, LLM calls.
-- `/data`: coding questions JSON.
-- `/web-scraper-tool`: older Node scraper prototype.
+```bash
+python python_server/tests/test_normalize.py            # riddle validator (4 tests)
+cd relay && npm run dev   # then in another terminal:
+cd relay && npm test                                     # relay protocol (local)
+RELAY=wss://endless-worlds-relay.srujanmpadmashali.workers.dev npm test   # live relay
+```
 
-## Module map (purpose, why, internals, links)
-- `core/global.gd`: single source of game truth (score/stats/save/RL). Needed to share state across scenes.
-- `map_components/map.gd`: game orchestrator. Connects world, player, UI, AI question flow.
-- `ai/ai_question_generator.gd`: handles backend calls + loading UI + fallback riddles.
-- `ui/answerpopups/answer_popup.gd`: all question game modes and answer validation.
-- `python_server/main.py`: API routes and orchestration.
-- `python_server/services/scraper.py`: search + scrape + clean page text.
-- `python_server/services/vectordb.py`: chunk/embeddings/FAISS retrieval.
-- `python_server/services/llm.py`: prompt building + JSON riddle generation + code evaluation.
+**Dev flags** for scripted runs and screenshots (after `--` on the Godot command line):
+`--hour=22` `--biome=0..3` `--host-room=CODE --players=2` `--join-room=CODE` `--name=Ann`
+`--topic=space` `--sim-hint-at=6` `--sim-win-at=15` `--sim-chat-at=10` `--sim-menu-at=3`
+`--sim-voice=question.wav` `--lobby=1`.
+Combine them with Godot's movie writer to record frames:
+`godot --path . --write-movie out/f.png --fixed-fps 10 --quit-after 200 -- --host-room=TEST1`.
 
-## Important code (line-by-line style, short)
-- `core/global.gd`
-  - `_ready()` loads save and RL.
-  - `save_game()` writes `user://save.json`.
-  - `end_game(win)` updates all lifetime stats + RL feedback.
-- `ai/ai_question_generator.gd`
-  - `generate_riddle()` starts scrape then generation.
-  - `_on_scrape_response()` logs scrape result, then asks riddle API.
-  - `_on_server_response()` stores data and emits `riddle_generated`.
-- `python_server/main.py`
-  - `/api/scrape`: reset FAISS -> scrape -> chunk -> store.
-  - `/api/generate_riddle`: retrieve docs -> generate JSON riddle.
-  - `/api/evaluate_code`: evaluate coding answer with LLM.
+## Rebuild the PDFs
 
----
+```powershell
+& "C:\Program Files (x86)\Microsoft\Edge\Application\msedge.exe" --headless=new --no-pdf-header-footer `
+  --print-to-pdf="$PWD\docs\Multiplayer-How-It-Works.pdf" "file:///$PWD/docs/src/multiplayer.html"
+```
+(The same command with `deck.html` → `Endless-Worlds-Pitch-Deck.pdf`.)
 
-## Dependencies (why used)
-- Godot 4: game engine and scene system.
-- FastAPI + Uvicorn: fast backend API server.
-- requests + bs4 + lxml + ddgs: web search/scrape/HTML parsing.
-- sentence-transformers + faiss-cpu + numpy: embeddings and vector retrieval.
-- groq + httpx: LLM inference.
-- python-dotenv: environment variables.
-- Node tool (`express`, `axios`, `cheerio`) exists as legacy prototype.
+## Known limits
 
-## Alternatives (and why current choice)
-- Unity/Unreal instead of Godot: stronger ecosystem, but heavier and slower for this scope.
-- Flask instead of FastAPI: simpler, but FastAPI gives better typing and docs.
-- Pinecone/Weaviate instead of FAISS: cloud scaling, but FAISS is free/local/simple.
-- OpenAI/Claude instead of Groq: strong models, but Groq can be fast/cost-effective.
-
-## Advantages
-- Clear modular game architecture.
-- Dynamic topic-based content.
-- Adaptive RL difficulty.
-- Offline-safe fallback riddles.
-
-## Disadvantages
-- Heavy answer popup script (high complexity).
-- No real auth/user isolation.
-- Many runtime network dependencies.
-- In-memory vector index (not persistent DB).
-
-## Complexity (quick)
-- World generation: O(W×H).
-- Hint spawn attempts: up to O(k * attempts), bounded.
-- Vector retrieval: embedding O(n) build, FAISS query ~O(n) for flat index.
-- Save/load stats: O(1) to O(n) with journal size.
-
-## Common bugs + debugging
-- Backend not running -> fallback riddles only.
-- Missing `GROQ_API_KEY` -> generation fails.
-- Empty/invalid JSON from LLM -> parse errors.
-- UI mode mismatch in answer popup -> wrong handler path.
-- Use logs in Godot + FastAPI route logs first.
-
-## Security notes
-- Keep API keys only in `.env`, never in code.
-- Validate and sanitize external text before prompts.
-- Add request throttling/rate limits.
-- Avoid disabling SSL verify in production.
-
-## Performance ideas
-- Cache scrape results by topic.
-- Batch embeddings and reuse vectors.
-- Split large popup script into smaller components.
-- Add timeout/retry strategy for network calls.
-
-## Scalability ideas
-- Move from in-memory FAISS to persistent/vector service.
-- Add queue workers for scraping and generation.
-- Add per-user state store (Redis/Postgres).
-- Add API auth and tenant isolation.
-
-## Real-world use cases
-- AI tutoring game.
-- Topic revision for students.
-- Coding practice with game mechanics.
-- Adaptive learning platform prototype.
-
----
-
-## API summary
-- `POST /api/scrape` -> scrape + chunk + embed + store.
-- `POST /api/rag` -> prompt + retrieved context reply.
-- `POST /api/generate_riddle` -> riddle/options/solution/hints JSON.
-- `POST /api/evaluate_code` -> `{passed, feedback}`.
-
-## Authentication flow
-- No auth implemented right now.
-
-## Database schema
-- No SQL DB.
-- Local game save: `user://save.json` (stats, topic, journal).
-- RL model save: `user://difficulty_rl.json`.
-- Backend knowledge store: in-memory FAISS + chunk list.
-
-## Data flow (frontend -> backend -> model -> frontend)
-1. Topic from home screen.
-2. Godot calls scrape API.
-3. Backend scrapes web + stores vectors.
-4. Godot calls generate API.
-5. Backend retrieves docs + asks LLM.
-6. Godot renders question and evaluates answer in gameplay.
-
-## Deployment process (simple)
-- Game: export from Godot to desktop/web.
-- Backend: run `python_server/start_server.sh` (or uvicorn main).
-- Env: set `GROQ_API_KEY` in `.env`.
-
-## Testing strategy
-- Manual gameplay tests for each question mode.
-- API smoke tests for all endpoints.
-- Edge-case tests: empty topic, network fail, invalid JSON, no vectors.
-
-## Challenges + how solved
-- Dynamic content reliability -> fallback riddles + robust logging.
-- Difficulty balancing -> RL feedback from game outcomes.
-- UI complexity -> mode-based popup handlers.
-
-## Current limitations
-- No authentication.
-- Some SSL checks are disabled in backend.
-- Big single-file UI logic for answer popup.
-
-## Future enhancements
-- Persistent user accounts.
-- Safer networking and strict SSL in production.
-- Split popup logic into smaller reusable modules.
-- Better automated tests and CI checks.
-
----
-
-## Interview answer format (use for every question)
-- **What interviewer checks:** your reasoning + tradeoffs.
-- **Ideal answer:** clear architecture + one practical example.
-- **Common mistake:** only listing tools, no “why”.
-- **Follow-up ready:** mention one limitation + one improvement.
-- **30-sec version:** 2-3 lines.
-- **2–5 min version:** flow + design choices + tradeoffs.
-
----
-
-## Beginner (10)
-1. What is this project? — A learning game with AI-generated questions.
-2. Main tech stack? — Godot + FastAPI + FAISS + Groq.
-3. Where is game state kept? — `core/global.gd`.
-4. How is world made? — Noise-based tile generation.
-5. How are questions made? — Scrape + retrieve + LLM JSON output.
-6. What is RL used for? — Auto difficulty tuning.
-7. Where are coding tasks? — `data/coding_questions.json`.
-8. Where are APIs? — `python_server/main.py`.
-9. How is progress saved? — Local JSON files.
-10. How does player lose? — Hearts reach zero.
-
-## Intermediate (10)
-1. Why autoload `Global`? — Shared state across scenes.
-2. Why FAISS? — Fast local vector search.
-3. Why fallback riddles? — Keep game playable on failure.
-4. How does hint flow work? — Spawn pickups -> unlock bulbs -> tooltip hints.
-5. How does KBC mode differ? — Lock-in + lifelines + suspense flow.
-6. Main backend bottleneck? — Scrape + LLM latency.
-7. Key coupling risk? — Large `answer_popup.gd`.
-8. How would you reduce errors? — Stronger schema validation + retries.
-9. Where is difficulty updated? — `Global.end_game()` / `DifficultyRL.give_feedback()`.
-10. Why chunk text? — Better retrieval quality and token control.
-
-## Advanced (10)
-1. Biggest architecture risk? — Tight UI logic concentration.
-2. Production risk in backend? — Disabled SSL verification.
-3. RAG quality limitation? — Flat retrieval, no reranking.
-4. Scaling limit now? — In-memory vector store per process.
-5. State consistency issue? — Multi-scene updates without strict contracts.
-6. Better RL approach? — Contextual bandits or policy optimization.
-7. Stronger observability? — Structured tracing across Godot/API.
-8. Better prompting? — JSON schema enforcement + guardrails.
-9. Better fault tolerance? — Topic cache + queued generation jobs.
-10. Better domain model? — Split question modes into strategy classes.
-
-## Follow-up questions (10)
-1. What tradeoff did you make first?
-2. What would you refactor first?
-3. How would this behave with 10k users?
-4. What would you cache and why?
-5. Where can data corruption happen?
-6. How do you debug wrong answers being marked correct?
-7. How do you test network failure paths?
-8. What metrics matter most?
-9. How would you secure this for production?
-10. What would you build in version 2?
-
-## Scenario-based (5)
-1. LLM is down. What happens? — Use fallback riddles and show warning.
-2. Scraper returns junk text. Fix? — Better cleaning + source filters.
-3. Player says difficulty is unfair. Fix? — Tune rewards and thresholds.
-4. API is slow. Fix? — Cache topic results + async job queue.
-5. Wrong answer judged as correct. Fix? — Normalize casing/whitespace and add tests.
-
-## “Why X over Y?” (5)
-1. Godot vs Unity? — Faster setup and lighter for this scope.
-2. FastAPI vs Flask? — Better typing/docs by default.
-3. FAISS vs cloud vector DB? — Cheaper and simple locally.
-4. Groq vs other LLM APIs? — Performance/cost fit for this project.
-5. JSON save vs SQL DB? — Simpler for single-player local state.
-
-## Debugging (10)
-1. Why no riddle appears?
-2. Why hints are not spawning?
-3. Why heart UI desyncs from damage?
-4. Why map loads but player can’t move?
-5. Why coding mode request fails?
-6. Why RL difficulty never changes?
-7. Why journal stays empty?
-8. Why KBC lock button doesn’t respond?
-9. Why scrape endpoint returns 500?
-10. Why generated JSON parse fails?
-
-## Optimization (5)
-1. How to cut riddle latency?
-2. How to reduce UI frame drops?
-3. How to reduce repeated scraping cost?
-4. How to optimize world generation time?
-5. How to reduce memory in popup systems?
-
-## System design (10)
-1. Design multi-user profile support.
-2. Design persistent leaderboard.
-3. Design scalable question-generation pipeline.
-4. Design topic-result caching service.
-5. Design retry and dead-letter handling for failed generation.
-6. Design secure API key and secret management.
-7. Design analytics for learning outcomes.
-8. Design CI/CD for game + backend.
-9. Design anti-abuse/rate-limiting for APIs.
-10. Design offline-first gameplay with delayed sync.
-
----
-
-## Quick prep tips
-- Memorize the flow: **Topic -> Scrape -> RAG -> Riddle -> Answer -> Stats**.
-- Always explain **why this design** and **what you would improve**.
-- Keep answers simple: problem, approach, tradeoff, next step.
+- If the host quits, the room ends (no host migration yet).
+- Voice and live riddles need the AI server; the offline bank covers riddles only.
+- The web build calls the AI server at `API_URL`; browsers need it on `https` (or `http://127.0.0.1`).

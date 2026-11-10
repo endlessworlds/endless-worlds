@@ -6,25 +6,10 @@ var resolved_search_topic: String = ""
 # ================= SCRAPING CONFIG =================
 const DEBUG_FILE: String = "user://debug_scrape.txt"
 
-# ================= FALLBACK RIDDLES =================
-const FALLBACK_RIDDLES: Array[Dictionary] = [
-	{
-		"riddle": "I repeat a block of code until a condition becomes false. What am I?",
-		"options": ["Loop", "Variable", "Function", "Array"],
-		"solution": "Loop",
-		"hints": ["Used for repetition", "Can be while or for", "Avoid infinite use", "Common control structure"],
-		"fact_reference": "Loops are fundamental for iterating through data.",
-		"source": "fallback"
-	},
-	{
-		"riddle": "I store a value that can change while the program runs. What am I?",
-		"options": ["Constant", "Variable", "Integer", "String"],
-		"solution": "Variable",
-		"hints": ["Holds data", "Can be int or string", "Declared before use", "Changes over time"],
-		"fact_reference": "Variables allow programs to store and manipulate dynamic data.",
-		"source": "fallback"
-	}
-]
+# Offline bank: used when the AI server is unreachable, so the game always plays.
+const OFFLINE_BANK_PATH := "res://data/riddles.json"
+const SCRAPE_TIMEOUT := 25.0
+const RIDDLE_TIMEOUT := 30.0
 
 @onready var http_server: HTTPRequest = HTTPRequest.new()
 @onready var http_scrape: HTTPRequest = HTTPRequest.new()
@@ -70,6 +55,8 @@ func _ready() -> void:
 	add_log("Initializing...")
 
 	# 3. HTTP NODES
+	http_server.timeout = RIDDLE_TIMEOUT
+	http_scrape.timeout = SCRAPE_TIMEOUT
 	add_child(http_server)
 	http_server.request_completed.connect(_on_server_response)
 	
@@ -82,11 +69,8 @@ func _ready() -> void:
 # =================================================
 func generate_riddle() -> void:
 	# Fetching difficulty and topic from your existing Global/Map logic
-	current_difficulty = "Easy" 
-	if has_node("/root/Map/DifficultyRL"):
-		current_difficulty = get_node("/root/Map/DifficultyRL").choose_difficulty()
-		
-	current_topic = Global.selected_topic if "selected_topic" in Global else "Programming"
+	current_difficulty = Global.get_difficulty()
+	current_topic = Global.selected_topic
 	
 	print("[AiQuestionGenerator] Requesting Riddle. Topic: %s | Difficulty: %s" % [current_topic, current_difficulty])
 	log_history.clear()
@@ -106,7 +90,7 @@ func _request_scrape(topic: String) -> void:
 	]
 	
 	var err := http_scrape.request(
-		"http://localhost:8000/api/scrape",
+		Global.api_url("/api/scrape"),
 		headers,
 		HTTPClient.METHOD_POST,
 		JSON.stringify(body)
@@ -116,7 +100,12 @@ func _request_scrape(topic: String) -> void:
 		push_error("[AiQuestionGenerator] Failed to start request to python scrape server.")
 		_use_fallback()
 
-func _on_scrape_response(_result, code, _headers, body) -> void:
+func _on_scrape_response(result, code, _headers, body) -> void:
+	if result != HTTPRequest.RESULT_SUCCESS:
+		# Server unreachable / timed out: don't wait on a second request.
+		add_log("📴 AI server offline — using offline questions")
+		_use_fallback()
+		return
 	if code == 200:
 		var text: String = body.get_string_from_utf8()
 		var data: Variant = JSON.parse_string(text)
@@ -148,7 +137,7 @@ func _request_riddle_from_server(topic: String, difficulty: String) -> void:
 	]
 	
 	var err := http_server.request(
-		"http://localhost:8000/api/generate_riddle",
+		Global.api_url("/api/generate_riddle"),
 		headers,
 		HTTPClient.METHOD_POST,
 		JSON.stringify(body)
@@ -183,7 +172,7 @@ func _on_server_response(_result, code, _headers, body) -> void:
 # =================================================
 func _use_fallback() -> void:
 	print("[AiQuestionGenerator] ⚠️ ACTIVATING FALLBACK.")
-	riddle_data = FALLBACK_RIDDLES.pick_random().duplicate(true)
+	riddle_data = pick_offline_riddle(current_topic)
 	add_log("⚠️ Using fallback question")
 	_set_loading_target(100.0)  # Complete the bar
 	stop_loading()
@@ -232,8 +221,7 @@ func _create_loading_bar() -> void:
 	_loading_bg = ColorRect.new()
 	_loading_bg.color = Color(0.08, 0.08, 0.12, 0.7)
 	_loading_bg.set_anchors_and_offsets_preset(Control.PRESET_TOP_WIDE)
-	_loading_bg.custom_minimum_size.y = 8
-	_loading_bg.size.y = 8
+	_loading_bg.offset_bottom = 8
 	_loading_bg.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	_loading_bg.hide()
 	canvas.add_child(_loading_bg)
@@ -324,3 +312,21 @@ func _on_log_timer_timeout() -> void:
 			log_label.modulate.a = 1.0
 			log_history.clear()
 		)
+
+
+# Topic-matched riddle from the offline bank (any riddle if nothing matches).
+static func pick_offline_riddle(topic: String) -> Dictionary:
+	var bank: Array = []
+	var f := FileAccess.open(OFFLINE_BANK_PATH, FileAccess.READ)
+	if f:
+		var parsed = JSON.parse_string(f.get_as_text())
+		if typeof(parsed) == TYPE_ARRAY:
+			bank = parsed
+	if bank.is_empty():
+		return {"riddle": "I repeat code until a condition is false. What am I?", "options": ["Loop", "Array", "Class", "Stack"], "solution": "Loop", "hints": ["Repetition", "for / while", "Can run forever", "Control flow"], "fact_reference": "Loops repeat work.", "source": "offline"}
+	var t := topic.to_lower().strip_edges()
+	var matches: Array = bank.filter(func(r): return r.get("tags", []).any(func(tag): return t.contains(tag) or tag.contains(t)))
+	var pick: Dictionary = (matches if not matches.is_empty() else bank).pick_random().duplicate(true)
+	var opts: Array = pick["options"]
+	opts.shuffle()
+	return pick

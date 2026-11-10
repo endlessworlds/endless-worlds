@@ -22,6 +22,7 @@ var index := 0
 var timer: Timer
 
 func _ready():
+	layer = 60  # above the home UI (2), HUD (2-3), multiplayer (15) and Bolt (20) layers
 	visible = false
 
 	left_btn.pressed.connect(_prev)
@@ -46,7 +47,7 @@ func open():
 func close():
 	timer.stop()
 	video.stop()
-	visible = false
+	queue_free()  # the tutorial button creates a fresh overlay on every open
 
 func _show_slide(i: int):
 	# Update index

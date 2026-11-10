@@ -148,6 +148,7 @@ func spawn_wells(parent_map: Node) -> void:
 						tilemap.set_cell(tile_pos + Vector2i(x, y), SRC, GRASS)
 
 			var well = well_scene.instantiate()
+			well.add_to_group("wells")
 			# --------- WELL COLLISION + DEBUG ---------
 			var body := StaticBody2D.new()
 

@@ -6,8 +6,12 @@ from ddgs import DDGS
 from concurrent.futures import ThreadPoolExecutor, as_completed
 import urllib3
 
-# Suppress the InsecureRequestWarning since we intentionally disable SSL verify
-urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
+import os
+
+# DISABLE_SSL_VERIFY=1 works around proxies/AV that intercept HTTPS (local dev only).
+_VERIFY = os.getenv("DISABLE_SSL_VERIFY") != "1"
+if not _VERIFY:
+    urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 
 logger = logging.getLogger("EndlessWorlds.Scraper")
 
@@ -20,7 +24,7 @@ _DECOMPOSE_TAGS = ("script", "style", "nav", "footer", "iframe", "header", "asid
 def _fetch_and_clean(link: str) -> tuple[str, str] | None:
     """Fetch a single URL and return (url, cleaned_text) or None on failure."""
     try:
-        res = requests.get(link, headers=_HEADERS, timeout=_TIMEOUT, verify=False)
+        res = requests.get(link, headers=_HEADERS, timeout=_TIMEOUT, verify=_VERIFY)
         res.raise_for_status()
 
         soup = BeautifulSoup(res.text, "lxml")
@@ -48,9 +52,17 @@ def search_and_scrape(topic: str) -> tuple[str, str]:
     logger.info("Searching DuckDuckGo — query: \"%s\"", query)
     start = time.time()
 
-    # 1. Search using DuckDuckGo (SSL verify disabled for proxy/AV compat)
-    with DDGS(verify=False) as ddgs:
-        results = ddgs.text(query, max_results=10)
+    # 1. Search using DuckDuckGo
+    # DuckDuckGo often rate-limits servers, so fall through other engines.
+    results = []
+    for backend in ("auto", "bing", "brave"):
+        try:
+            with DDGS(verify=_VERIFY) as ddgs:
+                results = ddgs.text(query, max_results=10, backend=backend)
+            if results:
+                break
+        except Exception as e:
+            logger.warning("Search backend %s failed: %s", backend, e)
 
     search_time = time.time() - start
 
