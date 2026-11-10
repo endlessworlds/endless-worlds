@@ -56,7 +56,9 @@ func _process(delta: float) -> void:
 	var got := tasks.collected_hints if tasks else 0
 	var total := tasks.total_hints if tasks else 0
 	if Global.is_coding_mode:
-		_objective.text = "💻 Coding quest   ·   🪣 Open any well to start"
+		var solved := Global.coding_solved_session
+		_objective.text = ("💻 Coding quests   ·   Walk to a terminal and press E" if solved == 0
+			else "💻 %d quest%s solved   ·   Next one is waiting at any terminal" % [solved, "" if solved == 1 else "s"])
 	elif total == 0:
 		_objective.text = "⏳ Preparing your riddle…"
 	elif got < total:
