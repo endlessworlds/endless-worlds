@@ -1,20 +1,32 @@
 extends CanvasLayer
 class_name Lobby
 
-# "Play together" overlay: create a room (you become host) or join with a 5-letter code.
-# Up to 10 players; the host presses Start and everyone loads the same seeded world.
+# "Play together" screen: create a room (you host) or join with a 5-letter code.
+# Room view shows the code as big letter tiles and a 10-slot player grid.
+# The host presses Start and everyone loads the same seeded world.
 
 const FONT := preload("res://assets/fonts/Jersey10-Regular.ttf")
+const FRAME := preload("res://assets/ui/pixel/frame_normal.png")
+const FRAME_HOVER := preload("res://assets/ui/pixel/frame_hover.png")
+const FRAME_ACTIVE := preload("res://assets/ui/pixel/frame_active.png")
+const AVATAR := preload("res://assets/front-player.png")
+const GOLD := Color(1.0, 0.8, 0.28)
+const CREAM := Color(0.96, 0.92, 0.82)
+const MUTED := Color(0.66, 0.7, 0.82)
 
 var get_topic: Callable
+var _panel: PanelContainer
+var _intro: Array[Control] = []   # subtitle + name row, hidden inside a room
 var _name: LineEdit
 var _code: LineEdit
 var _status: Label
 var _choose: VBoxContainer
 var _room: VBoxContainer
-var _room_title: Label
-var _players: VBoxContainer
+var _code_tiles: HBoxContainer
+var _grid: GridContainer
 var _start: Button
+var _waiting: Label
+var _t := 0.0
 
 
 static func open(parent: Node, topic_getter: Callable) -> Lobby:
@@ -27,62 +39,111 @@ static func open(parent: Node, topic_getter: Callable) -> Lobby:
 
 func _ready() -> void:
 	var dim := ColorRect.new()
-	dim.color = Color(0.02, 0.03, 0.07, 0.7)
+	dim.color = Color(0.02, 0.03, 0.07, 0.72)
 	dim.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	add_child(dim)
 	var center := CenterContainer.new()
 	center.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	add_child(center)
-	var panel := PanelContainer.new()
-	panel.custom_minimum_size = Vector2(560, 0)
-	var sb := StyleBoxFlat.new()
-	sb.bg_color = Color(0.07, 0.09, 0.16, 0.96)
-	sb.set_corner_radius_all(22)
-	sb.set_content_margin_all(26)
-	sb.set_border_width_all(2)
-	sb.border_color = Color(0.3, 0.8, 1.0, 0.7)
-	sb.shadow_color = Color(0, 0, 0, 0.5)
-	sb.shadow_size = 26
-	panel.add_theme_stylebox_override("panel", sb)
-	center.add_child(panel)
+
+	_panel = PanelContainer.new()
+	_panel.custom_minimum_size = Vector2(620, 0)
+	_panel.add_theme_stylebox_override("panel", _box(FRAME, 30, 22))
+	center.add_child(_panel)
 	var v := VBoxContainer.new()
-	v.add_theme_constant_override("separation", 12)
-	panel.add_child(v)
+	v.add_theme_constant_override("separation", 14)
+	_panel.add_child(v)
 
-	v.add_child(_label("Play Together", 52, Color(0.45, 0.85, 1.0)))
-	v.add_child(_label("Same world · same riddle · up to 10", 24, Color(0.8, 0.85, 0.95)))
+	# header: title + close
+	var head := HBoxContainer.new()
+	v.add_child(head)
+	var title := _label("🌐 Play Together", 54, GOLD)
+	title.horizontal_alignment = HORIZONTAL_ALIGNMENT_LEFT
+	title.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	title.add_theme_color_override("font_shadow_color", Color(0.45, 0.2, 0.0, 0.9))
+	title.add_theme_constant_override("shadow_offset_y", 3)
+	head.add_child(title)
+	var close := _button("✕", _on_close, FRAME, FRAME_HOVER)
+	close.custom_minimum_size = Vector2(48, 48)
+	close.tooltip_text = "Close"
+	head.add_child(close)
+	var sub := _label("Same island · same riddle · up to 10 explorers", 24, MUTED)
+	sub.horizontal_alignment = HORIZONTAL_ALIGNMENT_LEFT
+	v.add_child(sub)
+	_intro.append(sub)
 
+	# name
+	var name_row := HBoxContainer.new()
+	name_row.add_theme_constant_override("separation", 12)
+	v.add_child(name_row)
+	_intro.append(name_row)
+	var nl := _label("Name", 26, CREAM)
+	nl.custom_minimum_size = Vector2(70, 0)
+	name_row.add_child(nl)
 	_name = _field("Your name", 16)
 	_name.text = Global.player_name
-	v.add_child(_name)
+	_name.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	name_row.add_child(_name)
 
+	# choose: two cards
 	_choose = VBoxContainer.new()
-	_choose.add_theme_constant_override("separation", 10)
 	v.add_child(_choose)
-	_choose.add_child(_button("Create room", _on_create, Color(0.15, 0.6, 0.35)))
-	var row := HBoxContainer.new()
-	row.add_theme_constant_override("separation", 10)
-	_code = _field("Room code", 5)
-	_code.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	_code.text_submitted.connect(func(_t): _on_join())
-	row.add_child(_code)
-	row.add_child(_button("Join", _on_join, Color(0.2, 0.45, 0.85)))
-	_choose.add_child(row)
+	var cards := HBoxContainer.new()
+	cards.add_theme_constant_override("separation", 14)
+	_choose.add_child(cards)
 
+	var host_card := _card()
+	cards.add_child(host_card)
+	var hv: VBoxContainer = host_card.get_child(0)
+	hv.add_child(_label("✨ Host", 32, GOLD))
+	hv.add_child(_label("Start a room and share\nthe code with friends", 20, MUTED))
+	hv.add_child(_button("Create room", _on_create, FRAME_ACTIVE, FRAME_HOVER))
+
+	var join_card := _card()
+	cards.add_child(join_card)
+	var jv: VBoxContainer = join_card.get_child(0)
+	jv.add_child(_label("🔍 Join", 32, GOLD))
+	_code = _field("CODE", 5)
+	_code.alignment = HORIZONTAL_ALIGNMENT_CENTER
+	_code.add_theme_font_size_override("font_size", 34)
+	_code.text_changed.connect(func(t: String):
+		var up := t.to_upper()
+		if up != t:
+			var caret := _code.caret_column
+			_code.text = up
+			_code.caret_column = caret)
+	_code.text_submitted.connect(func(_t): _on_join())
+	jv.add_child(_code)
+	jv.add_child(_button("Join", _on_join, FRAME, FRAME_HOVER))
+
+	# room view
 	_room = VBoxContainer.new()
 	_room.visible = false
-	_room.add_theme_constant_override("separation", 8)
+	_room.add_theme_constant_override("separation", 12)
 	v.add_child(_room)
-	_room_title = _label("", 40, Color(1, 0.85, 0.35))
-	_room.add_child(_room_title)
-	_players = VBoxContainer.new()
-	_room.add_child(_players)
-	_start = _button("Start", _on_start, Color(0.85, 0.42, 0.05))
+	var code_row := HBoxContainer.new()
+	code_row.alignment = BoxContainer.ALIGNMENT_CENTER
+	code_row.add_theme_constant_override("separation", 14)
+	_room.add_child(code_row)
+	code_row.add_child(_label("Room code", 26, MUTED))
+	_code_tiles = HBoxContainer.new()
+	_code_tiles.add_theme_constant_override("separation", 6)
+	code_row.add_child(_code_tiles)
+	_room.add_child(_label("Copied to your clipboard - send it to your friends", 20, MUTED))
+	_grid = GridContainer.new()
+	_grid.columns = 2
+	_grid.add_theme_constant_override("h_separation", 10)
+	_grid.add_theme_constant_override("v_separation", 8)
+	_room.add_child(_grid)
+	_start = _button("Start game", _on_start, FRAME_ACTIVE, FRAME_HOVER)
+	_start.add_theme_font_size_override("font_size", 34)
+	_start.custom_minimum_size = Vector2(0, 60)
 	_room.add_child(_start)
+	_waiting = _label("", 26, CREAM)
+	_room.add_child(_waiting)
 
-	_status = _label("", 22, Color(1, 0.6, 0.5))
+	_status = _label("", 22, Color(1, 0.62, 0.5))
 	v.add_child(_status)
-	v.add_child(_button("Close", _on_close, Color(0.25, 0.27, 0.35)))
 
 	Net.connected.connect(_on_connected)
 	Net.peer_joined.connect(func(_i, _n): _refresh())
@@ -92,11 +153,39 @@ func _ready() -> void:
 	if Net.active:
 		_on_connected(Net.my_id)
 
+	# pop in
+	_panel.pivot_offset = Vector2(310, 220)
+	_panel.scale = Vector2(0.9, 0.9)
+	_panel.modulate.a = 0.0
+	var tw := create_tween().set_parallel()
+	tw.tween_property(_panel, "scale", Vector2.ONE, 0.25).set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
+	tw.tween_property(_panel, "modulate:a", 1.0, 0.18)
+
+
+func _process(delta: float) -> void:
+	_t += delta
+	if _room.visible and _start.visible:
+		_start.pivot_offset = _start.size * 0.5
+		_start.scale = Vector2.ONE * (1.0 + sin(_t * 4.0) * 0.02)
+	if _room.visible and _waiting.visible:
+		_waiting.text = "Waiting for the host" + ".".repeat(int(_t * 2.0) % 4)
+
+
+# ------------------------------------------------------------------ widgets
+func _box(tex: Texture2D, pad_x: int, pad_y: int) -> StyleBoxTexture:
+	var sb := StyleBoxTexture.new()
+	sb.texture = tex
+	sb.set_texture_margin_all(12)
+	sb.content_margin_left = pad_x
+	sb.content_margin_right = pad_x
+	sb.content_margin_top = pad_y
+	sb.content_margin_bottom = pad_y
+	return sb
+
 
 func _label(t: String, size: int, col: Color) -> Label:
 	var l := Label.new()
 	l.text = t
-	l.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	l.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	l.add_theme_font_override("font", FONT)
 	l.add_theme_font_size_override("font_size", size)
@@ -108,34 +197,78 @@ func _field(placeholder: String, max_len: int) -> LineEdit:
 	var e := LineEdit.new()
 	e.placeholder_text = placeholder
 	e.max_length = max_len
-	e.custom_minimum_size = Vector2(0, 48)
+	e.custom_minimum_size = Vector2(0, 52)
 	e.add_theme_font_override("font", FONT)
 	e.add_theme_font_size_override("font_size", 28)
-	var sb := StyleBoxFlat.new()
-	sb.bg_color = Color(1, 1, 1, 0.07)
-	sb.set_corner_radius_all(12)
-	sb.content_margin_left = 14
-	sb.set_border_width_all(1)
-	sb.border_color = Color(1, 1, 1, 0.18)
-	e.add_theme_stylebox_override("normal", sb)
+	e.add_theme_color_override("font_color", CREAM)
+	e.add_theme_color_override("font_placeholder_color", Color(MUTED, 0.6))
+	e.add_theme_stylebox_override("normal", _box(FRAME, 16, 4))
+	e.add_theme_stylebox_override("focus", _box(FRAME_HOVER, 16, 4))
 	return e
 
 
-func _button(t: String, cb: Callable, col: Color) -> Button:
+func _button(t: String, cb: Callable, tex: Texture2D, hover: Texture2D) -> Button:
 	var b := Button.new()
 	b.text = t
-	b.custom_minimum_size = Vector2(150, 50)
+	b.custom_minimum_size = Vector2(0, 50)
+	b.focus_mode = Control.FOCUS_NONE
+	b.mouse_default_cursor_shape = Control.CURSOR_POINTING_HAND
 	b.add_theme_font_override("font", FONT)
-	b.add_theme_font_size_override("font_size", 30)
-	for st in ["normal", "hover", "pressed"]:
-		var sb := StyleBoxFlat.new()
-		sb.set_corner_radius_all(12)
-		sb.bg_color = col if st == "normal" else col.lightened(0.15) if st == "hover" else col.darkened(0.2)
-		b.add_theme_stylebox_override(st, sb)
+	b.add_theme_font_size_override("font_size", 28)
+	for c in ["font_color", "font_hover_color", "font_pressed_color"]:
+		b.add_theme_color_override(c, CREAM)
+	b.add_theme_stylebox_override("normal", _box(tex, 18, 4))
+	b.add_theme_stylebox_override("hover", _box(hover, 18, 4))
+	b.add_theme_stylebox_override("pressed", _box(FRAME_ACTIVE, 18, 4))
 	b.pressed.connect(cb)
 	return b
 
 
+func _card() -> PanelContainer:
+	var p := PanelContainer.new()
+	p.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	p.custom_minimum_size = Vector2(0, 190)
+	p.add_theme_stylebox_override("panel", _box(FRAME, 18, 14))
+	var v := VBoxContainer.new()
+	v.add_theme_constant_override("separation", 10)
+	p.add_child(v)
+	return p
+
+
+func _slot(id: int) -> PanelContainer:
+	var p := PanelContainer.new()
+	p.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	p.custom_minimum_size = Vector2(0, 52)
+	p.add_theme_stylebox_override("panel", _box(FRAME, 12, 2))
+	var h := HBoxContainer.new()
+	h.add_theme_constant_override("separation", 10)
+	p.add_child(h)
+	var av := TextureRect.new()
+	av.texture = AVATAR
+	av.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+	av.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+	av.custom_minimum_size = Vector2(30, 40)
+	h.add_child(av)
+	if id == 0:
+		av.modulate = Color(1, 1, 1, 0.15)
+		p.modulate.a = 0.45
+		h.add_child(_label("open", 24, MUTED))
+		return p
+	var col := Net.color_of(id)
+	av.modulate = Color.WHITE.lerp(col, 0.35)
+	var pname := _label(str(Net.peers[id]), 26, col)
+	pname.horizontal_alignment = HORIZONTAL_ALIGNMENT_LEFT
+	pname.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	pname.clip_text = true
+	h.add_child(pname)
+	if id == 1:
+		h.add_child(_label("★ host", 20, GOLD))
+	elif id == Net.my_id:
+		h.add_child(_label("you", 20, MUTED))
+	return p
+
+
+# ------------------------------------------------------------------ flow
 func _remember_name() -> String:
 	Global.player_name = _name.text.strip_edges() if not _name.text.strip_edges().is_empty() else "Explorer"
 	Global.save_game()
@@ -158,28 +291,30 @@ func _on_join() -> void:
 func _on_connected(_id: int) -> void:
 	_status.text = ""
 	_choose.visible = false
-	_name.editable = false
+	for c in _intro: c.visible = false
 	_room.visible = true
-	_room_title.text = "Code: %s" % Net.room_code
+	for c in _code_tiles.get_children():
+		c.queue_free()
+	for ch in Net.room_code:
+		var tile := PanelContainer.new()
+		tile.custom_minimum_size = Vector2(46, 56)
+		tile.add_theme_stylebox_override("panel", _box(FRAME_HOVER, 6, 0))
+		tile.add_child(_label(ch, 40, GOLD))
+		_code_tiles.add_child(tile)
 	DisplayServer.clipboard_set(Net.room_code)
 	_refresh()
 
 
 func _refresh() -> void:
-	for c in _players.get_children():
+	for c in _grid.get_children():
 		c.queue_free()
 	var ids: Array = Net.peers.keys()
 	ids.sort()
-	for id in ids:
-		var tag := " (host)" if id == 1 else ""
-		tag += " — you" if id == Net.my_id else ""
-		_players.add_child(_label("● %s%s" % [Net.peers[id], tag], 28, Net.color_of(id)))
+	for i in Net.MAX_PLAYERS:
+		_grid.add_child(_slot(ids[i] if i < ids.size() else 0))
 	_start.visible = Net.is_host()
-	if not Net.is_host():
-		_status.text = "Waiting for host…"
-	else:
-		_status.text = "Code copied  ·  %d/%d" % [Net.peers.size(), Net.MAX_PLAYERS]
-		_status.add_theme_color_override("font_color", Color(0.6, 1.0, 0.7))
+	_start.text = "Start game  (%d/%d)" % [Net.peers.size(), Net.MAX_PLAYERS]
+	_waiting.visible = not Net.is_host()
 
 
 func _on_start() -> void:
@@ -195,9 +330,8 @@ func _on_message(_from: int, d: Dictionary) -> void:
 
 func _on_disconnected(reason: String) -> void:
 	_choose.visible = true
+	for c in _intro: c.visible = true
 	_room.visible = false
-	_name.editable = true
-	_status.add_theme_color_override("font_color", Color(1, 0.6, 0.5))
 	_status.text = reason
 
 
