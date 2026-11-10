@@ -7,7 +7,7 @@ extends Node
 # Messages: every packet is a Dictionary with "t" (type). The relay adds "from".
 #   relay -> us : welcome{id, peers}, join{id,name}, leave{id}, error{msg}, host_left
 #   game        : start{seed, qtype, topic, round}, riddle{data}, hint{idx},
-#                 pos{x,y,a,f,s}, won{name, answer}, chat{text}
+#                 pos{x,y,a,f,s,c}, won{name, answer}, chat{text}, hello{c}
 
 signal connected(my_id: int)
 signal peer_joined(id: int, player_name: String)
@@ -29,6 +29,7 @@ var my_id := 0
 var room_code := ""
 var player_name := "Player"
 var peers := {}            # id -> name (includes me)
+var peer_chars := {}       # id -> character index (from "hello" messages)
 var active := false        # inside a connected room
 var round_data := {}       # last "start" from host
 var round_riddle := {}     # last riddle for this round (cached for late scene loads)
@@ -93,6 +94,7 @@ func leave() -> void:
 	active = false
 	my_id = 0
 	peers.clear()
+	peer_chars.clear()
 	round_data = {}
 	round_riddle = {}
 	round_hints = []
@@ -135,11 +137,14 @@ func _handle(d: Dictionary) -> void:
 			for p in d.get("peers", []):
 				peers[int(p.id)] = str(p.name)
 			peers[my_id] = player_name
+			peer_chars[my_id] = Global.character
 			print("[Net] joined room %s as #%d" % [room_code, my_id])
+			send({"t": "hello", "c": Global.character})
 			connected.emit(my_id)
 		"join":
 			var id := int(d.id)
 			peers[id] = str(d.name)
+			send({"t": "hello", "c": Global.character}, id)   # tell the newcomer what I look like
 			if is_host() and not round_data.is_empty():
 				# Late joiner: hand them the running round so they drop straight in.
 				send(round_data.duplicate(), id)
@@ -157,6 +162,8 @@ func _handle(d: Dictionary) -> void:
 			_fail("The host left the room")
 		_:
 			var t := str(d.get("t", ""))
+			if t == "hello":
+				peer_chars[int(d.get("from", 0))] = int(d.get("c", 0))
 			if t in HOST_ONLY and int(d.get("from", 0)) != 1:
 				return  # the relay stamps the real sender; ignore forged round control
 			# Cache round state so a scene that loads late still catches up.

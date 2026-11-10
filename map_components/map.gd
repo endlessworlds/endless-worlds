@@ -42,9 +42,6 @@ var current_question: String = ""
 # UI / DEATH
 # ==================================================
 var score_label: Label
-var death_overlay: CanvasLayer
-var death_label: Label
-var death_bg: ColorRect
 
 # ================= TILE & COORDINATE INFO =================
 const TILE_NAMES := {
@@ -159,7 +156,6 @@ func _ready():
 	create_score_ui()
 
 	hearts.connect("player_died", _on_player_died)
-	create_death_overlay()
 
 	if not Global.is_coding_mode:
 		# 🧩 Riddle: solo players and the host generate it; guests receive the host's.
@@ -531,75 +527,56 @@ func add_score(amount: int):
 # DEATH
 # ==================================================
 func _on_player_died():
-	if not is_inside_tree():
+	if not is_inside_tree() or _round_ended:
 		return # Stop if the node is already detached
 	if Net.active:
 		_respawn_online()
 		return
-	var messages = ["💙 You tried your best!", "🌊 The world was tough today!", "🔥 Nice run, adventurer!", "✨ You'll do even better next time!"]
-	death_label.text = "%s\nScore: %d\nSolution was %s" % [messages.pick_random(), Global.score,current_solution] 
-	death_overlay.visible = true
-	death_bg.modulate.a = 0.0
-	death_label.modulate.a = 0.0
-	var tween := create_tween()
-	tween.tween_property(death_bg, "modulate:a", 0.65, 0.4)
-	tween.parallel().tween_property(death_label, "modulate:a", 1.0, 0.4)
-	Global.reset_score_only()
-	await get_tree().create_timer(5.0).timeout
-	
+	_round_ended = true
+	if answer_popup.visible:
+		answer_popup.close()
+	var final_score := Global.score
 	Global.end_game(false)
-	get_tree().change_scene_to_file("res://ui/home_screen/home_screen.tscn")
-
-func create_death_overlay():
-	death_overlay = CanvasLayer.new()
-	death_overlay.layer = 100
-	add_child(death_overlay)
-	var backbuffer := BackBufferCopy.new()
-	backbuffer.copy_mode = BackBufferCopy.COPY_MODE_VIEWPORT
-	death_overlay.add_child(backbuffer)
-	death_bg = ColorRect.new()
-	death_bg.anchor_left = 0
-	death_bg.anchor_top = 0
-	death_bg.anchor_right = 1
-	death_bg.anchor_bottom = 1
-	var mat := ShaderMaterial.new()
-	mat.shader = load("res://shaders/screen_blur.gdshader")
-	mat.set_shader_parameter("blur_strength", 3.0)
-	death_bg.material = mat
-	death_overlay.add_child(death_bg)
-	death_label = Label.new()
-	death_label.anchor_left = 0.5
-	death_label.anchor_top = 0.5
-	death_label.anchor_right = 0.5
-	death_label.anchor_bottom = 0.5
-	death_label.offset_left = -300
-	death_label.offset_top = -60
-	death_label.offset_right = 300
-	death_label.offset_bottom = 60
-	death_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	death_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
-	death_label.add_theme_font_override("font", load("res://assets/fonts/Jersey10-Regular.ttf"))
-	death_label.add_theme_font_size_override("font_size", 60)
-	death_label.modulate.a = 0.0
-	death_overlay.add_child(death_label)
-	death_overlay.visible = false
+	Global.reset_score_only()
+	# Even a loss teaches something: show the answer and the fact behind it.
+	var body := ""
+	if not current_solution.is_empty():
+		body = "The answer was [color=#ffd166]%s[/color]\n" % current_solution.to_upper()
+		if not Global.learning_journal.concepts.is_empty():
+			body += str(Global.learning_journal.concepts.back().get("definition", "")) + "\n"
+	body += "\n%s   Score %d" % [["You'll get it next time!", "Nice try, explorer!", "The island wins this round."].pick_random(), final_score]
+	RoundCard.show_card(self, "Out of hearts", body,
+		[["Try again", func(): get_tree().reload_current_scene()],
+		 ["Home", func(): get_tree().change_scene_to_file("res://ui/home_screen/home_screen.tscn")]], true)
 
 
-
-
-# Online rooms don't kick you out: short penalty, then back in with full hearts.
+# Online rooms don't kick you out: a short penalty, then back in with full hearts.
 func _respawn_online() -> void:
-	death_label.text = "Knocked out!
-Respawning…"
-	death_overlay.visible = true
-	death_bg.modulate.a = 0.6
-	death_label.modulate.a = 1.0
 	Global.add_score(-15)
 	exit_water()
-	await get_tree().create_timer(3.0).timeout
+	var layer := CanvasLayer.new()
+	layer.layer = PixelUI.PAGE_LAYER
+	add_child(layer)
+	var dim := ColorRect.new()
+	dim.color = Color(0.02, 0.03, 0.07, 0.5)
+	dim.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	layer.add_child(dim)
+	var center := CenterContainer.new()
+	center.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	layer.add_child(center)
+	var panel := PixelUI.panel(PixelUI.FRAME, 34, 18)
+	center.add_child(panel)
+	var v := VBoxContainer.new()
+	panel.add_child(v)
+	v.add_child(PixelUI.label("Knocked out!", 52, PixelUI.GOLD))
+	var sub := PixelUI.label("", 28)
+	v.add_child(sub)
+	for i in [3, 2, 1]:
+		sub.text = "-15 score   ·   back in %d" % i
+		await get_tree().create_timer(1.0).timeout
 	spawner.spawn_player_at_center()
 	hearts.heal(hearts.max_hearts)
-	death_overlay.visible = false
+	layer.queue_free()
 
 
 # Dev/testing: `-- --sim-hint-at=8 --sim-win-at=15` picks a hint / wins the round
@@ -627,6 +604,8 @@ func _dev_simulation() -> void:
 	for a in OS.get_cmdline_user_args():  # --sim-voice=<16 kHz wav> speaks it to Bolt at 8 s
 		if a.begins_with("--sim-voice="):
 			get_tree().create_timer(8.0).timeout.connect(func(): agentic_bot._voice.sim_voice_file(a.get_slice("=", 1)))
+	if args.has("sim-die-at"):
+		get_tree().create_timer(args["sim-die-at"]).timeout.connect(func(): hearts.damage(hearts.max_hearts))
 	if args.has("sim-chat-at") and mp:
 		get_tree().create_timer(args["sim-chat-at"]).timeout.connect(func(): mp._send_chat("Found a hint over here!"))
 	if args.has("sim-menu-at"):

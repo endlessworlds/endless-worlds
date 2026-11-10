@@ -9,7 +9,6 @@ const FONT := preload("res://assets/fonts/Jersey10-Regular.ttf")
 const FRAME := preload("res://assets/ui/pixel/frame_normal.png")
 const FRAME_HOVER := preload("res://assets/ui/pixel/frame_hover.png")
 const FRAME_ACTIVE := preload("res://assets/ui/pixel/frame_active.png")
-const AVATAR := preload("res://assets/front-player.png")
 const GOLD := Color(1.0, 0.8, 0.28)
 const CREAM := Color(0.96, 0.92, 0.82)
 const MUTED := Color(0.66, 0.7, 0.82)
@@ -150,6 +149,7 @@ func _ready() -> void:
 	Net.peer_left.connect(func(_i): _refresh())
 	Net.disconnected.connect(_on_disconnected)
 	Net.message.connect(_on_message)
+	Net.message.connect(func(_f, d): if str(d.get("t", "")) == "hello": _refresh())
 	if Net.active:
 		_on_connected(Net.my_id)
 
@@ -244,7 +244,7 @@ func _slot(id: int) -> PanelContainer:
 	h.add_theme_constant_override("separation", 10)
 	p.add_child(h)
 	var av := TextureRect.new()
-	av.texture = AVATAR
+	av.texture = Characters.front(int(Net.peer_chars.get(id, 0)))
 	av.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
 	av.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
 	av.custom_minimum_size = Vector2(30, 40)
@@ -255,7 +255,6 @@ func _slot(id: int) -> PanelContainer:
 		h.add_child(_label("open", 24, MUTED))
 		return p
 	var col := Net.color_of(id)
-	av.modulate = Color.WHITE.lerp(col, 0.35)
 	var pname := _label(str(Net.peers[id]), 26, col)
 	pname.horizontal_alignment = HORIZONTAL_ALIGNMENT_LEFT
 	pname.size_flags_horizontal = Control.SIZE_EXPAND_FILL
