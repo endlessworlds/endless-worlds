@@ -70,6 +70,10 @@ var _t := 0.0
 var _bot := "--surv-bot" in OS.get_cmdline_user_args()
 var _god := "--surv-god" in OS.get_cmdline_user_args()
 
+var sfx: SurvivalSfx
+var _hurt_flash: ColorRect
+var _dash_fill: ColorRect
+var _weapon_lbl: Label
 var _round_lbl: Label
 var _score_lbl: Label
 var _boss_panel: PanelContainer
@@ -93,12 +97,100 @@ func _ready() -> void:
 	hearts.current_hearts = 6
 	add_child(hearts)
 	hearts.player_died.connect(_on_died)
+	sfx = SurvivalSfx.new()
+	add_child(sfx)
 	_build_hud()
+	_decorate_arena()
+	_set_crosshair()
 	for a in OS.get_cmdline_user_args():
 		if a.begins_with("--surv-round="):
 			round_no = int(a.get_slice("=", 1)) - 1
-	await get_tree().create_timer(0.8).timeout
-	_next_round()
+	if _bot:
+		await get_tree().create_timer(0.8).timeout
+		_next_round()
+	else:
+		_show_intro()
+
+
+func _exit_tree() -> void:
+	Input.set_custom_mouse_cursor(null)   # give the rest of the game its normal cursor back
+
+
+# Pixel crosshair so you always know where bolts will go.
+func _set_crosshair() -> void:
+	var img := Image.create(23, 23, false, Image.FORMAT_RGBA8)
+	var c := Color(1.0, 0.9, 0.4)
+	var o := Color(0.08, 0.05, 0.1)
+	for i in range(0, 23):
+		for k in [-1, 1]:
+			if abs(i - 11) > 3:
+				img.set_pixel(i, 11 + k, o); img.set_pixel(11 + k, i, o)
+	for i in range(0, 23):
+		if abs(i - 11) > 3:
+			img.set_pixel(i, 11, c); img.set_pixel(11, i, c)
+	img.set_pixel(11, 11, c)
+	Input.set_custom_mouse_cursor(ImageTexture.create_from_image(img), Input.CURSOR_ARROW, Vector2(11, 11))
+
+
+# Flowers inside the arena and trees along its edges, so it isn't a flat green box.
+func _decorate_arena() -> void:
+	var flowers := ["res://assets/flowers/cherry_sapling.png", "res://assets/flowers/coral_fan_red.png",
+		"res://assets/flowers/crimson_fungus.png"]
+	for f in ResourceLoader.list_directory("res://assets/flowers"):   # works in exported builds too
+		if f.ends_with(".png") and flowers.size() < 10:
+			flowers.append("res://assets/flowers/" + f)
+	for k in 45:
+		var s := Sprite2D.new()
+		s.texture = load(flowers.pick_random())
+		s.position = Vector2(randf_range(arena.position.x, arena.end.x), randf_range(arena.position.y, arena.end.y))
+		if tilemap.get_cell_atlas_coords(tilemap.local_to_map(s.position)) == LAVA:
+			s.queue_free()
+			continue
+		s.offset = Vector2(0, -8)
+		s.scale = Vector2.ONE * randf_range(0.7, 1.0)
+		s.z_index = int(s.position.y / 2.0) - 2
+		add_child(s)
+	var trees := ["res://assets/trees/birch_1.png", "res://assets/trees/fir_tree_2.png", "res://assets/trees/jungle_tree_3.png",
+		"res://assets/trees/middle_lane_tree2.png"]
+	for k in 12:
+		var t := Sprite2D.new()
+		t.texture = load(trees.pick_random())
+		t.centered = false
+		t.offset = Vector2(-t.texture.get_width() / 2.0, -t.texture.get_height() + 10)
+		t.scale = Vector2(0.5, 0.5)
+		var top := k < 6
+		t.position = Vector2(lerpf(arena.position.x + 30, arena.end.x - 30, (k % 6) / 5.0) + randf_range(-20, 20),
+			arena.position.y - 6.0 if top else arena.end.y + 22.0)
+		t.z_index = int(t.position.y / 2.0)
+		t.modulate = Color(1, 1, 1, 0.95)
+		add_child(t)
+
+
+# First thing a player sees: what to do and how.
+func _show_intro() -> void:
+	var layer := CanvasLayer.new()
+	add_child(layer)
+	var v := PixelUI.page(layer, "💀 Survival", 640, func():
+		get_tree().change_scene_to_file("res://ui/home_screen/home_screen.tscn"))
+	var best := int(Global.stats.get("survival_best_round", 0))
+	v.add_child(PixelUI.label("Clear each wave, then defeat the boss.\nEvery boss lets you pick an upgrade. The bosses never end.", 26))
+	var keys := GridContainer.new()
+	keys.columns = 2
+	keys.add_theme_constant_override("h_separation", 24)
+	v.add_child(keys)
+	for row in [["Shoot", "hold Left mouse  /  J"], ["Dash", "Right mouse  /  K"], ["Move", "WASD  ·  Shift sprint"],
+			["Jump", "Space"], ["Pause", "Esc"]]:
+		keys.add_child(PixelUI.label(row[0], 26, PixelUI.GOLD, false))
+		keys.add_child(PixelUI.label(row[1], 26, PixelUI.CREAM, false))
+	if best > 0:
+		v.add_child(PixelUI.label("Your best: round %d" % best, 24, PixelUI.MUTED))
+	var go := PixelUI.button("Fight!", func():
+		get_tree().paused = false
+		layer.queue_free()
+		_next_round(), true)
+	go.custom_minimum_size = Vector2(0, 60)
+	v.add_child(go)
+	get_tree().paused = true
 
 
 # ------------------------------------------------------------------ arena
@@ -180,6 +272,7 @@ func _next_round() -> void:
 	to_spawn = 0 if "--surv-boss-now" in OS.get_cmdline_user_args() else mini(6 + 3 * round_no, 45)
 	_spawn_t = 1.2
 	banner("Round %d" % round_no, PixelUI.GOLD)
+	sfx.play("portal", 0.0)
 	_update_hud()
 
 
@@ -216,6 +309,7 @@ func _spawn_boss() -> void:
 	_boss_name.text = "💀 %s" % d.name
 	_boss_panel.visible = true
 	banner(d.name, Color(1.0, 0.5, 0.4))
+	sfx.play("boss", 0.0)
 	shake()
 
 
@@ -237,6 +331,7 @@ func portal(tname: String, at: Vector2, muts: Array[String]) -> void:
 	p.position = at
 	p.z_index = int(at.y / 2.0)
 	add_child(p)
+	sfx.play("portal", 0.15)
 	await get_tree().create_timer(0.7, false).timeout
 	p.queue_free()
 	portals_open -= 1
@@ -341,8 +436,16 @@ func _player_combat(_delta: float) -> void:
 				best = m
 		if best:
 			aim = (best.center() - ppos()).normalized()
+	if aim != Vector2.ZERO and player.velocity.length() < 5.0:
+		player.last_dir = aim   # stand and face where you're shooting
 	if aim != Vector2.ZERO and _fire_t <= 0.0:
 		_fire_t = stats.fire_cd
+		sfx.play("shoot")
+		var fl := _Boom.new()
+		fl.radius = 6.0
+		fl.position = ppos() + aim * 9.0
+		fl.z_index = 4050
+		add_child(fl)
 		var n: int = stats.multishot
 		for i in n:
 			var s := shoot(ppos() + aim * 8.0, aim.rotated((i - (n - 1) / 2.0) * 0.16) * stats.bolt_speed, stats.dmg, Color.CYAN, false)
@@ -356,6 +459,7 @@ func _player_combat(_delta: float) -> void:
 
 
 func _dash() -> void:
+	sfx.play("dash")
 	_dash_t = stats.dash_cd
 	_invuln = maxf(_invuln, 0.35)
 	var dir: Vector2 = player.velocity.normalized() if player.velocity.length() > 5.0 else player.last_dir
@@ -468,6 +572,7 @@ func explode(at: Vector2, radius: float, dmg: int, hurts_player: bool, hurts_mob
 	b.radius = radius
 	b.z_index = 4050
 	add_child(b)
+	sfx.play("boom")
 	shake()
 	if hurts_player and ppos().distance_to(at) < radius:
 		hurt_player(dmg)
@@ -506,12 +611,22 @@ func hurt_player(dmg: int) -> bool:
 		return false
 	_invuln = 1.0
 	hearts.damage(dmg)
+	sfx.play("hurt")
+	_hurt_flash.color.a = 0.35
+	create_tween().tween_property(_hurt_flash, "color:a", 0.0, 0.35)
+	var away: Vector2 = Vector2.ZERO
+	for m in mobs:   # pushed back from the nearest attacker
+		if is_instance_valid(m) and (away == Vector2.ZERO or m.position.distance_to(player.position) < away.length()):
+			away = player.position - m.position
+	if away != Vector2.ZERO:
+		create_tween().tween_property(player, "position", clamp_arena(player.position + away.normalized() * 14.0), 0.08)
 	return true
 
 
 func mob_died(m: SurvivalMob, give_points := true) -> void:
 	mobs.erase(m)
 	_puff(m.center(), m.tint if m.tint != Color.WHITE else Color(0.9, 0.9, 0.9), m.scale_k)
+	sfx.play("kill" if not m.is_boss else "boom")
 	if give_points and not m.is_clone:
 		kills += 1
 		score += int((m.kind.pts if not m.is_boss else 250) * (1.0 + 0.1 * round_no))
@@ -584,10 +699,9 @@ func _show_upgrades() -> void:
 	get_tree().paused = true
 	var layer := CanvasLayer.new()
 	add_child(layer)
-	var v := PixelUI.page(layer, "⚔ Choose an upgrade", 760, func():
-		get_tree().paused = false
-		layer.queue_free()
-		_next_round())
+	var v := PixelUI.page(layer, "⚔ Choose an upgrade", 760, func(): pass)
+	(v.get_child(0) as HBoxContainer).get_child(1).visible = false   # no close: you always pick one
+	sfx.play("upgrade", 0.0)
 	v.add_child(PixelUI.label("Round %d cleared · Score %d" % [round_no, score], 26, PixelUI.MUTED))
 	var row := HBoxContainer.new()
 	row.add_theme_constant_override("separation", 12)
@@ -659,8 +773,25 @@ func _build_hud() -> void:
 	info.add_child(col)
 	_round_lbl = PixelUI.label("", 30, PixelUI.GOLD, false)
 	_score_lbl = PixelUI.label("", 22, PixelUI.CREAM, false)
+	_weapon_lbl = PixelUI.label("", 20, PixelUI.MUTED, false)
 	col.add_child(_round_lbl)
 	col.add_child(_score_lbl)
+	col.add_child(_weapon_lbl)
+	var dash_bg := ColorRect.new()
+	dash_bg.color = Color(0.1, 0.12, 0.2)
+	dash_bg.custom_minimum_size = Vector2(160, 6)
+	col.add_child(dash_bg)
+	_dash_fill = ColorRect.new()
+	_dash_fill.color = Color(0.45, 0.9, 1.0)
+	_dash_fill.size = Vector2(160, 6)
+	dash_bg.add_child(_dash_fill)
+
+	_hurt_flash = ColorRect.new()
+	_hurt_flash.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	_hurt_flash.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_hurt_flash.color = Color(0.85, 0.05, 0.1, 0.0)
+	hud.add_child(_hurt_flash)
+	hud.move_child(_hurt_flash, 0)
 
 	_boss_panel = PixelUI.panel(PixelUI.FRAME, 18, 8)
 	_boss_panel.set_anchors_and_offsets_preset(Control.PRESET_CENTER_TOP)
@@ -692,7 +823,7 @@ func _build_hud() -> void:
 	_banner.modulate.a = 0.0
 	hud.add_child(_banner)
 
-	var keys := PixelUI.label("Mouse / J shoot · Right-click / K dash · Space jump · Esc pause", 18, Color(PixelUI.MUTED, 0.75))
+	var keys := PixelUI.label("Shoot: mouse / J   ·   Dash: right-click / K   ·   Esc pause", 18, Color(PixelUI.MUTED, 0.75))
 	keys.set_anchors_and_offsets_preset(Control.PRESET_CENTER_BOTTOM)
 	keys.offset_left = -400
 	keys.offset_right = 400
@@ -704,6 +835,10 @@ func _update_hud() -> void:
 	_round_lbl.text = "⚔ Round %d" % round_no
 	var left := mobs.size() + to_spawn + portals_open
 	_score_lbl.text = "Score %d · Kills %d%s" % [score, kills, ("   ·   %d left" % left) if state == "waves" else ""]
+	_weapon_lbl.text = "DMG %s · %.1f/s · x%d%s" % [str(snappedf(stats.dmg, 0.1)).trim_suffix(".0"), 1.0 / stats.fire_cd,
+		stats.multishot, (" · pierce %d" % stats.pierce) if stats.pierce > 0 else ""]
+	_dash_fill.size.x = 160.0 * clampf(1.0 - _dash_t / stats.dash_cd, 0.0, 1.0)
+	_dash_fill.color = Color(0.45, 0.9, 1.0) if _dash_t <= 0.0 else Color(0.3, 0.45, 0.6)
 	if boss and is_instance_valid(boss):
 		_boss_fill.size.x = 520.0 * clampf(boss.hp / boss.max_hp, 0.0, 1.0)
 		_boss_fill.color = Color(1.0, 0.45, 0.15) if boss.enraged else Color(0.86, 0.18, 0.22)
@@ -773,6 +908,7 @@ class _Heart extends Node2D:
 			queue_free()
 		elif game.ppos().distance_to(position) < 12.0:
 			game.hearts.heal(1)
+			game.sfx.play("pickup", 0.0)
 			game.floater(position, "+1 heart", Color(1.0, 0.5, 0.6))
 			queue_free()
 	func _draw() -> void:
