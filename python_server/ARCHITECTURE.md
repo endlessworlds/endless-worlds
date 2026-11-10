@@ -29,13 +29,14 @@ flowchart TD
 
 ```mermaid
 flowchart LR
-    A["Receive topic"] --> B["Clear old vectors\nfrom FAISS"]
-    B --> C["Search DuckDuckGo\nfor topic"]
+    A["Receive topic"] --> B{"Topic already\nindexed?"}
+    B -- yes --> I
+    B -- no --> C["Search DuckDuckGo\n(fallback: Bing, Brave)"]
     C --> D["Scrape top URLs\n(5 at once, concurrent)"]
     D --> E["Clean HTML\nremove scripts, nav, etc."]
     E --> F["Split text into\n500-char chunks"]
     F --> G["Embed chunks\n(MiniLM model)"]
-    G --> H["Store in\nFAISS index"]
+    G --> H["Store in this topic's own\nFAISS index (LRU of 64)"]
     H --> I["Return URL +\nchunk count"]
 ```
 
@@ -46,7 +47,7 @@ flowchart LR
     A["Receive topic\n+ difficulty"] --> B["Search FAISS\nfor relevant chunks"]
     B --> C["Build prompt with\ncontext (max 4000 chars)"]
     C --> D["Send to Groq LLM\n(GPT-oss-120B)"]
-    D --> E["Parse JSON response"]
+    D --> E["Parse + validate JSON\n(1-word answer in options,\n4 hints; 1 retry)"]
     E --> F["Return riddle:\nquestion, options,\nanswer, hints"]
 ```
 
@@ -121,3 +122,12 @@ Player walks into trigger
         ↓
   Player answers → score updates 🎉
 ```
+
+## Voice endpoints
+
+- `POST /api/transcribe`: raw 16-bit PCM WAV body (max 4 MB), returns `{"text": ...}` via Groq Whisper (`whisper-large-v3-turbo`).
+- `POST /api/rag` with a `riddle` field: Bolt's spoiler-free guide persona (≤ 2 spoken sentences, never states the answer).
+- `GET /health`: `{"status": "ok", "llm": true|false}`; the home screen uses it for the online/offline badge.
+
+Endpoints are plain `def`, so FastAPI runs them in its thread pool and one slow scrape can't block other players.
+Set `DISABLE_SSL_VERIFY=1` only on machines whose antivirus/proxy intercepts HTTPS (`start_server.bat` does this).

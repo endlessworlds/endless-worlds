@@ -1,84 +1,143 @@
 # Endless Worlds
 
-**Endless Worlds** is an educational 2D top-down exploration game built in **Godot 4** that merges environmental sandbox gameplay with advanced AI-powered learning. 
+**Type any topic. Get a living pixel island, a riddle written from the live web, a robot guide you
+can talk to, and up to 9 friends to race to the answer.**
 
-Players navigate a procedurally-generated island world while solving AI-generated riddles and programming-focused educational challenges. Unlike static educational games, Endless Worlds leverages **Live Web Scraping**, **LLM Integration (Groq API)**, **Reinforcement Learning (RL)**, and **Live Code Execution** to create a deeply dynamic, personalized, and context-aware learning environment.
+Endless Worlds is an educational 2D exploration game built in **Godot 4.5**. A Python AI server turns
+any topic into a validated riddle with hints (web search → RAG → Groq LLM). A Q-learning agent
+adapts the difficulty to each player, and a free Cloudflare relay connects players into
+10-player online rooms.
 
----
+![Endless Worlds at night](docs/images/night_torch.jpg)
 
-## 🌟 Key Features
+| | |
+|---|---|
+| ![Multiplayer](docs/images/mp_guest.jpg) | ![Bolt](docs/images/bolt_menu.jpg) |
+| **Online rooms:** same island, shared hints, chat, live scores | **Bolt:** voice companion that nudges, never spoils |
 
-### 🧠 Advanced AI & Learning Systems
-- **Dynamic Content Generation:** Uses a Python backend to web-scrape context for user-selected topics, then uses the Groq API to generate unique riddles on the fly.
-- **Reinforcement Learning (RL) Difficulty:** A built-in Q-Learning algorithm (`DifficultyRL`) analyzes your success rate and hint usage to dynamically adjust the difficulty of questions, ensuring you stay in the optimal learning flow.
-- **Live Code Execution:** Integrated with the Piston API, allowing players to execute and validate real programming code directly within the game's UI.
-- **Agentic Bot & Learning Journal:** Features an AI assistant (Agentic Bot) and a Learning Journal that tracks solved riddles, learned concepts, definitions, and real-world examples.
-- **Progressive Scoring:** Gamified learning with stats (Logic, Memory) instead of just XP.
+## Documents
 
-### 🌍 World & Exploration
-- **Procedural Generation:** Simplex noise-based terrain generation featuring diverse biomes (grass, dirt, clay, magma, water) and connected islands.
-- **Dynamic Environment:** A fully realized day-night cycle, dynamic lighting systems, and weather systems (including multi-layer parallax rain).
-- **Immersive Physics:** Depth-based visual sinking in water, movement slowdowns, splash particle effects, and procedural object placement (flowers, trees, interactive wells, hint pickups).
-- **Entity Mechanics:** Smooth top-down player movement with sprinting, camera shake, and animated footstep trails.
+| | |
+|---|---|
+| [docs/USER_GUIDE.md](docs/USER_GUIDE.md) | How to install and play (solo, online, Bolt, controls, troubleshooting) |
+| [docs/Endless-Worlds-Pitch-Deck.pdf](docs/Endless-Worlds-Pitch-Deck.pdf) | 15-slide deck: why the game is better, with architecture, pipelines and before/after |
+| [docs/Multiplayer-How-It-Works.pdf](docs/Multiplayer-How-It-Works.pdf) | 10-page visual and technical walkthrough of multiplayer |
+| [relay/README.md](relay/README.md) | Cloudflare developer guide: run, deploy for free, protocol, limits |
+| [python_server/ARCHITECTURE.md](python_server/ARCHITECTURE.md) | AI server pipelines and endpoints |
+| [docs/INTERVIEW_PREP.md](docs/INTERVIEW_PREP.md) | Interview prep guide for explaining the project (written for the v1 single-player architecture) |
 
-### 🎮 Interface & Accessibility
-- **Multi-Input Support:** Seamlessly supports Keyboard/Mouse, Gamepads, and Touch devices (via Virtual Joystick).
-- **Custom Virtual Keyboard:** Fully integrated virtual keyboard for accessibility and mobile support.
-- **Polished UI:** Immersive HUDs, interactive popup dialogs, animated hint bulbs, and custom typography.
+The PDFs are generated from `docs/src/*.html`; see *Rebuild the PDFs* below.
 
----
+## Features
 
-## 📁 How to Read the Folder Structure
+**Learning**
+- Any topic → riddle grounded in a scraped web page (DuckDuckGo → Bing → Brave fallback), FAISS per-topic cache, Groq `gpt-oss-120b`
+- Every LLM answer is **validated** (one word, ≤ 12 chars, present in the options, 4 hints) with one retry
+- **Offline bank** of 38 topic-tagged riddles, so the game never hangs when the server is down
+- Six answer formats: MCQ, fill-in, Wordle, whack-a-answer, word lock, quiz show with lifelines, plus 50 coding quests
+- **Q-learning difficulty** (5 levels), win streak bonus, Learning Journal of solved riddles and facts
 
-The project has been deeply refactored into a scalable, feature-based modular architecture. Instead of separating scripts and scenes blindly, files are grouped by their logical function in the game. 
+**Bolt, the voice companion**
+- Push-to-talk (**V**), hands-free voice-activity detection, or typing
+- Whisper speech-to-text (`/api/transcribe`), spoiler-free RAG answers (`/api/rag`), OS/browser text-to-speech
+- Click Bolt for a pixel-icon tray: talk · hands-free · type · voice · torch · chat
 
-```text
-endless-world/
-├── core/                  # The backbone: Autoloads, Globals, and environment managers.
-│   ├── global.gd          # Persistent game state and configuration.
-│   ├── env_loader.gd      # Loads secrets from the .env file.
-│   └── ambience_manager.gd
-│
-├── map_components/        # The procedural world generator, tilemaps, day/night cycles,
-│                          # weather (rain), entity spawners (trees, fireflies, flowers),
-│                          # and interactable world items (Wells, Hint Pickups, Water Bubbles).
-│
-├── player/                # Player scenes, movement logic, and camera effects.
-│
-├── ai/                    # 🧠 The brain of the game:
-│   ├── difficulty_rl.gd          # Reinforcement Learning (Q-Learning) engine.
-│   ├── rl_overlay.gd             # UI overlay for debugging the RL state.
-│   ├── ai_question_generator.tscn # Web scraping and LLM API bridge.
-│   └── agentic_bot.gd            # AI assistant logic.
-│
-├── ui/                    # All User Interface screens and components.
-│   ├── gameplay/          # In-game HUD (Hearts, Joystick, Tasks).
-│   ├── home_screen/       # Main Menu and topic selection.
-│   ├── journal/           # The Learning Journal for reviewing concepts.
-│   ├── answerpopups/      # The riddle answering interface and code execution.
-│   ├── questionhintsetup/ # Riddle interaction UI and Hint Bulbs.
-│   ├── tutorial/          # Onboarding overlays.
-│   └── virtual_keyboard/  # On-screen keyboard for mobile/accessibility.
-│
-├── assets/                # Static visual and audio assets (fonts, images).
-├── resources/             # Godot resource files (e.g., TileSets).
-├── shaders/               # GLSL/Godot shaders (Fog, Screen Blur).
-└── python_server/         # Fastapi/Python backend for web scraping.
+**World**
+- Procedural islands in four biomes, day/night, rain and real drifting snow
+- Wildlife: sparrows fly off, rabbits, deer and foxes run away, frogs hop at the shore when any player comes close; flocks of birds cross the sky; butterflies, fireflies and flies
+- Real lighting: CanvasModulate night with a hand-held torch (auto at night / **F**), glowing wells, hints and lava; bloom, vignette, per-biome grade
+- Jump (**Space**) with squash-and-stretch and landing dust; hop over small lava patches
+- Objective bar + faint compass arrows to the nearest hint and well; F3 tile/coords panel; pause menu (**Esc**)
+- Pixel-art icon font: every emoji in the UI renders as a matching 16 px pixel icon
+
+**Multiplayer** (details in the PDF)
+- Room codes, up to 10 players, coloured rings + translucent name tags, chat bubbles, live scoreboard
+- The host is the authority: one seed → identical worlds; the host's riddle and hints are shared; first correct answer wins
+- Guests' voice questions are answered by the **host's** AI server through the relay, so guests need no Python
+- Relay: Cloudflare Worker + Durable Object on the **free plan**, deployed at `wss://endless-worlds-relay.srujanmpadmashali.workers.dev`
+
+## Quick start
+
+### Players
+Unzip `EndlessWorlds-Windows.zip` → run `EndlessWorlds.exe`. See the [user guide](docs/USER_GUIDE.md).
+
+### Developers
+1. Install **Godot 4.5.1** and open `project.godot`.
+2. Copy `.env.example` to `.env` and add your free Groq key (`GROQ_API_KEY`, used only by the AI server).
+3. AI server: `python_server\start_server.bat` (Windows) or `python_server/start_server.sh`.
+4. Press **F5** in Godot.
+
+## Package for players
+
+```powershell
+powershell -ExecutionPolicy Bypass -File tools\package.ps1 -Godot "C:\path\to\Godot_v4.5.1-stable_win64_console.exe"
 ```
 
----
+Needs the Godot 4.5.1 export templates (*Editor → Manage Export Templates*). It produces:
 
-## 🚀 Setup Instructions
+| Output | For |
+|---|---|
+| `build/EndlessWorlds-Windows.zip` | everyone: one .exe with `.env` baked in, plus `PLAY.txt` |
+| `build/EndlessWorlds-AI-Server.zip` | the host: Python server + `.env` + `start_server.bat` |
+| `build/web/` | GitHub Pages / itch.io (single-threaded export, no special headers needed) |
 
-1. **Godot 4**: Ensure you have Godot 4.x installed.
-2. **Environment Variables**: Create a `.env` file in the root directory containing your necessary API keys (e.g., Groq API). You can use `test.env` as a template.
-3. **Python Backend (Optional but recommended)**: Navigate to `python_server/`, install the dependencies from your virtual environment, and run the backend to enable live web-scraping for riddles.
-4. **Play**: Open `project.godot` in the engine and run the project!
+> The game build gets a filtered `.env` with only `RELAY_URL` / `API_URL`; the game never needs API keys.
+> The AI-server zip includes your `.env` keys for private sharing; add `-Public` to ship `.env.example`
+> instead (used for GitHub releases).
 
----
+## Hosting (all free tiers)
 
-## 📈 Planned Features
-- **Computer Vision:** Integration for identifying real-world concepts via webcam.
-- **Expanded Accessibility:** Text-to-speech for audio hints and simple language modes.
-- **Global Leaderboards:** Competitive learning with local and global high scores.
-- **Daily Quests:** "Riddle of the Day" and "Concept of the Day".
+| Part | Where | How |
+|---|---|---|
+| Multiplayer relay | Cloudflare Workers Free | `cd relay && npx wrangler login && npm run deploy`: [guide](relay/README.md) |
+| Web build | GitHub Pages | push to `main`; `.github/workflows/godot-ci.yml` exports and deploys (Settings → Pages → Source: GitHub Actions) |
+| AI server (optional, shared) | Hugging Face Spaces (Docker, free CPU) / Render / Railway | `python_server/Dockerfile`; set `GROQ_API_KEY` as a secret, then `API_URL` in `.env` |
+| Windows builds | GitHub Actions artifact | same workflow; or `tools/package.ps1` locally |
+
+CI needs no API keys. Optional secrets `CLOUDFLARE_API_TOKEN` + `CLOUDFLARE_ACCOUNT_ID` auto-deploy the
+relay; optional repo variables `RELAY_URL`, `API_URL` point the builds elsewhere.
+
+## Project layout
+
+```text
+core/            Global (save, stats, URLs, icon font), Net (multiplayer client), env loader
+map_components/  world generator, time/weather, wildlife, atmosphere + hand torch, multiplayer sync
+player/          movement, footsteps, camera
+ai/              question generator + offline bank, Q-learning difficulty, Bolt + voice assistant
+ui/              home, lobby, answer popups, coding, journal, HUD (guide, round card), pixel icons
+data/            riddles.json (offline bank), coding_questions.json
+python_server/   FastAPI AI server (scrape, RAG, riddles, Whisper, code checks), Dockerfile, tests
+relay/           Cloudflare Worker relay + integration test
+tools/           package.ps1
+docs/            user guide, PDFs, their HTML sources and screenshots
+```
+
+## Tests
+
+```bash
+python python_server/tests/test_normalize.py            # riddle validator (4 tests)
+cd relay && npm run dev   # then in another terminal:
+cd relay && npm test                                     # relay protocol (local)
+RELAY=wss://endless-worlds-relay.srujanmpadmashali.workers.dev npm test   # live relay
+```
+
+**Dev flags** for scripted runs and screenshots (after `--` on the Godot command line):
+`--hour=22` `--biome=0..3` `--host-room=CODE --players=2` `--join-room=CODE` `--name=Ann`
+`--topic=space` `--sim-hint-at=6` `--sim-win-at=15` `--sim-chat-at=10` `--sim-menu-at=3`
+`--sim-voice=question.wav` `--lobby=1`.
+Combine them with Godot's movie writer to record frames:
+`godot --path . --write-movie out/f.png --fixed-fps 10 --quit-after 200 -- --host-room=TEST1`.
+
+## Rebuild the PDFs
+
+```powershell
+& "C:\Program Files (x86)\Microsoft\Edge\Application\msedge.exe" --headless=new --no-pdf-header-footer `
+  --print-to-pdf="$PWD\docs\Multiplayer-How-It-Works.pdf" "file:///$PWD/docs/src/multiplayer.html"
+```
+(The same command with `deck.html` → `Endless-Worlds-Pitch-Deck.pdf`.)
+
+## Known limits
+
+- If the host quits, the room ends (no host migration yet).
+- Voice and live riddles need the AI server; the offline bank covers riddles only.
+- The web build calls the AI server at `API_URL`; browsers need it on `https` (or `http://127.0.0.1`).
