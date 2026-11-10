@@ -62,6 +62,9 @@ func _ready():
 			api_base_url = js_url
 	api_base_url = api_base_url.trim_suffix("/")
 	load_game()
+	for arg in OS.get_cmdline_user_args():  # dev: -- --char=N tries a character without the picker
+		if arg.begins_with("--char="):
+			character = int(arg.get_slice("=", 1))
 	_init_rl()
 
 
