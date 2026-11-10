@@ -93,6 +93,25 @@ Want the details? See [Multiplayer-How-It-Works.pdf](Multiplayer-How-It-Works.pd
 | Tile / coords panel | **F3** (shown by default) | |
 | Pause | **Esc** | |
 
+## Survival mode (secret)
+
+Open **Stats** and press the small **🐛** button next to the close button.
+
+- Waves of monsters climb out of purple portals. Clear them all and a **boss** arrives, with its
+  health bar at the top. Beat it to pick one of three upgrades, then the next round starts.
+- After the 10 named bosses (Slime King, Bone Lord, Ember Golem…), every round brings a brand-new
+  generated boss. It never ends.
+- Some monsters are **mutated**: their tag (Swift, Giant, Explosive, Vampiric…) shows when they're close.
+
+| Action | Control |
+|---|---|
+| Shoot | hold left mouse (aims at the cursor) or **J** |
+| Dash (brief invulnerability) | right mouse or **K** |
+| Move / sprint / jump | WASD / Shift / Space |
+| Pause | Esc |
+
+Your best round and score appear on the Stats page.
+
 ## Troubleshooting
 
 | Problem | Fix |

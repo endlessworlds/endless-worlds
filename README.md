@@ -53,6 +53,13 @@ The PDFs are generated from `docs/src/*.html`; see *Rebuild the PDFs* below.
 - Objective bar + faint compass arrows to the nearest hint and well; F3 tile/coords panel; pause menu (**Esc**)
 - Pixel-art icon font: every emoji in the UI renders as a matching 16 px pixel icon
 
+**Survival mode** (hidden: the small 🐛 button on the Stats page)
+- A separate arcade game, pure GDScript (no AI server): waves of 10 mob types, each with its own AI (chasers, archers, splitting slimes, erratic bats, lunging spiders, phasing ghosts, exploding bombers, teleporting mages, tanky golems, wolf packs)
+- Random mutations on mobs: Giant, Swift, Armored, Vampiric, Explosive, Regenerating, Splitting, Phasing, Burning, Tiny
+- A boss with a boss bar ends every round: 10 named bosses, then endless generated ones (random look, name and 3 of 12 attack patterns); bosses enrage at half health
+- Shoot toward the mouse (or J), dash with right-click (or K), pick 1 of 3 upgrades after each boss; best round and score saved
+- Sprites: `tools/make_mobs.py`; test flags `--surv-round=N --surv-bot --surv-god --surv-boss-now`
+
 **Multiplayer** (details in the PDF)
 - Room codes, up to 10 players, coloured name tags, chat bubbles, live scoreboard; everyone keeps their chosen character
 - The host is the authority: one seed → identical worlds; the host's riddle and hints are shared; first correct answer wins

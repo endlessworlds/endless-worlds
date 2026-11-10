@@ -1,0 +1,7 @@
+[gd_scene load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://survival/survival.gd" id="1_surv"]
+
+[node name="Survival" type="Node2D"]
+scale = Vector2(2, 2)
+script = ExtResource("1_surv")
