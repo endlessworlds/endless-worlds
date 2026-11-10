@@ -61,6 +61,7 @@ func init_time():
 	
 	fog_rect.visible = true
 	fog_rect.modulate.a = 0.0
+	fog_rect.self_modulate = Color(1.0, 0.9, 0.74)  # golden morning mist
 
 func update_morning_fog(delta: float):
 	var time_float := game_hour + game_minute / 60.0
@@ -117,24 +118,37 @@ func advance_time(minutes: int):
 	update_time_state()
 	update_clock_text()
 
+# Light colour through the day. Night stays night_color; mornings go through
+# pre-dawn blue, a pink-orange sunrise and golden light before neutral noon,
+# and evenings mirror it with a warm sunset and purple twilight.
+const SKY_KEYS := [
+	[0.0, Color(0.3, 0.3, 0.5)], [4.75, Color(0.3, 0.3, 0.5)],
+	[5.5, Color(0.45, 0.42, 0.62)], [6.25, Color(0.95, 0.7, 0.62)],
+	[7.0, Color(1.0, 0.82, 0.64)], [8.5, Color(1.0, 0.92, 0.79)],
+	[11.0, Color(1.0, 1.0, 1.0)], [15.0, Color(1.0, 0.98, 0.93)],
+	[17.0, Color(1.0, 0.85, 0.66)], [18.0, Color(0.98, 0.66, 0.52)],
+	[18.75, Color(0.55, 0.42, 0.6)], [19.25, Color(0.3, 0.3, 0.5)],
+	[24.0, Color(0.3, 0.3, 0.5)],
+]
+var _sky: Gradient
+
+
+func hour_float() -> float:
+	return game_hour + game_minute / 60.0
+
+
+func sky_color(h: float) -> Color:
+	if _sky == null:
+		_sky = Gradient.new()
+		_sky.offsets = PackedFloat32Array(SKY_KEYS.map(func(k): return k[0] / 24.0))
+		_sky.colors = PackedColorArray(SKY_KEYS.map(func(k): return k[1]))
+	return _sky.sample(fposmod(h, 24.0) / 24.0)
+
+
 func update_time_state():
 	var time_float := game_hour + game_minute / 60.0
-
-	if time_float >= night_start or time_float < dawn_start:
-		target_light_color = night_color
-		current_time = TimeOfDay.NIGHT
-
-	elif time_float >= dusk_start:
-		var t := (time_float - dusk_start) / (night_start - dusk_start)
-		target_light_color = day_color.lerp(night_color, t)
-
-	elif time_float >= day_start:
-		target_light_color = day_color
-		current_time = TimeOfDay.DAY
-
-	else:
-		var t := (time_float - dawn_start) / (day_start - dawn_start)
-		target_light_color = night_color.lerp(day_color, t)
+	target_light_color = sky_color(time_float)
+	current_time = TimeOfDay.NIGHT if (time_float >= night_start or time_float < dawn_start) else TimeOfDay.DAY
 
 # ==================================================
 # CLOCK UI (SAME AS ORIGINAL map.gd)

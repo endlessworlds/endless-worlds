@@ -98,3 +98,30 @@ func _process(delta: float) -> void:
 		l.energy = lerpf(0.0, 0.75, dark)
 	_post.set_shader_parameter("vignette", lerpf(0.3, 0.55, dark))
 	_post.set_shader_parameter("saturation", lerpf(1.12, 0.95, dark))
+	_update_sun(delta)
+
+
+# The sun rises in the east (screen right) and sets in the west (left). Low sun
+# = long, leaning shadows and warm light shafts; noon = short shadows, no shafts.
+var _sun_tick := 0.0
+
+func _update_sun(delta: float) -> void:
+	var h: float = time_system.hour_float()
+	var daylight := smoothstep(5.5, 7.0, h) * (1.0 - smoothstep(18.0, 19.3, h))
+	var sun_t := clampf((h - 6.0) / 12.0, 0.0, 1.0)      # 0 sunrise … 1 sunset
+	var elev := sin(sun_t * PI)                          # 0 horizon … 1 noon
+	var golden := daylight * pow(1.0 - elev, 1.5)
+	_post.set_shader_parameter("sun_rays", golden)
+	_post.set_shader_parameter("sun_pos", Vector2(lerpf(1.15, -0.15, sun_t), -0.2))
+
+	_sun_tick -= delta
+	if _sun_tick > 0.0:
+		return
+	_sun_tick = 0.2
+	var lean := (1.0 - 2.0 * sun_t) * -0.85                # away from the sun
+	var length := lerpf(0.95, 0.28, elev)
+	var alpha := 0.32 * daylight
+	for s in get_tree().get_nodes_in_group("sun_shadows"):
+		s.skew = lean
+		s.scale = Vector2(1.0, length)
+		s.self_modulate.a = alpha
