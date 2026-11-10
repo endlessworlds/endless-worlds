@@ -92,6 +92,17 @@ func spawn_trees() -> void:
 		shadow.scale = Vector2(shadow_scale_x, shadow_scale_x * 0.3)
 		shadow.position = Vector2(0, 7)
 		tree.add_child(shadow)
+
+		# --------- SUN SHADOW (silhouette, driven by Atmosphere) ---------
+		var sun_shadow := Sprite2D.new()
+		sun_shadow.texture = tex
+		sun_shadow.centered = false
+		sun_shadow.offset = tree.offset
+		sun_shadow.self_modulate = Color(0.04, 0.05, 0.12, 0.0)
+		sun_shadow.show_behind_parent = true
+		sun_shadow.z_index = -1
+		sun_shadow.add_to_group("sun_shadows")
+		tree.add_child(sun_shadow)
 		
 		# --------- HITBOX GENERATION ---------
 		var img = tex.get_image()
