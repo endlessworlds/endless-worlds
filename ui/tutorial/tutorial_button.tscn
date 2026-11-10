@@ -3,7 +3,6 @@
 [ext_resource type="Script" uid="uid://demurbm3nof8m" path="res://ui/tutorial/tutorial_button.gd" id="1_8epku"]
 [ext_resource type="FontFile" uid="uid://08vndck327l2" path="res://assets/fonts/Jersey10-Regular.ttf" id="1_jebmn"]
 [ext_resource type="Texture2D" uid="uid://u5jyehd7dxuk" path="res://assets/ui/tutorialicon.png" id="2_82e3k"]
-[ext_resource type="PackedScene" uid="uid://bywgfekvqlbn4" path="res://ui/tutorial/tutorial_overlay.tscn" id="2_jebmn"]
 
 [node name="TutorialButton" type="Button"]
 offset_right = 508.0
@@ -13,4 +12,3 @@ theme_override_fonts/font = ExtResource("1_jebmn")
 theme_override_font_sizes/font_size = 35
 icon = ExtResource("2_82e3k")
 script = ExtResource("1_8epku")
-tutorial_scene = ExtResource("2_jebmn")

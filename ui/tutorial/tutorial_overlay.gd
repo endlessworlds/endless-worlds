@@ -1,81 +1,62 @@
 extends CanvasLayer
 class_name TutorialOverlay
 
-@onready var video: VideoStreamPlayer = $Root/Panel/VBoxContainer/SlideArea/VideoPlayer
-@onready var text: Label = $Root/Panel/VBoxContainer/SlideText
-@onready var left_btn: Button = $Root/Panel/VBoxContainer/SlideArea/LeftArrow
-@onready var right_btn: Button = $Root/Panel/VBoxContainer/SlideArea/RightArrow
-@onready var close_btn: Button = $Root/Panel/VBoxContainer/CloseButton
+# How-to-play page (pixel style): short looping clips with one line each.
 
-const SLIDE_TIME := 15.0
-
-var slides := [
-	{ "video": "res://assets/tutorial/slide1.ogv", "text": "Type any topic or subject of your choice" },
-	{ "video": "res://assets/tutorial/slide2.ogv", "text": "Click on the magnifying glass to show the question" },
-	{ "video": "res://assets/tutorial/slide3.ogv", "text": "Collect Hint Bulbs by moving on them" },
-	{ "video": "res://assets/tutorial/slide4.ogv", "text": "Hover on each lit bulb to show the hint" },
-	{ "video": "res://assets/tutorial/slide5.ogv", "text": "Go near a well to open and type out the ANSWER and close" },
-	{ "video": "res://assets/tutorial/slide6.ogv", "text": "Player can take damage . Have Fun Playing and Learning" }
+const SLIDES := [
+	["res://assets/tutorial/slide1.ogv", "Type any topic, or tap one of the topic chips"],
+	["res://assets/tutorial/slide2.ogv", "Click the magnifying glass to read the riddle"],
+	["res://assets/tutorial/slide3.ogv", "Walk over hint bulbs to collect them"],
+	["res://assets/tutorial/slide4.ogv", "Hover a lit bulb to read its hint"],
+	["res://assets/tutorial/slide5.ogv", "Walk into a well to answer the riddle"],
+	["res://assets/tutorial/slide6.ogv", "Avoid lava and deep water. Have fun learning!"],
 ]
+const KEYS := "WASD move · Shift sprint · Space jump · V talk to Bolt · F torch · T chat · Esc pause"
 
-var index := 0
-var timer: Timer
+var _video: VideoStreamPlayer
+var _text: Label
+var _count: Label
+var _prev: Button
+var _next: Button
+var _i := 0
 
-func _ready():
-	layer = 60  # above the home UI (2), HUD (2-3), multiplayer (15) and Bolt (20) layers
-	visible = false
 
-	left_btn.pressed.connect(_prev)
-	right_btn.pressed.connect(_next)
-	close_btn.pressed.connect(close)
+func open() -> void:
+	var v := PixelUI.page(self, "🎯 How to play", 760, queue_free)
+	var frame := PixelUI.panel(PixelUI.FRAME, 6, 6)
+	v.add_child(frame)
+	_video = VideoStreamPlayer.new()
+	_video.expand = true
+	_video.loop = true
+	_video.custom_minimum_size = Vector2(640, 360)
+	frame.add_child(_video)
+	_text = PixelUI.label("", 30)
+	v.add_child(_text)
 
-	timer = Timer.new()
-	timer.wait_time = SLIDE_TIME
-	timer.timeout.connect(_next)
-	add_child(timer)
+	var nav := HBoxContainer.new()
+	nav.add_theme_constant_override("separation", 12)
+	v.add_child(nav)
+	_prev = PixelUI.button("Back", _go.bind(-1))
+	_prev.custom_minimum_size.x = 150
+	nav.add_child(_prev)
+	_count = PixelUI.label("", 26, PixelUI.MUTED)
+	_count.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	nav.add_child(_count)
+	_next = PixelUI.button("Next", _go.bind(1), true)
+	_next.custom_minimum_size.x = 150
+	nav.add_child(_next)
+	v.add_child(PixelUI.label(KEYS, 20, PixelUI.MUTED))
+	_go(0)
 
-	video.loop = true
 
-func open():
-	visible = true
-	index = 0
-	_show_slide(index)
-	# No need to start timer here if it's the first slide 
-	# and you want user to manual click, but keeping it per your original logic:
-	timer.start()
-
-func close():
-	timer.stop()
-	video.stop()
-	queue_free()  # the tutorial button creates a fresh overlay on every open
-
-func _show_slide(i: int):
-	# Update index
-	index = i
-	var slide = slides[index]
-
-	# Update Content
-	video.stop()
-	video.stream = load(slide["video"])
-	video.play()
-	text.text = slide["text"]
-
-	# --- Handle Button Visibility ---
-	# Hide left button if on first slide
-	left_btn.visible = (index > 0)
-	
-	# Hide right button if on last slide
-	right_btn.visible = (index < slides.size() - 1)
-	
-	# Restart timer for the new slide
-	timer.start()
-
-func _next():
-	if index < slides.size() - 1:
-		_show_slide(index + 1)
-	else:
-		timer.stop() # Stop auto-sliding at the end
-
-func _prev():
-	if index > 0:
-		_show_slide(index - 1)
+func _go(step: int) -> void:
+	if _i + step >= SLIDES.size():
+		queue_free()
+		return
+	_i = clampi(_i + step, 0, SLIDES.size() - 1)
+	_video.stream = load(SLIDES[_i][0])
+	_video.play()
+	_text.text = SLIDES[_i][1]
+	_count.text = "%d / %d" % [_i + 1, SLIDES.size()]
+	_prev.disabled = _i == 0
+	_next.text = "Got it!" if _i == SLIDES.size() - 1 else "Next"

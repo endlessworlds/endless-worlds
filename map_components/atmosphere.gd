@@ -61,6 +61,8 @@ func _make_light(color: Color, scl: float) -> PointLight2D:
 	l.color = color
 	l.texture_scale = scl
 	l.energy = 0.0
+	l.range_z_min = -4096   # reach every depth-sorted sprite (z = y/4)
+	l.range_z_max = 4096
 	return l
 
 

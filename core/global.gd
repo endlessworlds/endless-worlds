@@ -27,6 +27,7 @@ var current_coding_question: Dictionary = {}
 var api_base_url: String = "http://127.0.0.1:8000"
 var win_streak: int = 0
 var player_name: String = "Explorer"
+var character: int = 0   # index into Characters.NAMES
 var torch_mode := 0  # 0 auto (night), 1 always on, 2 off
 var input_locked := false  # true while typing (chat / ask-the-bot) so WASD doesn't move the player
 
@@ -83,6 +84,7 @@ func save_game():
 		"selected_topic": selected_topic,
 		"win_streak": win_streak,
 		"player_name": player_name,
+		"character": character,
 		"learning_journal": learning_journal
 	}
 
@@ -111,6 +113,7 @@ func load_game():
 	selected_topic = data.get("selected_topic", selected_topic)
 	win_streak = int(data.get("win_streak", 0))
 	player_name = str(data.get("player_name", player_name))
+	character = int(data.get("character", 0))
 	if data.has("learning_journal"):
 		var lj = data["learning_journal"]
 		if lj.has("solved_riddles"):

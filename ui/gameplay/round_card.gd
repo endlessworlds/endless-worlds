@@ -29,15 +29,7 @@ func _build(title: String, body: String, buttons: Array) -> void:
 	add_child(center)
 
 	var panel := PanelContainer.new()
-	var sb := StyleBoxFlat.new()
-	sb.bg_color = Color(0.07, 0.09, 0.16, 0.94)
-	sb.set_corner_radius_all(22)
-	sb.set_content_margin_all(28)
-	sb.set_border_width_all(2)
-	sb.border_color = Color(1.0, 0.78, 0.3, 0.75)
-	sb.shadow_color = Color(0, 0, 0, 0.45)
-	sb.shadow_size = 24
-	panel.add_theme_stylebox_override("panel", sb)
+	panel.add_theme_stylebox_override("panel", PixelUI.box(PixelUI.FRAME, 30, 24))
 	panel.custom_minimum_size = Vector2(520, 0)
 	center.add_child(panel)
 
@@ -73,20 +65,9 @@ func _build(title: String, body: String, buttons: Array) -> void:
 	v.add_child(row)
 	var first: Button = null
 	for spec in buttons:
-		var btn := Button.new()
-		btn.text = spec[0]
+		var btn := PixelUI.button(spec[0], func(): pass, first == null)
 		btn.custom_minimum_size = Vector2(190, 54)
-		btn.add_theme_font_override("font", FONT)
-		btn.add_theme_font_size_override("font_size", 30)
-		for st in ["normal", "hover", "pressed", "focus"]:
-			var s := StyleBoxFlat.new()
-			s.set_corner_radius_all(14)
-			s.bg_color = Color(0.95, 0.55, 0.1) if st in ["hover", "focus"] else Color(0.8, 0.38, 0.05) if st == "normal" else Color(0.6, 0.25, 0.0)
-			if st == "focus":
-				s.draw_center = false
-				s.set_border_width_all(2)
-				s.border_color = Color(1, 1, 1, 0.8)
-			btn.add_theme_stylebox_override(st, s)
+		btn.focus_mode = Control.FOCUS_ALL
 		var cb: Callable = spec[1]
 		btn.pressed.connect(func():
 			get_tree().paused = false
