@@ -19,7 +19,8 @@ voice still works.
 
 ## Play solo
 
-1. Type any topic, or tap a chip (*Python, Space, Biology…*), then press **START**.
+1. Pick your character with the **<** **>** arrows, type any topic or tap a chip
+   (*Python, Space, Biology…*), then press **START**.
 2. A new island appears. The bar at the top tells you what to do next.
 3. Click the **magnifier** at the top to read the riddle.
 4. Follow the **gold arrow** to hint bulbs. Each one lights a bulb on the left; hover it to read the hint.
@@ -33,6 +34,10 @@ current AI-chosen difficulty and your win streak.
 You'll get one of these at the well: multiple choice, fill in the blank, Wordle, whack-a-answer,
 word lock, or the quiz show with 50:50, audience poll and phone-a-friend.
 **Coding** (top right on the home screen) gives you programming quests instead.
+
+### Water
+Next to the shore the water is shallow: you wade (a bit slower) and can still jump.
+Further out it gets deep: you swim, drift with momentum, and your air bubbles start counting down.
 
 ### Dangers
 - **Lava / magma:** lose a heart every 2 s.
@@ -69,7 +74,7 @@ PC when you play online).
 
 Everyone gets the **same island and the same riddle**. Hint bulbs are shared: when anyone grabs
 one, it lights up for the whole team. The **first correct answer wins the round**, and then a new
-island loads for everyone automatically. Each player has a coloured ring and a name tag; the
+island loads for everyone automatically. Each player has a name tag in their colour and the character they picked; the
 scoreboard is at the top right.
 
 Want the details? See [Multiplayer-How-It-Works.pdf](Multiplayer-How-It-Works.pdf).

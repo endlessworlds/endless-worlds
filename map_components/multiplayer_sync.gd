@@ -47,14 +47,9 @@ func setup(map_node: Node2D, local_player: Node2D) -> void:
 
 
 # ---------------------------------------------------------------- visuals
-# Coloured ring at the feet + a low-opacity name tag above the head.
+# Low-opacity name tag in the player's colour above the head, plus a chat bubble.
 func _decorate(body: Node2D, id: int, pname: String, is_local: bool) -> Dictionary:
 	var col := Net.color_of(id)
-	var ring := _Ring.new()
-	ring.color = col
-	ring.z_index = -1
-	ring.position = Vector2(0, 14)
-	body.add_child(ring)
 
 	var tag := Label.new()
 	tag.text = pname + (" (you)" if is_local else "")
@@ -102,7 +97,7 @@ func _ensure_puppet(id: int) -> Dictionary:
 	if shadow:
 		root.add_child(shadow.duplicate())
 	var spr: AnimatedSprite2D = _sprite.duplicate()
-	spr.modulate = Color.WHITE.lerp(Net.color_of(id), 0.28)
+	spr.modulate = Color.WHITE.lerp(Net.color_of(id), 0.12)  # light tint: the ring and tag carry the colour
 	spr.stop()
 	root.add_child(spr)
 	root.position = player.position
@@ -143,7 +138,7 @@ func _process(delta: float) -> void:
 	_send_t = 1.0 / SEND_HZ
 	var msg := {"t": "pos", "x": snappedf(player.position.x, 0.1), "y": snappedf(player.position.y, 0.1),
 		"a": str(_sprite.animation), "f": _sprite.frame, "h": _sprite.flip_h, "s": Global.score,
-		"tc": map.atmosphere != null and map.atmosphere.torch.lit, "z": snappedf(player.jump_h, 0.5)}
+		"tc": map.atmosphere != null and map.atmosphere.torch.lit, "z": snappedf(player.jump_h, 0.5), "c": Global.character}
 	if msg == _last_sent and _since_sent < 1.0:
 		return  # idle: only a 1 Hz heartbeat
 	_since_sent = 0.0
@@ -160,6 +155,7 @@ func _on_message(from: int, d: Dictionary) -> void:
 			if not p.root.visible:
 				p.root.position = p.target
 				p.root.visible = true
+			Characters.apply(p.spr, int(d.get("c", 0)))
 			if p.spr.sprite_frames.has_animation(str(d.a)):
 				p.spr.animation = str(d.a)
 				p.spr.frame = int(d.f)
@@ -349,12 +345,3 @@ func _unhandled_input(event: InputEvent) -> void:
 
 func is_typing() -> bool:
 	return _chat_input != null and _chat_input.visible
-
-
-class _Ring extends Node2D:
-	var color := Color.WHITE
-	func _ready() -> void:
-		scale = Vector2(1.0, 0.45)
-	func _draw() -> void:
-		draw_arc(Vector2.ZERO, 11.0, 0.0, TAU, 32, Color(color, 0.85), 2.0, true)
-		draw_circle(Vector2.ZERO, 10.0, Color(color, 0.18))

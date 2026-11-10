@@ -9,7 +9,7 @@ enum TimeOfDay { DAY, NIGHT }
 @export var night_color : Color = Color(0.3, 0.3, 0.5, 1)
 
 # ⏱ TIME SETTINGS
-@export var real_seconds_per_game_minute := 1.0
+@export var real_seconds_per_game_minute := 4.0   # one 15-min step every 4 s: a full day in 6.4 min
 @export var dawn_start  := 5.0
 @export var day_start   := 7.0
 @export var dusk_start  := 17.0

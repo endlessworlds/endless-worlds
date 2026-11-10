@@ -6,7 +6,6 @@ extends Control
 
 @onready var stats_button := $JoyStickUI/StatsButton
 
-var _stats_overlay: Panel
 
 var selected_topic: String = ""
 var _journal_button: Button
@@ -17,16 +16,7 @@ const TOPIC_CHIPS := ["Python", "Space", "Biology", "History", "Math"]
 
 func _ready():
 
-	# Build the modern stats overlay (hidden by default)
-	var StatsPopupScript = load("res://ui/stats_profile/stats_popup.gd")
-	_stats_overlay = Panel.new()
-	_stats_overlay.set_script(StatsPopupScript)
-	_stats_overlay.visible = false
-	$JoyStickUI.add_child(_stats_overlay)
-
-	stats_button.pressed.connect(_open_stats)
-	_stats_overlay.closed.connect(_close_stats)
-	_stats_overlay.stats_reset.connect(_reset_stats)
+	stats_button.pressed.connect(func(): StatsPage.open(self, _reset_stats))
 
 	start_button.pressed.connect(_on_start_pressed)
 	joystick_ui.modulate.a = 0.3
@@ -115,18 +105,8 @@ func _open_journal() -> void:
 	journal.open()
 
 
-func _open_stats():
-	_stats_overlay.refresh()
-	_stats_overlay.visible = true
-
-
-func _close_stats():
-	_stats_overlay.visible = false
-
-
 func _reset_stats():
 	Global.reset_all_stats()
-	_stats_overlay.refresh()
 	get_tree().reload_current_scene()
 
 
@@ -182,14 +162,14 @@ func _polish() -> void:
 	# Controls column, centered below the character
 	var col := VBoxContainer.new()
 	col.alignment = BoxContainer.ALIGNMENT_BEGIN
-	col.add_theme_constant_override("separation", 12)
+	col.add_theme_constant_override("separation", 10)
 	col.anchor_left = 0.5
 	col.anchor_right = 0.5
 	col.anchor_top = 0.5
 	col.anchor_bottom = 0.5
 	col.offset_left = -300
 	col.offset_right = 300
-	col.offset_top = 36
+	col.offset_top = 30
 	ui.add_child(col)
 
 	var chips := HBoxContainer.new()
@@ -253,6 +233,32 @@ func _polish() -> void:
 	pulse.tween_property(start_button, "scale", Vector2(1.05, 1.05), 0.8).set_trans(Tween.TRANS_SINE)
 	pulse.tween_property(start_button, "scale", Vector2.ONE, 0.8).set_trans(Tween.TRANS_SINE)
 
+	# Character picker: arrows cycle through the heroes; the one on the island changes live
+	var hero: AnimatedSprite2D = $Player/AnimatedSprite2D
+	Characters.apply(hero, Global.character)
+	var pick := HBoxContainer.new()
+	pick.alignment = BoxContainer.ALIGNMENT_CENTER
+	pick.add_theme_constant_override("separation", 10)
+	col.add_child(pick)
+	col.move_child(pick, 0)
+	var who := PixelUI.label("", 26, PixelUI.GOLD)
+	who.custom_minimum_size = Vector2(150, 0)
+	who.add_theme_color_override("font_outline_color", Color(0, 0, 0, 0.8))
+	who.add_theme_constant_override("outline_size", 6)
+	var cycle := func(step: int):
+		Global.character = posmod(Global.character + step, Characters.NAMES.size())
+		Global.save_game()
+		Characters.apply(hero, Global.character)
+		who.text = Characters.NAMES[Global.character]
+	for spec in [["<", -1], [">", 1]]:
+		var b := PixelUI.button(spec[0], cycle.bind(spec[1]))
+		b.custom_minimum_size = Vector2(44, 40)
+		b.tooltip_text = "Change character"
+		pick.add_child(b)
+	pick.add_child(who)
+	pick.move_child(who, 1)
+	cycle.call(0)
+
 	# One-line stats strip replaces the old floating panel
 	$PlayerPanel.visible = false
 	var stats := Label.new()
@@ -294,6 +300,10 @@ func _dev_autoplay() -> void:
 	for a in OS.get_cmdline_user_args():
 		if a.begins_with("--") and "=" in a:
 			args[a.get_slice("=", 0).trim_prefix("--")] = a.get_slice("=", 1)
+	if args.has("page"):
+		match args["page"]:
+			"stats": StatsPage.open(self, _reset_stats)
+			"journal": _open_journal()
 	if args.has("tutorial"):
 		$JoyStickUI/TutorialButton._open()
 	if args.has("lobby"):

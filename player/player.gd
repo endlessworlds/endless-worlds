@@ -47,7 +47,11 @@ var _dust: CPUParticles2D
 var bubble_timer := 0.0
 
 # ================= STATE =================
-var in_water := false        # SET FROM map.gd
+var in_water := false        # deep water: swimming (set from map.gd)
+var wading := false          # shallow water next to the shore (set from map.gd)
+const SWIM_ACCEL := 2.4      # low acceleration = momentum / drift while swimming
+const SWIM_DRAG := 1.3
+var _swim_t := 0.0
 var sink_px := 0.0
 var base_sprite_pos := Vector2.ZERO
 var last_dir := Vector2.DOWN
@@ -71,6 +75,7 @@ func _ready():
 	load_footstep_sounds()
 	footstep_timer.timeout.connect(play_footstep)
 	_setup_jump()
+	Characters.apply(sprite, Global.character)
 	
 	foot_trail.position = Vector2(0, 7) # near feet
 	
@@ -114,6 +119,9 @@ func _physics_process(delta):
 	if in_water:
 		current_speed *= water_speed_multiplier
 		sink_px = min(max_sink_px, sink_px + sink_in_speed * delta)
+	elif wading:
+		current_speed *= 0.75
+		sink_px = move_toward(sink_px, max_sink_px * 0.45, sink_in_speed * delta)
 	else:
 		sink_px = max(0.0, sink_px - sink_out_speed * delta)
 
@@ -133,19 +141,27 @@ func _physics_process(delta):
 		stop_footsteps()
 	_update_jump(delta)
 
-	# VISUAL SINK (sprite only)
-	sprite.position = base_sprite_pos + Vector2(0, sink_px - jump_h)
+	# VISUAL SINK (sprite only) + a gentle bob while swimming
+	_swim_t += delta
+	var bob := sin(_swim_t * 3.2) * 1.2 if in_water else 0.0
+	sprite.position = base_sprite_pos + Vector2(0, sink_px - jump_h + bob)
 
 	# MOVEMENT
 	if dir != Vector2.ZERO:
 		dir = dir.normalized()
 		last_dir = dir
-		velocity = dir * current_speed
+		if in_water:
+			velocity = velocity.lerp(dir * current_speed, clampf(SWIM_ACCEL * delta, 0.0, 1.0))  # strokes build up speed
+		else:
+			velocity = dir * current_speed
 		play_animation(dir)
 		if not airborne:
 			start_footsteps(sprinting)
 	else:
-		velocity = Vector2.ZERO
+		if in_water:
+			velocity = velocity.lerp(Vector2.ZERO, clampf(SWIM_DRAG * delta, 0.0, 1.0))  # glide to a stop
+		else:
+			velocity = Vector2.ZERO
 		set_idle_frame()
 		stop_footsteps()
 

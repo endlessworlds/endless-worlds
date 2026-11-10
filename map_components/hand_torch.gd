@@ -82,6 +82,10 @@ func _ready() -> void:
 	_light.color = Color(1.0, 0.68, 0.36)
 	_light.position = Vector2(0, -15)
 	_light.energy = 0.0
+	# Sprites are depth-sorted with z = y/4 (up to ~2200); the default light z range
+	# (-1024..1024) skipped most trees, flowers, animals, wells and bulbs.
+	_light.range_z_min = -4096
+	_light.range_z_max = 4096
 	add_child(_light)
 	visible = false
 	add_to_group("hand_torches")

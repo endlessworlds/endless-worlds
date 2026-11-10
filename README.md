@@ -46,12 +46,15 @@ The PDFs are generated from `docs/src/*.html`; see *Rebuild the PDFs* below.
 - Procedural islands in four biomes, day/night, rain and real drifting snow
 - Wildlife: sparrows fly off, rabbits, deer and foxes run away, frogs hop at the shore when any player comes close; flocks of birds cross the sky; butterflies, fireflies and flies
 - Real lighting: CanvasModulate night with a hand-held torch (auto at night / **F**), glowing wells, hints and lava; bloom, vignette, per-biome grade
+- 6 playable characters (pick with the arrows on the home screen)
+- Pixel-art water: dithered shallow → deep shading, lapping shoreline foam, glints; wade in the shallows, swim with momentum in deep water (splashes, ripples, air bubbles)
+- Daylight cycle (~6.5 min): sunrise colours, sun shadows that follow the sun, sunbeams; night with torch, lava and well light that reaches every object
 - Jump (**Space**) with squash-and-stretch and landing dust; hop over small lava patches
 - Objective bar + faint compass arrows to the nearest hint and well; F3 tile/coords panel; pause menu (**Esc**)
 - Pixel-art icon font: every emoji in the UI renders as a matching 16 px pixel icon
 
 **Multiplayer** (details in the PDF)
-- Room codes, up to 10 players, coloured rings + translucent name tags, chat bubbles, live scoreboard
+- Room codes, up to 10 players, coloured name tags, chat bubbles, live scoreboard; everyone keeps their chosen character
 - The host is the authority: one seed → identical worlds; the host's riddle and hints are shared; first correct answer wins
 - Guests' voice questions are answered by the **host's** AI server through the relay, so guests need no Python
 - Relay: Cloudflare Worker + Durable Object on the **free plan**, deployed at `wss://endless-worlds-relay.srujanmpadmashali.workers.dev`

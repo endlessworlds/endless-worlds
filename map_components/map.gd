@@ -23,6 +23,7 @@ extends Node2D
 var agentic_bot: AgenticBot
 var mp: MultiplayerSync          # only while in an online room
 var wildlife: Wildlife
+var water: Water
 var atmosphere: Atmosphere
 var _round_ended := false
 
@@ -119,6 +120,12 @@ func _ready():
 		
 	# 🌍 WORLD SETUP
 	world.generate_world()
+	if "--lava-test" in OS.get_cmdline_user_args():  # dev: a lava pool beside spawn, for lighting checks
+		var c := Vector2i(world.total_width / 2, world.total_height / 2)
+		for x in range(8, 17):
+			for y in range(-3, 4):
+				if Vector2(x - 12, y * 1.4).length() < 4.5:
+					tilemap.set_cell(c + Vector2i(x, y), world.SRC, Vector2i(1, 1))
 	world.spawn_wells(self) 
 	
 	spawner.spawn_player_at_center()  # before lights/decor so the safe zone has no lava glow
@@ -129,6 +136,11 @@ func _ready():
 	player.add_to_group("actors")
 	if Net.active:
 		player.position += Vector2(((Net.my_id - 1) % 5) * 40 - 80, ((Net.my_id - 1) / 5) * 30)  # room for name tags
+
+	# 🌊 animated water + depth (shallow wading vs deep swimming)
+	water = Water.new()
+	add_child(water)
+	water.setup(tilemap, world.total_width, world.total_height)
 
 	# 🦋 living world + 💡 lighting / post-processing
 	wildlife = Wildlife.new()
@@ -370,13 +382,15 @@ func update_player_tile_info():
 	if player.airborne:
 		return
 
-	# Water logic
-	if atlas == WATER_TILE:
+	# Water logic: next to the shore you wade (slower, no air loss);
+	# further out you swim (drift, bob, air bubbles count down).
+	var depth := water.depth_at(cell) if atlas == WATER_TILE else 0
+	player.wading = depth == 1
+	if depth >= 2:
 		if not in_water:
 			enter_water()
-	else:
-		if in_water:
-			exit_water()
+	elif in_water:
+		exit_water()
 
 	# Damage logic
 	if atlas == LAVA_TILE or atlas == MAGMA_TILE:

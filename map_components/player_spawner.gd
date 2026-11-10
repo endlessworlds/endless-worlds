@@ -12,8 +12,9 @@ const GRASS = Vector2i(0, 0)
 const DIRT = Vector2i(1, 0)
 
 func spawn_player_at_center():
-	# 1. Target the exact center coordinate requested
-	var center_tile = Vector2i(280, 280)
+	# 1. Island centre. (Was Vector2i(280, 280) + a global position: the safe pad was
+	# cleared off-island while the player landed on random terrain at tile 140,140.)
+	var center_tile = Vector2i(total_width / 2, total_height / 2)
 	
 	# 2. Safety: Force a small landing pad of land at the center
 	# This ensures the player never spawns in water/lava
@@ -33,7 +34,7 @@ func spawn_player_at_center():
 
 	# 3. Teleport player
 	# map_to_local centers the player exactly in the middle of tile 140,140
-	player.global_position = tilemap.map_to_local(center_tile)
+	player.global_position = tilemap.to_global(tilemap.map_to_local(center_tile))
 	
 	# 4. Camera Fix
 	# Prevents the camera from "sliding" from (0,0) to the center on start
