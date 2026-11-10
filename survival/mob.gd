@@ -150,6 +150,7 @@ func hit(amount: float, dir: Vector2) -> void:
 	var real := amount * armor
 	hp -= real
 	flash = 0.09
+	game.sfx.play("hit", 0.2)
 	if not is_boss and type_name != "golem":
 		kb += dir * 90.0
 	game.floater(center(), str(snappedf(real, 0.1)).trim_suffix(".0"), Color(1, 0.95, 0.6))
@@ -280,6 +281,8 @@ func _boss_tick(delta: float, ppos: Vector2, dir: Vector2, dist: float) -> void:
 	if not enraged and hp < max_hp * 0.5:
 		enraged = true
 		game.banner("%s is enraged!" % boss.name, Color(1.0, 0.45, 0.35))
+		game.sfx.play("boss", 0.0)
+		game.shake()
 	match state:
 		"":
 			move_dir = dir if dist > 70.0 else dir.orthogonal()
