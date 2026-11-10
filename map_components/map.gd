@@ -26,6 +26,7 @@ var wildlife: Wildlife
 var water: Water
 var atmosphere: Atmosphere
 var _round_ended := false
+var _coding_popup: CanvasLayer   # open coding quest screen (coding mode only)
 
 var current_solution: String = ""
 var current_options: Array = []   # ✅ ADD THIS
@@ -123,7 +124,9 @@ func _ready():
 			for y in range(-3, 4):
 				if Vector2(x - 12, y * 1.4).length() < 4.5:
 					tilemap.set_cell(c + Vector2i(x, y), world.SRC, Vector2i(1, 1))
-	world.spawn_wells(self) 
+	world.spawn_wells(self)
+	if Global.is_coding_mode:
+		_turn_wells_into_terminals()
 	
 	spawner.spawn_player_at_center()  # before lights/decor so the safe zone has no lava glow
 	flower_spawner.spawn_flowers()
@@ -249,15 +252,57 @@ func apply_remote_riddle(data: Dictionary) -> void:
 		_on_riddle_generated(data)
 
 
+# Coding mode: answer points are retro CRT terminals (assets/terminal.png, 3-frame strip
+# made by tools/make_terminal.py) with a blinking screen and a soft green glow.
+func _turn_wells_into_terminals() -> void:
+	var tex: Texture2D = load("res://assets/terminal.png")
+	var screens: Array[Sprite2D] = []
+	for well in get_tree().get_nodes_in_group("wells"):
+		var spr: Sprite2D = well.get_node_or_null("Sprite2D")
+		if spr == null:
+			continue
+		spr.texture = tex
+		spr.hframes = 3
+		spr.frame = randi() % 3
+		screens.append(spr)
+		if "prompt_text" in well:
+			well.prompt_text = "Use terminal"
+		var glow := PointLight2D.new()
+		glow.texture = preload("res://assets/wildlife/light_soft.png")
+		glow.color = Color(0.4, 1.0, 0.6)
+		glow.energy = 0.55
+		glow.texture_scale = 0.45
+		glow.position = Vector2(0, -12)   # centred on the screen
+		glow.range_z_min = -4096
+		glow.range_z_max = 4096
+		well.add_child(glow)
+	var blink := Timer.new()
+	blink.wait_time = 0.45
+	blink.autostart = true
+	add_child(blink)
+	blink.timeout.connect(func():
+		for s in screens:
+			if is_instance_valid(s) and randf() < 0.7:
+				s.frame = (s.frame + 1) % 3)
+
+
 func _on_well_interacted():
-	if Global.is_coding_mode:
-		var CodingPopupScript = load("res://ui/coding_screen/coding_popup.gd")
-		var popup = CanvasLayer.new()
-		popup.set_script(CodingPopupScript)
-		add_child(popup)
-		popup.open(hearts)
+	if _round_ended:
 		return
-		
+	if Global.is_coding_mode:
+		if is_instance_valid(_coding_popup) and not _coding_popup.is_queued_for_deletion():
+			return   # already open
+		if Global.current_coding_question.is_empty():
+			Global.current_coding_question = Global.next_coding_question()
+		var CodingPopupScript = load("res://ui/coding_screen/coding_popup.gd")
+		_coding_popup = CanvasLayer.new()
+		_coding_popup.set_script(CodingPopupScript)
+		add_child(_coding_popup)
+		_coding_popup.open(hearts)
+		return
+
+	if answer_popup.visible:
+		return
 	if current_options.is_empty():
 		push_error("❌ No MCQ options available")
 		return

@@ -123,13 +123,7 @@ func _on_start_pressed():
 func _on_coding_pressed() -> void:
 	Global.is_coding_mode = true
 	Global.selected_topic = "coding"
-	
-	var file = FileAccess.open("res://data/coding_questions.json", FileAccess.READ)
-	if file:
-		var arr = JSON.parse_string(file.get_as_text())
-		if typeof(arr) == TYPE_ARRAY and not arr.is_empty():
-			Global.current_coding_question = arr[randi() % arr.size()]
-	
+	Global.start_coding_session()   # fresh shuffled deck of quests
 	get_tree().change_scene_to_file("res://map_components/map.tscn")
 
 

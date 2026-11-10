@@ -19,6 +19,11 @@ var difficulty: String = "MEDIUM"
 var current_question_type: QuestionType = QuestionType.MCQ
 var is_coding_mode: bool = false
 var current_coding_question: Dictionary = {}
+var coding_theme: String = "dark"     # coding screen editor theme: "dark" | "light" (saved)
+var coding_drafts: Dictionary = {}    # quest title -> unsubmitted code, so closing the popup keeps your work
+var coding_solved_session := 0        # quests solved since "Coding" was pressed on the home screen
+var _coding_questions: Array = []     # unique quests from data/coding_questions.json (cached)
+var _coding_deck: Array = []          # shuffled indices still to play; refilled when empty
 
 
 # Backend for AI riddles / code checks. Override per deployment with the project
@@ -71,6 +76,44 @@ func _ready():
 func api_url(path: String) -> String:
 	return api_base_url + path
 
+
+# ------------------------------------------------------------------ coding quests
+# Quests are dealt from a shuffled deck so a session never repeats one until every
+# quest has been seen; exact duplicates in the JSON (same text + tests) are dropped.
+func coding_questions() -> Array:
+	if _coding_questions.is_empty():
+		var arr = JSON.parse_string(FileAccess.get_file_as_string("res://data/coding_questions.json"))
+		var seen := {}
+		if typeof(arr) == TYPE_ARRAY:
+			for q in arr:
+				if typeof(q) != TYPE_DICTIONARY:
+					continue
+				var key := str(q.get("desc", "")) + str(q.get("testCases", []))
+				if not seen.has(key):
+					seen[key] = true
+					_coding_questions.append(q)
+	return _coding_questions
+
+
+func start_coding_session() -> void:
+	coding_solved_session = 0
+	_coding_deck.clear()
+	current_coding_question = next_coding_question()
+
+
+func next_coding_question() -> Dictionary:
+	var all := coding_questions()
+	if all.is_empty():
+		return {}
+	if _coding_deck.is_empty():
+		for i in all.size():
+			_coding_deck.append(i)
+		_coding_deck.shuffle()
+		# don't deal the quest that was just played as the first card of a fresh deck
+		if all.size() > 1 and all[_coding_deck.back()] == current_coding_question:
+			_coding_deck.push_front(_coding_deck.pop_back())
+	return all[_coding_deck.pop_back()]
+
 func _init_rl():
 	if rl != null and is_instance_valid(rl):
 		return
@@ -88,6 +131,7 @@ func save_game():
 		"win_streak": win_streak,
 		"player_name": player_name,
 		"character": character,
+		"coding_theme": coding_theme,
 		"learning_journal": learning_journal
 	}
 
@@ -117,6 +161,7 @@ func load_game():
 	win_streak = int(data.get("win_streak", 0))
 	player_name = str(data.get("player_name", player_name))
 	character = int(data.get("character", 0))
+	coding_theme = "light" if str(data.get("coding_theme", "dark")) == "light" else "dark"
 	if data.has("learning_journal"):
 		var lj = data["learning_journal"]
 		if lj.has("solved_riddles"):
