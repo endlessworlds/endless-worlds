@@ -180,6 +180,7 @@ func _ready():
 	# --- KEYBOARD CONFIGURATION ---
 	# Disable the system virtual keyboard for mobile devices
 	answer_input.virtual_keyboard_enabled = false 
+	answer_input.set_meta("no_game_keyboard", true)   # it has its own big keyboard below
 	# Keep editable so PC users can type and LineEdit logic works
 	answer_input.editable = true 
 	# Prevent the LineEdit from grabbing focus and potentially triggering OS behaviors

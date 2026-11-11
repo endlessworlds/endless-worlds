@@ -62,6 +62,7 @@ const MENU := [
 func setup(owner_bot: AgenticBot) -> void:
 	bot = owner_bot
 	set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	Screen.keyboard_changed.connect(_on_keyboard_changed)
 	mouse_filter = Control.MOUSE_FILTER_IGNORE
 	_http_stt = HTTPRequest.new()
 	_http_stt.timeout = 25.0
@@ -215,6 +216,15 @@ func layout(bot_center: Vector2, bot_size: Vector2) -> void:
 	_status.position = bot_center + Vector2(-100, -bot_size.y * 0.5 - 30)
 	_ask.size = Vector2(380, 48)
 	_ask.position = bot_center + Vector2(-420, -bot_size.y * 0.5 - 70)
+	_ask.position.x = maxf(8.0, _ask.position.x)
+	var kb := Screen.keyboard_cover()   # phones: sit above the on-screen keyboard
+	if kb > 0.0:
+		_ask.position.y = minf(_ask.position.y, get_viewport().get_visible_rect().size.y - kb - 60.0)
+
+
+func _on_keyboard_changed(_h: float) -> void:
+	if _bot_size != Vector2.ZERO:
+		layout(_bot_center, _bot_size)
 
 
 func open_ask() -> void:

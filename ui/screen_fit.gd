@@ -28,6 +28,7 @@ func _ready() -> void:
 	content.resized.connect(refit)
 	target.resized.connect(refit)
 	get_viewport().size_changed.connect(refit)
+	Screen.keyboard_changed.connect(_on_keyboard)
 	refit.call_deferred()
 
 
@@ -35,6 +36,11 @@ func refit() -> void:
 	if not is_instance_valid(target) or not is_instance_valid(content):
 		return
 	var vp := target.get_viewport_rect().size
+	# A full-screen CenterContainer moves its content up above the on-screen keyboard.
+	var kb := Screen.keyboard_cover()
+	if target is CenterContainer:
+		target.offset_bottom = -kb
+		vp.y -= kb
 	var need := content.size.max(content.get_combined_minimum_size())
 	if need.x < 1.0 or need.y < 1.0:
 		return
@@ -42,3 +48,7 @@ func refit() -> void:
 	s = maxf(s, 0.3)
 	target.pivot_offset = target.size * 0.5
 	target.scale = Vector2(s, s)
+
+
+func _on_keyboard(_h: float) -> void:
+	refit()

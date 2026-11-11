@@ -99,12 +99,14 @@ Want the details? See [Multiplayer-How-It-Works.pdf](Multiplayer-How-It-Works.pd
 ### Phones and tablets (web build)
 
 - Works in portrait and landscape; the screen re-fits when you rotate.
-- Tap any text box (topic, name, room code, chat, code editor) to get your phone keyboard,
-  emoji included. Riddle answers use the game's own big on-screen keyboard.
+- Tap any text box (topic, name, room code, chat, Bolt, code editor) and the game's own keyboard
+  slides up: letters, numbers, symbols (`#+=`), an emoji page (😀), and a code row ( ⇥ ( ) [ ] { } : = ← → )
+  in the coding editor. Hold ⌫ to delete quickly; ⌄ closes it. The phone's keyboard is not used.
 - **Fullscreen:** turns on by itself at your first tap (Android, iPad). *Exit fullscreen* on the home
   screen or in the pause menu turns it off (and stops it coming back).
-- **Install it like an app:** browser menu → *Add to Home Screen* (iPhone: Share → *Add to Home Screen*).
-  It then opens fullscreen with its own icon.
+- **Install it like an app:** the **📲 Install app** button on the home screen (Android Chrome shows
+  the install prompt; on iPhone it shows how: Share → *Add to Home Screen*). It then opens
+  fullscreen with its own icon.
 
 ## Survival mode (secret)
 
