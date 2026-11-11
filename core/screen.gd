@@ -41,11 +41,20 @@ func _ready() -> void:
 		get_tree().root.size_changed.connect(_apply_scale)
 		_apply_scale()
 	_apply_quality.call_deferred()   # after Global has loaded the saved setting
+	if is_touch or is_web:
+		# The phone's own keyboard must never open: switch it off on every text box the
+		# moment it is created (the game's keyboard types instead, see game_keyboard.gd).
+		get_tree().node_added.connect(_no_system_keyboard)
 	if is_touch:
 		# Typing uses the game's keyboard, never the phone's (see game_keyboard.gd).
 		keyboard = GameKeyboard.new()
 		add_child(keyboard)
 		keyboard.height_changed.connect(func(h): keyboard_changed.emit(h))
+
+
+func _no_system_keyboard(n: Node) -> void:
+	if n is LineEdit or n is TextEdit:
+		n.virtual_keyboard_enabled = false
 
 
 # ------------------------------------------------------------------ graphics quality

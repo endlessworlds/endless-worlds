@@ -1,138 +1,127 @@
 extends CanvasLayer
 
+# "Difficulty AI" button (right edge) + page: shows what the Q-learning model thinks.
+# The page is built once and only its texts are refreshed, so nothing flickers or jumps;
+# it is a normal pixel page (fits any screen, ✕ / Esc closes, game buttons hide behind it).
+
+const STATES := ["BORING", "CHALLENGED", "TOO_HARD"]
+const STATE_NAMES := {"BORING": "Too easy", "CHALLENGED": "Just right", "TOO_HARD": "Too hard"}
+const ACTION_NAMES := {"DOWN": "Easier", "SAME": "Same", "UP": "Harder"}
+
 @onready var btn: TextureButton = $ToggleButton
-@onready var panel: Panel = $Panel
-@onready var diff_label: Label = $Panel/VBox/DifficultyLabel
-@onready var q_label: Label = $Panel/VBox/QText 
+@onready var panel: Panel = $Panel          # old scene node, no longer used
 
 var rl
-var grid: GridContainer
-var close_btn: Button # Reference for our new close button
+var _page: CanvasLayer
+var _summary: Label
+var _cells := {}            # "STATE/ACTION" -> Label
+var _refresh_t := 0.0
 
-func _ready():
+
+func _ready() -> void:
 	rl = Global.rl
-
-	# -------- MAIN TOGGLE BUTTON --------
+	panel.visible = false
 	btn.texture_normal = load("res://assets/rl.png")
-	btn.z_index = 1000
+	btn.ignore_texture_size = true
+	btn.stretch_mode = TextureButton.STRETCH_KEEP_ASPECT_CENTERED
 	btn.anchor_left = 1.0
 	btn.anchor_right = 1.0
 	btn.anchor_top = 0.5
 	btn.anchor_bottom = 0.5
-	btn.offset_left = -120
+	btn.offset_left = -70
 	btn.offset_right = -10
-	btn.offset_top = -32
-	btn.offset_bottom = 32
-	btn.modulate.a = 0.7
+	btn.offset_top = -30
+	btn.offset_bottom = 30
+	btn.modulate.a = 0.75
+	btn.focus_mode = Control.FOCUS_NONE
+	btn.tooltip_text = "Difficulty AI"
 	btn.pressed.connect(toggle)
 
-	# -------- PANEL SETUP --------
-	panel.visible = false
-	panel.anchor_left = 1.0
-	panel.anchor_right = 1.0
-	panel.anchor_top = 0.5
-	panel.anchor_bottom = 0.5
-	panel.offset_left = -340 
-	panel.offset_right = -10
-	panel.offset_top = -275   # centred vertically so it fits short (phone) screens
-	panel.offset_bottom = 275
 
-	var vbox = $Panel/VBox
-	vbox.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT, Control.PRESET_MODE_KEEP_SIZE, 12)
-	
-	# -------- NEW: CLOSE BUTTON --------
-	close_btn = Button.new()
-	close_btn.text = "CLOSE OVERLAY"
-	# Optional: Style the close button to match your theme
-	var font = load("res://assets/fonts/Jersey10-Regular.ttf")
-	close_btn.add_theme_font_override("font", font)
-	close_btn.pressed.connect(toggle) # Connect to same toggle function
-	vbox.add_child(close_btn) 
-	# Move to top of VBox so it's easy to find
-	vbox.move_child(close_btn, 0) 
+func toggle() -> void:
+	if is_instance_valid(_page):
+		_close()
+	else:
+		_open()
 
-	# Header Styling
-	diff_label.add_theme_font_override("font", font)
-	diff_label.add_theme_font_size_override("font_size", 32)
-	
-	# Sub-header
-	q_label.text = "EXPECTED REWARD [ Q(s,a) ]"
-	q_label.add_theme_font_override("font", font)
-	q_label.add_theme_font_size_override("font_size", 22)
-	q_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	q_label.modulate = Color(0.3, 0.9, 0.3)
 
-	# The Q-Table Grid
-	grid = GridContainer.new()
-	grid.columns = 2
-	grid.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	grid.add_theme_constant_override("h_separation", 40)
-	vbox.add_child(grid)
+func _close() -> void:
+	if is_instance_valid(_page):
+		_page.queue_free()
+	_page = null
+	_cells.clear()
+	btn.visible = true
 
-	set_process(true)
 
-var _refresh_t := 0.0
+func _open() -> void:
+	if rl == null:
+		rl = Global.rl
+	if rl == null:
+		return
+	btn.visible = false
+	_page = CanvasLayer.new()
+	add_child(_page)
+	var v := PixelUI.page(_page, "🧠 Difficulty AI", 620, _close)
+	var intro := PixelUI.label("The game learns how hard to make your riddles. After each round it scores the choice it made; higher numbers = better choices.", 20, PixelUI.MUTED)
+	intro.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	intro.custom_minimum_size.x = minf(540.0, PixelUI.avail_width(60.0))
+	v.add_child(intro)
+	_summary = PixelUI.label("", 28, PixelUI.GOLD)
+	v.add_child(_summary)
 
-# The table is rebuilt from scratch, so refresh it a few times a second, not every
-# frame (rebuilding ~30 labels per frame made phones stutter while it was open).
-func _process(d):
-	if panel.visible:
-		_refresh_t -= d
-		if _refresh_t <= 0.0:
-			_refresh_t = 0.5
-			update_text()
-
-## Logic updated to hide 'btn' when panel is shown
-func toggle():
-	panel.visible = !panel.visible
-	# Hide the main button if panel is open, show it if panel is closed
-	btn.visible = !panel.visible 
-	
-	if panel.visible:
-		update_text()
-
-func update_text():
-	# ... (Rest of your update_text logic remains exactly the same)
-	diff_label.text = "DIFF: %s\nSTATE: %s\nACTION: %s" % [
-		rl.current_diff,
-		rl.prev_state,
-		rl.prev_action
-	]
-
-	for child in grid.get_children():
-		child.queue_free()
-
-	var font = load("res://assets/fonts/Jersey10-Regular.ttf")
-	var states := ["BORING", "CHALLENGED", "TOO_HARD"]
-	
-	for st in states:
-		var st_lbl = Label.new()
-		st_lbl.text = "[ %s ]" % st
-		st_lbl.add_theme_font_override("font", font)
-		st_lbl.add_theme_font_size_override("font_size", 22)
-		st_lbl.modulate = Color(0.9, 0.9, 0.2)
-		grid.add_child(st_lbl)
-		grid.add_child(Label.new()) # Spacer
-
-		if not rl.q.has(st):
-			for a in rl.ACTIONS:
-				_add_row(a, "--", font)
-			continue
-
+	var grid := GridContainer.new()
+	grid.columns = rl.ACTIONS.size() + 1
+	grid.add_theme_constant_override("h_separation", 8)
+	grid.add_theme_constant_override("v_separation", 8)
+	v.add_child(grid)
+	grid.add_child(PixelUI.label("Last round felt", 20, PixelUI.MUTED, false))
+	for a in rl.ACTIONS:
+		grid.add_child(PixelUI.label(str(ACTION_NAMES.get(a, a)), 22, PixelUI.MUTED))
+	for st in STATES:
+		var name_lbl := PixelUI.label(str(STATE_NAMES.get(st, st)), 24, PixelUI.CREAM, false)
+		name_lbl.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		grid.add_child(name_lbl)
 		for a in rl.ACTIONS:
-			_add_row(a, "%.4f" % float(rl.q[st].get(a, 0.0)), font)
+			var cell := PixelUI.panel(PixelUI.FRAME, 10, 4)
+			cell.custom_minimum_size = Vector2(96, 0)
+			var l := PixelUI.label("--", 24)
+			cell.add_child(l)
+			grid.add_child(cell)
+			_cells["%s/%s" % [st, a]] = l
+	_refresh()
 
-# Helper to keep update_text clean
-func _add_row(action_name, value_text, font):
-	var action_lbl = Label.new()
-	var value_lbl = Label.new()
-	action_lbl.text = "  a_%s" % action_name.to_lower()
-	value_lbl.text = value_text
-	action_lbl.add_theme_font_override("font", font)
-	action_lbl.add_theme_font_size_override("font_size", 20)
-	value_lbl.add_theme_font_override("font", font)
-	value_lbl.add_theme_font_size_override("font_size", 20)
-	value_lbl.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	value_lbl.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
-	grid.add_child(action_lbl)
-	grid.add_child(value_lbl)
+
+func _process(delta: float) -> void:
+	if not is_instance_valid(_page):
+		return
+	_refresh_t -= delta
+	if _refresh_t <= 0.0:
+		_refresh_t = 0.5
+		_refresh()
+
+
+func _refresh() -> void:
+	if _summary == null or not is_instance_valid(_summary):
+		return
+	var felt := str(STATE_NAMES.get(rl.prev_state, "-"))
+	var did := str(ACTION_NAMES.get(rl.prev_action, "-"))
+	_summary.text = "Now: %s     Last round: %s  →  %s" % [str(rl.current_diff).capitalize().replace("_", " "), felt, did]
+	for st in STATES:
+		var best := ""
+		var best_v := -INF
+		if rl.q.has(st):
+			for a in rl.ACTIONS:
+				var val := float(rl.q[st].get(a, 0.0))
+				if val > best_v:
+					best_v = val
+					best = a
+		for a in rl.ACTIONS:
+			var l: Label = _cells.get("%s/%s" % [st, a])
+			if l == null:
+				continue
+			if rl.q.has(st):
+				l.text = "%.2f" % float(rl.q[st].get(a, 0.0))
+				l.add_theme_color_override("font_color", PixelUI.GOLD if a == best and best_v != 0.0 else PixelUI.CREAM)
+			else:
+				l.text = "--"
+				l.add_theme_color_override("font_color", PixelUI.MUTED)
