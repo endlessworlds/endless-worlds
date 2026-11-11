@@ -286,7 +286,17 @@ func _polish() -> void:
 	# One-line stats strip replaces the old floating panel
 	$PlayerPanel.visible = false
 	var stats := Label.new()
-	stats.text = "⭐ Score %d     🧭 Level %d     🏆 Best %d" % [Global.score, Global.level, Global.high_score]
+	var bonus := Global.daily_checkin()
+	stats.text = "⭐ Score %d     🧭 Level %d     🏆 Best %d     🔥 Day %d" % [Global.score, Global.level, Global.high_score, int(Global.stats.get("day_streak", 1))]
+	if bonus > 0:   # first visit today
+		var toast := PixelUI.label("Day %d streak!  +%d coins for the Survival armory" % [int(Global.stats.get("day_streak", 1)), bonus], 26, PixelUI.GOLD)
+		toast.add_theme_color_override("font_outline_color", Color(0, 0, 0, 0.85))
+		toast.add_theme_constant_override("outline_size", 6)
+		col.add_child(toast)
+		var tw := create_tween()
+		tw.tween_interval(4.0)
+		tw.tween_property(toast, "modulate:a", 0.0, 1.0)
+		tw.tween_callback(toast.queue_free)
 	stats.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	stats.add_theme_font_override("font", font)
 	stats.add_theme_font_size_override("font_size", 24)

@@ -91,6 +91,25 @@ func _ready():
 	_init_rl()
 
 
+# Daily visit streak: the first visit of a day extends it (or restarts it after a missed
+# day) and pays a small coin bonus for the Survival armory. Returns the bonus (0 = already
+# counted today).
+func daily_checkin() -> int:
+	var today := Time.get_date_string_from_system()
+	if str(stats.get("last_day", "")) == today:
+		return 0
+	var local_now := int(Time.get_unix_time_from_system()) + int(Time.get_time_zone_from_system().get("bias", 0)) * 60
+	var yesterday := Time.get_date_string_from_unix_time(local_now - 86400)
+	var streak := int(stats.get("day_streak", 0))
+	streak = streak + 1 if str(stats.get("last_day", "")) == yesterday else 1
+	stats["day_streak"] = streak
+	stats["last_day"] = today
+	var bonus := mini(10 * streak, 50)
+	stats["survival_coins"] = int(stats.get("survival_coins", 0)) + bonus
+	save_game()
+	return bonus
+
+
 func apply_sound() -> void:
 	AudioServer.set_bus_mute(0, sound_volume <= 0.0)
 	AudioServer.set_bus_volume_db(0, linear_to_db(maxf(sound_volume, 0.001)))
