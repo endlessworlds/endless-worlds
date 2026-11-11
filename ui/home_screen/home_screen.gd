@@ -18,8 +18,7 @@ var _fs_button: Button
 var _title: Label
 var _title_box: Control
 var _col: VBoxContainer
-var _kb_cover := 0.0     # logical px hidden by the phone keyboard (iOS)
-var _kb_poll := 0.0
+var _kb_cover := 0.0     # logical px covered by the on-screen keyboard
 const TOPIC_CHIPS := ["Python", "Space", "Biology", "History", "Math"]
 
 func _ready():
@@ -35,6 +34,7 @@ func _ready():
 	topic_input.focus_entered.connect(_relayout)
 	topic_input.focus_exited.connect(_relayout)
 	get_viewport().size_changed.connect(_on_size_changed)
+	Screen.keyboard_changed.connect(_on_keyboard_changed)
 	_on_size_changed()
 	if Net.active:  # came back from a room: drop the connection
 		Net.leave()
@@ -73,6 +73,9 @@ func _create_journal_button() -> void:
 			if is_instance_valid(_fs_button):
 				_fs_button.text = Screen.fullscreen_label())
 		_top_buttons.append(_fs_button)
+	if Screen.can_install():
+		var inst := _top_button("📲 Install app", func(): Screen.install_app(self))
+		_top_buttons.append(inst)
 	for b in _top_buttons:
 		row.add_child(b)
 
@@ -312,6 +315,10 @@ func _polish() -> void:
 	http.request(Global.api_url("/health"))
 
 
+func _on_keyboard_changed(_h: float) -> void:
+	_relayout()
+
+
 # Lay out now, then once more after the containers have re-sorted (the button row may
 # have wrapped onto a second line).
 func _on_size_changed() -> void:
@@ -345,9 +352,9 @@ func _relayout() -> void:
 	var row_bottom := _top_row.offset_top + _top_row.get_combined_minimum_size().y
 	_title_box.offset_top = maxf(row_bottom + (36.0 if narrow else 16.0), 64.0 if short else 96.0)
 
-	# Typing on a phone: the keyboard leaves little room, so lift the topic box to the top.
+	# Typing on a phone: lift the topic box to the top, above the on-screen keyboard.
 	_kb_cover = Screen.keyboard_cover() if topic_input.has_focus() else 0.0
-	var typing := topic_input.has_focus() and (vp.y - _kb_cover < 520.0 or _kb_cover > 40.0)
+	var typing := topic_input.has_focus() and _kb_cover > 40.0 and vp.y - _kb_cover < 760.0
 	_title_box.visible = not typing
 	_col.offset_top = 30.0
 	if typing:
@@ -363,24 +370,6 @@ func _relayout() -> void:
 		tut.offset_top = -vis.y - 12.0
 		tut.offset_right = tut.offset_left + tut.size.x
 		tut.offset_bottom = tut.offset_top + tut.size.y
-
-
-# iOS draws its keyboard over the page without resizing it: watch for it while typing.
-func _process(delta: float) -> void:
-	if not Screen.is_mobile or not topic_input.has_focus():
-		return
-	_kb_poll -= delta
-	if _kb_poll <= 0.0:
-		_kb_poll = 0.3
-		if absf(Screen.keyboard_cover() - _kb_cover) > 20.0:
-			_relayout()
-
-
-func _unhandled_input(event: InputEvent) -> void:
-	# Tap anywhere else to put the phone keyboard away.
-	if topic_input.has_focus() and (event is InputEventScreenTouch or event is InputEventMouseButton) and event.pressed \
-			and not topic_input.get_global_rect().has_point(event.position):
-		topic_input.release_focus()
 
 
 func _set_status(text: String, col: Color) -> void:

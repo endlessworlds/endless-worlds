@@ -260,6 +260,14 @@ func _build_ui() -> void:
 	_chat_input.visible = false
 	_chat_input.text_submitted.connect(_send_chat)
 	layer.add_child(_chat_input)
+	Screen.keyboard_changed.connect(_on_keyboard_changed)
+
+
+# Keep the chat box just above the on-screen keyboard while typing on a phone.
+func _on_keyboard_changed(h: float) -> void:
+	if _chat_input:
+		_chat_input.offset_top = -120 - h
+		_chat_input.offset_bottom = -78 - h
 
 
 

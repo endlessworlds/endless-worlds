@@ -44,6 +44,7 @@ var _mono: Font
 var _c: Dictionary = DARK
 var _http: HTTPRequest
 var _root: Control
+var _margin: MarginContainer     # outer margin: grows at the bottom while the on-screen keyboard is up
 var _body: BoxContainer          # quest + editor: row on wide screens, column in portrait
 var _hearts: Node
 var _current_q: Dictionary
@@ -211,6 +212,11 @@ func _make_mono() -> Font:
 	return sf
 
 
+func _on_keyboard_changed(h: float) -> void:
+	if is_instance_valid(_margin):
+		_margin.add_theme_constant_override("margin_bottom", 16 + int(h))
+
+
 func _on_layout_changed() -> void:
 	if is_instance_valid(_body):
 		_body.vertical = Screen.is_portrait()
@@ -336,6 +342,10 @@ func _build() -> void:
 	margin.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	for side in ["left", "top", "right", "bottom"]:
 		margin.add_theme_constant_override("margin_" + side, 16)
+	_margin = margin
+	_on_keyboard_changed(Screen.keyboard_cover())
+	if not Screen.keyboard_changed.is_connected(_on_keyboard_changed):
+		Screen.keyboard_changed.connect(_on_keyboard_changed)
 	_root.add_child(margin)
 
 	var col := VBoxContainer.new()

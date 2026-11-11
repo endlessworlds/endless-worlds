@@ -23,6 +23,9 @@ var is_web := OS.has_feature("web")
 var is_mobile := false   # phone / tablet (browser or native)
 var is_touch := false    # touch-first device: on-screen buttons, "tap" wording, auto-aim
 var _ppl := 0.0          # physical px per logical px (0 = engine default)
+var keyboard: GameKeyboard   # the game's own on-screen keyboard (touch devices only)
+
+signal keyboard_changed(height: float)   # logical px covered by the on-screen keyboard
 
 
 func _ready() -> void:
@@ -36,6 +39,11 @@ func _ready() -> void:
 	if is_mobile:
 		get_tree().root.size_changed.connect(_apply_scale)
 		_apply_scale()
+	if is_touch:
+		# Typing uses the game's keyboard, never the phone's (see game_keyboard.gd).
+		keyboard = GameKeyboard.new()
+		add_child(keyboard)
+		keyboard.height_changed.connect(func(h): keyboard_changed.emit(h))
 
 
 func is_portrait() -> bool:
@@ -85,16 +93,13 @@ func _pixel_ratio() -> float:
 	return maxf(1.0, DisplayServer.screen_get_scale())
 
 
-# Logical px at the bottom of the game hidden by the phone keyboard. Android resizes the
-# page (see interactive-widget in the export's head include); iOS Safari doesn't, it just
-# draws the keyboard over the canvas — visualViewport tells us how much.
+# Logical px at the bottom of the screen covered by the on-screen keyboard (0 = closed).
 func keyboard_cover() -> float:
-	if not (is_web and is_mobile) or _ppl <= 0.0:
-		return 0.0
-	var v = JavaScriptBridge.eval("window.visualViewport ? Math.max(0, window.innerHeight - window.visualViewport.height - window.visualViewport.offsetTop) : 0", true)
-	if typeof(v) in [TYPE_FLOAT, TYPE_INT]:
-		return float(v) * _pixel_ratio() / _ppl
-	return 0.0
+	return keyboard.covered_height() if keyboard else 0.0
+
+
+func keyboard_open() -> bool:
+	return keyboard != null and keyboard.is_open()
 
 
 # ------------------------------------------------------------------ fullscreen
@@ -127,6 +132,25 @@ func toggle_fullscreen() -> void:
 		DisplayServer.window_set_mode(DisplayServer.WINDOW_MODE_WINDOWED)
 	else:
 		DisplayServer.window_set_mode(DisplayServer.WINDOW_MODE_FULLSCREEN)
+
+
+# ------------------------------------------------------------------ install as an app
+func can_install() -> bool:
+	return is_web and JavaScriptBridge.eval("!window.ewInstalled", true) == true
+
+
+# Shows the browser's install prompt when it offers one; otherwise explains how to add
+# the game to the home screen on this device.
+func install_app(parent: Node) -> void:
+	var r = JavaScriptBridge.eval("window.ewInstall ? window.ewInstall() : 'manual'", true)
+	if str(r) == "prompted":
+		return
+	var how := "Tap the browser menu (⋮), then  Install app  or  Add to Home screen."
+	if OS.has_feature("web_ios") or JavaScriptBridge.eval("/iPad|iPhone|Macintosh/.test(navigator.userAgent) && navigator.maxTouchPoints > 1", true) == true:
+		how = "In Safari tap  Share  (the square with the arrow),\nthen  Add to Home Screen."
+	elif not is_mobile:
+		how = "Click the install icon at the right end of the address bar,\nor the browser menu  >  Install Endless Worlds."
+	RoundCard.show_card(parent, "Install the game", how + "\n\nIt then opens fullscreen from its own icon, like an app.", [["OK", func(): pass]])
 
 
 func fullscreen_label() -> String:
