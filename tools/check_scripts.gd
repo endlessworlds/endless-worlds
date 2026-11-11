@@ -1,10 +1,10 @@
 # Compiles every GDScript in the project and reports the ones that fail.
-# Used by CI (.github/workflows/godot-ci.yml):
-#   godot --headless --path . --script res://tools/check_scripts.gd
-extends SceneTree
+# Runs as a scene so the autoloads (Global, Screen, Net) exist, like in the game. CI:
+#   godot --headless --path . res://tools/check_scripts.tscn
+extends Node
 
 
-func _init() -> void:
+func _ready() -> void:
 	var files: Array[String] = []
 	_collect("res://", files)
 	var bad: Array[String] = []
@@ -15,14 +15,14 @@ func _init() -> void:
 	for p in bad:
 		printerr("SCRIPT CHECK FAILED: " + p)
 	print("SCRIPT CHECK: %d scripts, %d failed" % [files.size(), bad.size()])
-	quit(1 if not bad.is_empty() else 0)
+	get_tree().quit(1 if not bad.is_empty() else 0)
 
 
 func _collect(dir: String, out: Array[String]) -> void:
 	for d in DirAccess.get_directories_at(dir):
-		if d.begins_with(".") or d in ["addons", "build", "web", "python_server", "relay", "web-scraper-tool", "docs", "report"]:
+		if d.begins_with(".") or d in ["addons", "build", "web", "python_server", "relay", "web-scraper-tool", "docs", "report", "tools"]:
 			continue
 		_collect(dir.path_join(d), out)
 	for f in DirAccess.get_files_at(dir):
-		if f.ends_with(".gd") and dir.path_join(f) != "res://tools/check_scripts.gd":
+		if f.ends_with(".gd"):
 			out.append(dir.path_join(f))
