@@ -183,6 +183,9 @@ func _ready():
 		if gemini:
 			gemini.set_process(false)
 
+	# bonus treasure chests (score + coins for the Survival armory)
+	Treasure.scatter(self, tilemap, player, 4)
+
 	# 🤖 AGENTIC BOT
 	agentic_bot = AgenticBot.new()
 	add_child(agentic_bot)
