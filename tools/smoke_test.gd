@@ -136,7 +136,7 @@ class Runner extends Node:
 		home.topic_input.grab_focus()
 		await frames(4)
 		check(kb.is_open(), "keyboard opens when a text box has focus")
-		for k in ["h", "i", "space", "⇧", "a", "123", "4", "#+=", "[", "abc", "😀", "🔥", "abc", "⌫"]:
+		for k in ["h", "i", "space", "⇧", "A", "123", "4", "#+=", "[", "abc", "😀", "🔥", "abc", "⌫"]:
 			kb._on_down(k)
 			kb._stop_repeat()
 			await frames(3)
@@ -226,12 +226,15 @@ class Runner extends Node:
 					map.answer_popup.keyboard._on_key_down("C")
 					map.answer_popup.keyboard._on_key_down("BKSP")
 			if t == Global.QuestionType.KBC:
+				map.hearts.heal(9)
 				map.answer_popup._kbc_use_fifty_fifty()
 				await secs(0.3)
 				map.answer_popup._kbc_use_audience_poll()
 				await secs(0.3)
-				map.answer_popup._kbc_use_phone_friend()
+				map.answer_popup._kbc_use_phone_friend()   # 1 heart left: must refuse, not kill
 				await secs(0.3)
+				check(map.hearts.current_hearts >= 1 and not map._round_ended, "lifelines never knock the player out")
+				map.hearts.heal(9)
 			map.answer_popup.close()
 			await frames(4)
 		step("answer: wrong then right")
@@ -361,11 +364,11 @@ class Runner extends Node:
 			Engine.time_scale = 8.0
 			await secs(1.6)
 			Engine.time_scale = 1.0
-			if g.boss and is_instance_valid(g.boss):
-				for pat in SurvivalGame.ALL_PATTERNS:
+			for pat in SurvivalGame.ALL_PATTERNS:
+				if g.boss and is_instance_valid(g.boss) and not g.boss.dead:
 					g.boss.state = ""
 					g.boss._start_pattern(pat, Vector2.RIGHT, g.ppos())
-					await frames(3)
+				await frames(3)
 		get_tree().paused = false
 		await close_modals()
 		step("survival: death card")

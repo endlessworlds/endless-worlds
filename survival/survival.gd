@@ -1555,7 +1555,9 @@ func spawn_copy(d: Dictionary) -> void:
 	if d.has("bn"):
 		bdef = {"name": str(d.bn), "hp": 100.0, "scale": float(d.sc), "speed": 0.0, "tint": Color.html(str(d.tn)),
 			"sprite": str(d.get("bs", d.ty)), "shot": Color.WHITE, "patterns": []}
-	m.setup(self, str(d.ty), muts if bdef.is_empty() else [] as Array[String], maxi(round_no, 1), bdef)
+	if not bdef.is_empty():
+		muts.clear()   # bosses carry no mutations
+	m.setup(self, str(d.ty), muts, maxi(round_no, 1), bdef)
 	m.tint = Color.html(str(d.tn))
 	m.set_size(float(d.sc))
 	if bdef.is_empty():   # same hit size as on the host (big slimes, Giant / Tiny mutations)

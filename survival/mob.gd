@@ -76,6 +76,8 @@ var net_id := 0                 # id shared with the other players (0 = solo)
 var remote := false             # guest-side copy of a monster the host simulates
 var net_target := Vector2.ZERO
 var _last_x := 0.0
+var _stuck_t := 0.0             # walker blocked by water for this long...
+var _wade_t := 0.0              # ...so it wades across for a while (no pathfinding needed)
 
 
 func setup(g: Node, tname: String, muts: Array[String], round_no: int, boss_def: Dictionary = {}) -> void:
@@ -294,7 +296,22 @@ func tick(delta: float, ppos: Vector2) -> void:
 
 	# walkers slide along the shore; flyers and bosses may cross water
 	var next := position + (move_dir * spd + kb) * delta
-	position = game.clamp_box(next) if (is_flyer() or is_boss) else game.move_in(position, next)
+	_wade_t -= delta
+	if is_flyer() or is_boss:
+		position = game.clamp_box(next)
+	elif _wade_t > 0.0:
+		position = game.clamp_box(position + (move_dir * spd * 0.6 + kb) * delta)
+	else:
+		var before := position
+		position = game.move_in(position, next)
+		# barely moving although it wants to: a pond or bay is in the way
+		if move_dir != Vector2.ZERO and position.distance_to(before) < spd * delta * 0.3:
+			_stuck_t += delta
+			if _stuck_t > 0.8:
+				_stuck_t = 0.0
+				_wade_t = 2.5
+		else:
+			_stuck_t = maxf(0.0, _stuck_t - delta)
 	kb = kb.move_toward(Vector2.ZERO, 400.0 * delta)
 
 	# look

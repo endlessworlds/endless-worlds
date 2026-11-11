@@ -67,4 +67,5 @@ jobs:
             echo "=================== $f ==================="
             grep -vE "RID allocations|resources still in use|^$" $f.log | grep -nE "SMOKE|SCRIPT ERROR|ERROR|WARNING: .*gd|at: |\[Net\]|\[Survival\]|Round " | cut -c1-260 | head -150 || true
             echo "--- errors: $(grep -c 'SCRIPT ERROR' $f.log || true)"
+            case $f in mp_*|sv_*) echo "--- tail:"; grep -vE "RID allocations|resources still in use|^$" $f.log | tail -25 | cut -c1-220;; esac
           done

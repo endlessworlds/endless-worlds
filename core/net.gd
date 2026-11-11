@@ -115,6 +115,7 @@ func _process(delta: float) -> void:
 			_fail("Can't reach the multiplayer relay at %s" % relay_url)
 		return
 	if state == WebSocketPeer.STATE_CLOSED:
+		print("[Net] socket closed: code %d reason '%s' after %.1f s" % [ws.get_close_code(), ws.get_close_reason(), Time.get_ticks_msec() / 1000.0])
 		_fail("Connection closed (%d)" % ws.get_close_code() if not active else "Disconnected from room")
 		return
 	while ws and ws.get_available_packet_count() > 0:

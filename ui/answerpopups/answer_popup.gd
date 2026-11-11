@@ -1375,8 +1375,15 @@ func _kbc_disable_lifeline_btn(btn: Button):
 func _kbc_use_fifty_fifty():
 	if kbc_lifelines_used["fifty_fifty"]:
 		return
+	if hearts.current_hearts <= 2:   # a lifeline costs 2 hearts: never let it knock you out
+		if kbc_msg_label:
+			kbc_msg_label.text = "Not enough hearts for a lifeline"
+			kbc_msg_label.visible = true
+		return
 	kbc_lifelines_used["fifty_fifty"] = true
 	hearts.damage(2)
+	if kbc_lifeline_buttons.size() < 3:
+		return
 	_kbc_disable_lifeline_btn(kbc_lifeline_buttons[0])
 
 	# Find wrong options and hide 2 of them
@@ -1398,8 +1405,15 @@ func _kbc_use_fifty_fifty():
 func _kbc_use_audience_poll():
 	if kbc_lifelines_used["audience_poll"]:
 		return
+	if hearts.current_hearts <= 2:   # a lifeline costs 2 hearts: never let it knock you out
+		if kbc_msg_label:
+			kbc_msg_label.text = "Not enough hearts for a lifeline"
+			kbc_msg_label.visible = true
+		return
 	kbc_lifelines_used["audience_poll"] = true
 	hearts.damage(2)
+	if kbc_lifeline_buttons.size() < 3:
+		return
 	_kbc_disable_lifeline_btn(kbc_lifeline_buttons[1])
 
 	# Generate percentages — correct answer gets highest
@@ -1542,8 +1556,15 @@ func _show_kbc_audience_popup(percentages: Array):
 func _kbc_use_phone_friend():
 	if kbc_lifelines_used["phone_friend"]:
 		return
+	if hearts.current_hearts <= 2:   # a lifeline costs 2 hearts: never let it knock you out
+		if kbc_msg_label:
+			kbc_msg_label.text = "Not enough hearts for a lifeline"
+			kbc_msg_label.visible = true
+		return
 	kbc_lifelines_used["phone_friend"] = true
 	hearts.damage(2)
+	if kbc_lifeline_buttons.size() < 3:
+		return
 	_kbc_disable_lifeline_btn(kbc_lifeline_buttons[2])
 
 	# Find the correct option text
