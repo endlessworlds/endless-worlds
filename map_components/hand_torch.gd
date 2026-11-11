@@ -59,7 +59,7 @@ func _ready() -> void:
 	_embers = CPUParticles2D.new()
 	_embers.position = Vector2(0, -15)
 	_embers.material = _spr.material
-	_embers.amount = 10
+	_embers.amount = Screen.fx_count(10, 0.5)
 	_embers.lifetime = 0.9
 	_embers.local_coords = false          # sparks trail behind when walking
 	_embers.direction = Vector2(0, -1)

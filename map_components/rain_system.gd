@@ -68,6 +68,11 @@ func apply_weather_type():
 	# Above every depth-sorted sprite (player z = feet_y / 4 can exceed 2000).
 	rain_far.z_index = 4050
 	rain_near.z_index = 4060
+	if Screen.low():   # far fewer drops/flakes on phones and low-end PCs
+		for q: CPUParticles2D in [rain_far, rain_near]:
+			if not q.has_meta("base_amount"):
+				q.set_meta("base_amount", q.amount)
+			q.amount = Screen.fx_count(int(q.get_meta("base_amount")), 0.35)
 	for p: CPUParticles2D in [rain_far, rain_near]:
 		var near := p == rain_near
 		if is_snow:
@@ -83,7 +88,7 @@ func apply_weather_type():
 			p.tangential_accel_max = 25.0
 			p.scale_amount_min = 0.6 if near else 0.35
 			p.scale_amount_max = 1.4 if near else 0.8
-			p.amount = 420 if near else 260
+			p.amount = Screen.fx_count(420 if near else 260, 0.35)
 		else:
 			p.speed_scale = 1.0
 

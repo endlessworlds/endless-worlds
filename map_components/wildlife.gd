@@ -56,18 +56,18 @@ func setup(map_tilemap: TileMapLayer, _is_snow: bool) -> void:
 				break
 	if _land.is_empty():
 		return
-	for i in SPARROWS:
+	for i in Screen.fx_count(SPARROWS, 0.45):
 		_birds.append(_critter(BIRD_TEX, 4, 0.9, _random_cell(_land)))
 	for kind in RUNNERS:
-		for i in kind.count:
+		for i in Screen.fx_count(int(kind.count), 0.5):
 			var c := _critter(kind.tex, 3, kind.scale, _random_cell(_land))
 			c.kind = kind
 			_runners.append(c)
-	for i in FROGS:
+	for i in Screen.fx_count(FROGS, 0.45):
 		_frogs.append(_critter(FROG_TEX, 2, 0.9, _random_cell(_shore if not _shore.is_empty() else _land)))
-	for i in BUTTERFLIES:
+	for i in Screen.fx_count(BUTTERFLIES, 0.45):
 		_spawn_butterfly()
-	for i in FLY_SWARMS:
+	for i in Screen.fx_count(FLY_SWARMS, 0.45):
 		_spawn_flies()
 
 

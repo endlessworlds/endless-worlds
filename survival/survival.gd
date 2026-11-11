@@ -394,6 +394,7 @@ func _build_arena() -> void:
 	mat.shader = POST_SHADER
 	mat.set_shader_parameter("vignette", 0.5)
 	fx.material = mat
+	fx.visible = not Screen.low()
 	layer.add_child(fx)
 	add_child(layer)
 
@@ -943,7 +944,13 @@ func explode(at: Vector2, radius: float, dmg: int, hurts_player: bool, hurts_mob
 				m.hit(mob_dmg, (m.position - at).normalized())
 
 
+var _floaters := 0
+
 func floater(at: Vector2, text: String, col: Color) -> void:
+	# cap damage numbers (shotguns + swarms made hundreds of labels on phones)
+	if _floaters > (12 if Screen.low() else 30) and not text.ends_with("!"):
+		return
+	_floaters += 1
 	var l := Label.new()
 	l.text = text
 	l.add_theme_font_override("font", FONT)
@@ -958,7 +965,9 @@ func floater(at: Vector2, text: String, col: Color) -> void:
 	var tw := create_tween().set_parallel()
 	tw.tween_property(l, "position:y", l.position.y - 14.0, 0.6)
 	tw.tween_property(l, "modulate:a", 0.0, 0.6).set_delay(0.2)
-	tw.chain().tween_callback(l.queue_free)
+	tw.chain().tween_callback(func():
+		_floaters -= 1
+		l.queue_free())
 
 
 func telegraph(at: Vector2, radius: float, time: float) -> void:

@@ -72,6 +72,9 @@ func _ready():
 	base_sprite_pos = sprite.position-Vector2(0,10)
 	sprite.modulate = Color.WHITE
 	camera.zoom = Vector2.ONE
+	# The player moves in _physics_process; a camera that also updates there keeps the hero
+	# perfectly still on screen (no stutter on 90/120 Hz phones and monitors).
+	camera.process_callback = Camera2D.CAMERA2D_PROCESS_PHYSICS
 	load_footstep_sounds()
 	footstep_timer.timeout.connect(play_footstep)
 	_setup_jump()

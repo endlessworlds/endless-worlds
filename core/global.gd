@@ -34,6 +34,7 @@ var win_streak: int = 0
 var player_name: String = "Explorer"
 var character: int = 0   # index into Characters.NAMES
 var torch_mode := 0  # 0 auto (night), 1 always on, 2 off
+var graphics := "auto"  # "auto" | "high" | "low" (saved); see Screen.low()
 var input_locked := false  # true while typing (chat / ask-the-bot) so WASD doesn't move the player
 
 
@@ -146,6 +147,7 @@ func save_game():
 		"player_name": player_name,
 		"character": character,
 		"coding_theme": coding_theme,
+		"graphics": graphics,
 		"learning_journal": learning_journal
 	}
 
@@ -176,6 +178,9 @@ func load_game():
 	player_name = str(data.get("player_name", player_name))
 	character = int(data.get("character", 0))
 	coding_theme = "light" if str(data.get("coding_theme", "dark")) == "light" else "dark"
+	graphics = str(data.get("graphics", "auto"))
+	if not graphics in ["auto", "high", "low"]:
+		graphics = "auto"
 	if data.has("learning_journal"):
 		var lj = data["learning_journal"]
 		if lj.has("solved_riddles"):

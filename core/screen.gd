@@ -26,6 +26,7 @@ var _ppl := 0.0          # physical px per logical px (0 = engine default)
 var keyboard: GameKeyboard   # the game's own on-screen keyboard (touch devices only)
 
 signal keyboard_changed(height: float)   # logical px covered by the on-screen keyboard
+signal quality_changed
 
 
 func _ready() -> void:
@@ -39,11 +40,44 @@ func _ready() -> void:
 	if is_mobile:
 		get_tree().root.size_changed.connect(_apply_scale)
 		_apply_scale()
+	_apply_quality.call_deferred()   # after Global has loaded the saved setting
 	if is_touch:
 		# Typing uses the game's keyboard, never the phone's (see game_keyboard.gd).
 		keyboard = GameKeyboard.new()
 		add_child(keyboard)
 		keyboard.height_changed.connect(func(h): keyboard_changed.emit(h))
+
+
+# ------------------------------------------------------------------ graphics quality
+# "Low" (the automatic choice on phones and tablets) keeps the look but costs far less:
+#   * the game is drawn at its own resolution and scaled up, instead of at the phone's
+#     full pixel density (3x DPR = ~9x fewer pixels to shade),
+#   * no full-screen post-processing pass, fewer particles, critters and lights.
+func low() -> bool:
+	var g := str(Global.graphics)
+	return g == "low" or (g == "auto" and is_mobile)
+
+
+func graphics_label() -> String:
+	var g := str(Global.graphics)
+	return "Graphics: %s" % ({"auto": "Auto (%s)" % ("Low" if is_mobile else "High"), "high": "High", "low": "Low"}[g])
+
+
+func cycle_graphics() -> void:
+	var order := ["auto", "high", "low"]
+	Global.graphics = order[(order.find(Global.graphics) + 1) % order.size()]
+	Global.save_game()
+	_apply_quality()
+
+
+func _apply_quality() -> void:
+	get_tree().root.content_scale_mode = Window.CONTENT_SCALE_MODE_VIEWPORT if low() else Window.CONTENT_SCALE_MODE_CANVAS_ITEMS
+	quality_changed.emit()
+
+
+# Scale a particle / critter count for the current quality.
+func fx_count(n: int, low_factor := 0.4) -> int:
+	return maxi(1, int(n * low_factor)) if low() else n
 
 
 func is_portrait() -> bool:
