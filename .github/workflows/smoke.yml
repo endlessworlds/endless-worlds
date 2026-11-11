@@ -38,11 +38,11 @@ jobs:
 
       - name: Play-through (desktop)
         run: |
-          timeout 300 godot --headless --path . res://tools/smoke_test.tscn -- --surv-bot --surv-god > desktop.log 2>&1 || true
+          timeout 420 godot --headless --path . res://tools/smoke_test.tscn -- --surv-bot --surv-god > desktop.log 2>&1 || true
 
       - name: Play-through (phone / touch UI)
         run: |
-          timeout 300 godot --headless --path . res://tools/smoke_test.tscn -- --surv-bot --surv-god --touch > touch.log 2>&1 || true
+          timeout 420 godot --headless --path . res://tools/smoke_test.tscn -- --surv-bot --surv-god --touch > touch.log 2>&1 || true
 
       - name: Two players online (riddle island)
         run: |
@@ -65,7 +65,7 @@ jobs:
         run: |
           for f in desktop touch mp_host mp_guest sv_host sv_guest; do
             echo "=================== $f ==================="
-            grep -vE "RID allocations|resources still in use|^$" $f.log | grep -nE "SMOKE|SCRIPT ERROR|ERROR|WARNING: .*gd|at: |\[Net\]|\[Survival\]|Round " | cut -c1-260 | head -150 || true
+            grep -vE "RID allocations|resources still in use|^$" $f.log | grep -nE "SMOKE|SCRIPT ERROR|ERROR|WARNING: .*gd|at: |\[Net\]|\[Survival\]|Round " | cut -c1-260 | head -230 || true
             echo "--- errors: $(grep -c 'SCRIPT ERROR' $f.log || true)"
             case $f in mp_*|sv_*) echo "--- tail:"; grep -vE "RID allocations|resources still in use|^$" $f.log | tail -25 | cut -c1-220;; esac
           done

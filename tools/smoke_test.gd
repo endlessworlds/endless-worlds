@@ -379,13 +379,116 @@ class Runner extends Node:
 		await close_modals()
 
 	# ------------------------------------------------------------ phone layouts
+	# Every visible button / text box must be inside the screen at phone sizes.
+	func on_screen(where: String) -> void:
+		await frames(4)
+		var vp := get_tree().root.get_visible_rect()
+		var bad := 0
+		var stack: Array[Node] = [get_tree().root]
+		while not stack.is_empty():
+			var n: Node = stack.pop_back()
+			if n is ScrollContainer or n is GameKeyboard:
+				continue   # scrolled content may be clipped on purpose
+			for ch in n.get_children():
+				stack.append(ch)
+			if not (n is BaseButton or n is LineEdit or n is TextEdit):
+				continue
+			var c: Control = n
+			if not c.is_visible_in_tree() or c.size.x < 2.0:
+				continue
+			var r: Rect2 = c.get_global_transform_with_canvas() * Rect2(Vector2.ZERO, c.size)
+			if not vp.grow(6.0).encloses(r):
+				bad += 1
+				if bad <= 6:
+					printerr("SMOKE LAYOUT: %s: '%s' %s is outside the %s screen" % [where, c.name if not (c is Button) else (c as Button).text.left(24), r, vp.size])
+		check(bad == 0, "%s fits the screen (%d control(s) outside)" % [where, bad])
+
 	func _layouts() -> void:
-		step("layouts: portrait + landscape phone sizes")
+		var root := get_tree().root
 		for size in [Vector2i(624, 1350), Vector2i(1350, 624), Vector2i(1280, 720)]:
-			get_tree().root.content_scale_size = size
+			root.content_scale_mode = Window.CONTENT_SCALE_MODE_DISABLED
+			root.size = size
+			await frames(3)
+			var tag := "%dx%d" % [size.x, size.y]
+			step("layouts %s (visible rect %s)" % [tag, root.get_visible_rect().size])
 			await goto("res://ui/home_screen/home_screen.tscn")
-			scene()._on_size_changed()
-			await frames(4)
-			StatsPage.open(scene(), func(): pass)
-			await frames(4)
+			var home := scene()
+			home._on_size_changed()
+			await on_screen(tag + " home")
+			StatsPage.open(home, func(): pass)
+			await on_screen(tag + " stats")
+			await close_modals()
+			SettingsPage.open(home)
+			await on_screen(tag + " settings")
+			await close_modals()
+			Achievements.open(home)
+			await on_screen(tag + " achievements")
+			await close_modals()
+			home._open_journal()
+			await on_screen(tag + " journal")
+			await close_modals()
+			var tut := TutorialOverlay.new()
+			home.add_child(tut)
+			tut.open()
+			await on_screen(tag + " tutorial")
+			await close_modals()
+			var lobby := Lobby.open(home, func(): return "Space")
+			await on_screen(tag + " lobby")
+			lobby._on_close()
+			await frames(3)
+
+			Global.is_coding_mode = false
+			await goto("res://map_components/map.tscn")
+			var map := scene()
+			await _wait_riddle(map)
+			await secs(0.5)
+			await on_screen(tag + " map HUD")
+			map._open_pause()
+			await on_screen(tag + " pause card")
+			await close_modals()
+			map.get_node("RLOverlay").toggle()
+			await on_screen(tag + " difficulty AI page")
+			map.get_node("RLOverlay").toggle()
+			for t in [Global.QuestionType.MCQ, Global.QuestionType.FILL_BLANK, Global.QuestionType.WORDLE,
+					Global.QuestionType.WHACK, Global.QuestionType.WORD_LOCK, Global.QuestionType.KBC]:
+				Global.current_question_type = t
+				map.answer_popup.open(map.current_solution, map.current_options, map.hearts, map, map.current_question)
+				await secs(0.3)
+				await on_screen("%s answer popup type %d" % [tag, t])
+				map.answer_popup.close()
+				await frames(3)
+			map.on_round_won()
+			await secs(0.5)
+			await on_screen(tag + " round won card")
+			await close_modals()
+
+			Global.is_coding_mode = true
+			Global.start_coding_session()
+			await goto("res://map_components/map.tscn")
+			map = scene()
+			await secs(0.4)
+			map._on_well_interacted()
+			await secs(0.6)
+			await on_screen(tag + " coding screen")
+			if is_instance_valid(map._coding_popup):
+				map._coding_popup.close()
+			await secs(0.5)
+			Global.is_coding_mode = false
+			Global.input_locked = false
+
+			await goto("res://survival/survival.tscn")
+			var g := scene()
+			await secs(1.0)
+			await on_screen(tag + " survival HUD")
+			g._show_armory(func(): pass)
+			await on_screen(tag + " armory")
+			await close_modals()
+			g._show_intro()
+			await on_screen(tag + " survival intro")
+			await close_modals()
+			g._show_upgrades()
+			await on_screen(tag + " perk choice")
+			await close_modals()
+			g._open_pause()
+			await on_screen(tag + " survival pause")
 			await close_modals()
