@@ -56,9 +56,9 @@ The PDFs are generated from `docs/src/*.html`; see *Rebuild the PDFs* below.
 **Phones & web** (GitHub Pages build)
 - Portrait and landscape: the UI scale is picked from the phone's screen size, popups shrink to fit, and the home screen re-flows when you rotate or the keyboard opens
 - Touch controls: joystick, jump (**↑**), **Answer** at wells, **II** pause/home, survival **DASH** with auto-aim; tap lit bulbs to read hints
-- Phone keyboard (with emoji) in every text box; big in-game keyboard for Wordle / fill-in answers
+- Own on-screen keyboard for every text box (letters, symbols, emoji, a code row for the coding editor) instead of the phone's; big in-game keyboard for Wordle / fill-in answers
 - Bundled emoji + symbol fonts, so emoji and ● ✓ → render in the browser too (no system fonts there)
-- Fullscreen button (home screen and pause menu) and *Add to Home Screen* install (`web/manifest.webmanifest`)
+- Auto fullscreen on phones, Fullscreen button, and an **Install app** button (`web/manifest.webmanifest`)
 
 **Survival mode** (hidden: the small 🐛 button on the Stats page)
 - A separate arcade game, pure GDScript (no AI server): waves of 10 mob types, each with its own AI (chasers, archers, splitting slimes, erratic bats, lunging spiders, phasing ghosts, exploding bombers, teleporting mages, tanky golems, wolf packs)
