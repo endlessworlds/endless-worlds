@@ -6,7 +6,7 @@ extends Node
 #
 # Messages: every packet is a Dictionary with "t" (type). The relay adds "from".
 #   relay -> us : welcome{id, peers}, join{id,name}, leave{id}, error{msg}, host_left
-#   game        : start{seed, qtype, topic, round}, riddle{data}, hint{idx},
+#   game        : start{seed, qtype, topic, round}, riddle{data}, hint{idx}, topic{topic},
 #                 pos{x,y,a,f,s,c}, won{name, answer}, chat{text}, hello{c}
 
 signal connected(my_id: int)
@@ -16,7 +16,7 @@ signal message(from: int, data: Dictionary)
 signal disconnected(reason: String)
 
 const MAX_PLAYERS := 10
-const HOST_ONLY := ["start", "riddle"]
+const HOST_ONLY := ["start", "riddle", "topic"]
 const DEFAULT_RELAY := "wss://endless-worlds-relay.srujanmpadmashali.workers.dev"
 const COLORS: Array[Color] = [
 	Color("4cc9f0"), Color("f72585"), Color("ffd60a"), Color("80ed99"), Color("ff8c42"),
@@ -34,6 +34,7 @@ var active := false        # inside a connected room
 var round_data := {}       # last "start" from host
 var round_riddle := {}     # last riddle for this round (cached for late scene loads)
 var round_hints: Array = []  # hint idxs already taken this round
+var room_topic := ""       # topic the host picked for the next round (shown in the lobby)
 var _connecting_for := 0.0
 
 
@@ -98,6 +99,7 @@ func leave() -> void:
 	round_data = {}
 	round_riddle = {}
 	round_hints = []
+	room_topic = ""
 	set_process(false)
 
 
@@ -145,6 +147,8 @@ func _handle(d: Dictionary) -> void:
 			var id := int(d.id)
 			peers[id] = str(d.name)
 			send({"t": "hello", "c": Global.character}, id)   # tell the newcomer what I look like
+			if is_host() and not room_topic.is_empty():
+				send({"t": "topic", "topic": room_topic}, id)
 			if is_host() and not round_data.is_empty():
 				# Late joiner: hand them the running round so they drop straight in.
 				send(round_data.duplicate(), id)
@@ -176,13 +180,23 @@ func _handle(d: Dictionary) -> void:
 					round_riddle = d.get("data", {})
 				"hint":
 					round_hints.append(int(d.idx))
+				"topic":
+					room_topic = str(d.get("topic", "")).left(40)
 			message.emit(int(d.get("from", 0)), d)
+
+
+# Host helper: change the room's topic (lobby + next rounds) and tell everyone.
+func set_topic(topic: String) -> void:
+	room_topic = topic.strip_edges().left(40)
+	if is_host():
+		send({"t": "topic", "topic": room_topic})
 
 
 # Host helper: start a round for everyone (and remember it locally).
 func host_start_round(topic: String, round_no: int) -> void:
 	var pool := [Global.QuestionType.MCQ, Global.QuestionType.FILL_BLANK, Global.QuestionType.WORDLE,
 		Global.QuestionType.WHACK, Global.QuestionType.WORD_LOCK, Global.QuestionType.KBC]
+	room_topic = topic
 	round_data = {"t": "start", "seed": randi(), "qtype": pool.pick_random(), "topic": topic, "round": round_no}
 	round_riddle = {}
 	round_hints = []

@@ -25,6 +25,8 @@ var _code_tiles: HBoxContainer
 var _grid: GridContainer
 var _start: Button
 var _waiting: Label
+var _topic: LineEdit          # room topic: host edits, guests see it live
+var _topic_chips: HBoxContainer
 var _t := 0.0
 
 
@@ -136,6 +138,27 @@ func _ready() -> void:
 	_grid.add_theme_constant_override("h_separation", 10)
 	_grid.add_theme_constant_override("v_separation", 8)
 	_room.add_child(_grid)
+	var topic_row := HBoxContainer.new()
+	topic_row.add_theme_constant_override("separation", 12)
+	_room.add_child(topic_row)
+	var tl := _label("Topic", 26, CREAM)
+	tl.custom_minimum_size = Vector2(70, 0)
+	topic_row.add_child(tl)
+	_topic = _field("Any topic, e.g. Space", 40)
+	_topic.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	_topic.text_changed.connect(func(t: String): if Net.is_host(): Net.set_topic(t))
+	topic_row.add_child(_topic)
+	_topic_chips = HBoxContainer.new()
+	_topic_chips.alignment = BoxContainer.ALIGNMENT_CENTER
+	_topic_chips.add_theme_constant_override("separation", 8)
+	_room.add_child(_topic_chips)
+	for t in ["Python", "Space", "Biology", "History", "Math"]:
+		var chip := _button(t, func():
+			_topic.text = t
+			Net.set_topic(t), FRAME, FRAME_HOVER)
+		chip.add_theme_font_size_override("font_size", 22)
+		chip.custom_minimum_size = Vector2(0, 40)
+		_topic_chips.add_child(chip)
 	_start = _button("Start game", _on_start, FRAME_ACTIVE, FRAME_HOVER)
 	_start.add_theme_font_size_override("font_size", 34)
 	_start.custom_minimum_size = Vector2(0, 60)
@@ -316,17 +339,30 @@ func _refresh() -> void:
 	_start.visible = Net.is_host()
 	_start.text = "Start game  (%d/%d)" % [Net.peers.size(), Net.MAX_PLAYERS]
 	_waiting.visible = not Net.is_host()
+	_topic.editable = Net.is_host()
+	_topic_chips.visible = Net.is_host()
+	if Net.is_host() and _topic.text.is_empty():
+		var t: String = get_topic.call()
+		_topic.text = t if not t.is_empty() else (Net.room_topic if not Net.room_topic.is_empty() else "")
+		Net.set_topic(_topic.text)
+	elif not Net.is_host():
+		_topic.text = Net.room_topic
+		_topic.placeholder_text = "The host picks the topic"
 
 
 func _on_start() -> void:
-	var topic: String = get_topic.call()
+	var topic: String = _topic.text.strip_edges()
 	Net.host_start_round(topic if not topic.is_empty() else "programming", 1)
 	get_tree().change_scene_to_file("res://map_components/map.tscn")
 
 
 func _on_message(_from: int, d: Dictionary) -> void:
-	if str(d.get("t", "")) == "start":
-		get_tree().change_scene_to_file("res://map_components/map.tscn")
+	match str(d.get("t", "")):
+		"start":
+			get_tree().change_scene_to_file("res://map_components/map.tscn")
+		"topic":
+			if not Net.is_host():
+				_topic.text = Net.room_topic
 
 
 func _on_disconnected(reason: String) -> void:

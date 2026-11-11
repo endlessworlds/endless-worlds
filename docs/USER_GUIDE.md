@@ -79,6 +79,11 @@ scoreboard is at the top right.
 
 Want the details? See [Multiplayer-How-It-Works.pdf](Multiplayer-How-It-Works.pdf).
 
+- **Topic:** the host types or picks the topic in the room (everyone sees it change). During a game the
+  host can open pause → **Topic** to start a new round on a different topic. Without the AI server the
+  riddle comes from the built-in question bank.
+- **Find your friends:** small arrows in each player's colour circle around you and point to where they are.
+
 ## Controls
 
 | Action | Keyboard / mouse | Gamepad / touch |
