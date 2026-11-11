@@ -11,7 +11,7 @@ const SLIDES := [
 	["res://assets/tutorial/slide5.ogv", "Walk into a well to answer the riddle"],
 	["res://assets/tutorial/slide6.ogv", "Avoid lava and deep water. Have fun learning!"],
 ]
-const TOUCH_KEYS := "Joystick move (push far to sprint) · JUMP hop · II pause · tap Bolt to talk, torch and chat"
+const TOUCH_KEYS := "Joystick move (push far to sprint) · ↑ button hops · II pause · tap Bolt to talk, torch and chat"
 const KEYS := "WASD move · Shift sprint · Space jump · V talk to Bolt · F torch · T chat · Esc pause"
 
 var _video: VideoStreamPlayer

@@ -240,7 +240,7 @@ func _create_touch_controls() -> void:
 	touch.add("pause", "II", Vector2(0, 0), Vector2(14, 14), 60, "", func():
 		if not answer_popup.visible and not get_tree().paused:
 			_open_pause(), false)
-	touch.add("jump", "JUMP", Vector2(1, 1), Vector2(-22, -100), 100, "jump")
+	touch.add("jump", "icon:jump", Vector2(1, 1), Vector2(-22, -100), 100, "jump")
 	touch.add("answer", "Use terminal" if Global.is_coding_mode else "Answer", Vector2(0.5, 1), Vector2(0, -170), 64,
 		"", func():
 			var w := _well_nearby()

@@ -55,7 +55,7 @@ The PDFs are generated from `docs/src/*.html`; see *Rebuild the PDFs* below.
 
 **Phones & web** (GitHub Pages build)
 - Portrait and landscape: the UI scale is picked from the phone's screen size, popups shrink to fit, and the home screen re-flows when you rotate or the keyboard opens
-- Touch controls: joystick, **JUMP**, **Answer** at wells, **II** pause/home, survival **DASH** with auto-aim; tap lit bulbs to read hints
+- Touch controls: joystick, jump (**↑**), **Answer** at wells, **II** pause/home, survival **DASH** with auto-aim; tap lit bulbs to read hints
 - Phone keyboard (with emoji) in every text box; big in-game keyboard for Wordle / fill-in answers
 - Bundled emoji + symbol fonts, so emoji and ● ✓ → render in the browser too (no system fonts there)
 - Fullscreen button (home screen and pause menu) and *Add to Home Screen* install (`web/manifest.webmanifest`)
