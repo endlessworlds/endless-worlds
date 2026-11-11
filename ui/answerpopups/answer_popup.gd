@@ -1079,7 +1079,9 @@ func _build_kbc_ui(options: Array):
 
 	var logo := TextureRect.new()
 	logo.texture = load("res://assets/answerpopup/kbc.png")
-	logo.custom_minimum_size = Vector2(0, 320)
+	var kvp := get_viewport().get_visible_rect().size
+	var knarrow := kvp.x < 760.0   # portrait phone: one column of answers, wrapping lifelines
+	logo.custom_minimum_size = Vector2(0, clampf(kvp.y * 0.28, 80.0, 320.0))
 	logo.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
 	logo.expand_mode = TextureRect.EXPAND_FIT_WIDTH_PROPORTIONAL
 	logo_center.add_child(logo)
@@ -1114,7 +1116,7 @@ func _build_kbc_ui(options: Array):
 	question_panel.add_child(q_label)
 
 	var options_grid := GridContainer.new()
-	options_grid.columns = 2
+	options_grid.columns = 1 if knarrow else 2
 	options_grid.add_theme_constant_override("h_separation", 16)
 	options_grid.add_theme_constant_override("v_separation", 12)
 	options_grid.size_flags_horizontal = Control.SIZE_EXPAND_FILL
@@ -1159,9 +1161,10 @@ func _build_kbc_ui(options: Array):
 	content_spacer.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	main_vbox.add_child(content_spacer)
 
-	var lifeline_bar := HBoxContainer.new()
-	lifeline_bar.alignment = BoxContainer.ALIGNMENT_CENTER
-	lifeline_bar.add_theme_constant_override("separation", 12)
+	var lifeline_bar := HFlowContainer.new()   # wraps on narrow screens
+	lifeline_bar.alignment = FlowContainer.ALIGNMENT_CENTER
+	lifeline_bar.add_theme_constant_override("h_separation", 12)
+	lifeline_bar.add_theme_constant_override("v_separation", 8)
 	lifeline_bar.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	main_vbox.add_child(lifeline_bar)
 
@@ -1195,7 +1198,7 @@ func _build_kbc_ui(options: Array):
 func _make_kbc_lifeline_btn(text: String) -> Button:
 	var btn := Button.new()
 	btn.text = text
-	btn.custom_minimum_size = Vector2(190, 55)
+	btn.custom_minimum_size = Vector2(150 if get_viewport().get_visible_rect().size.x < 760.0 else 190, 55)
 	btn.add_theme_font_override("font", preload("res://assets/fonts/Jersey10-Regular.ttf"))
 	btn.add_theme_font_size_override("font_size", 18)
 	btn.focus_mode = Control.FOCUS_NONE

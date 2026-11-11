@@ -408,7 +408,9 @@ func _build_top_bar(art: QuestArt) -> Control:
 	titles.add_theme_constant_override("separation", -4)
 	titles.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	titles.alignment = BoxContainer.ALIGNMENT_CENTER
-	titles.add_child(_label("QUEST %d  ·  %s" % [_quest_no, CATEGORY[_category][0]], 18, "muted"))
+	var quest_l := _label("QUEST %d  ·  %s" % [_quest_no, CATEGORY[_category][0]], 18, "muted")
+	quest_l.text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS
+	titles.add_child(quest_l)
 	var t := _label(str(_current_q.get("title", "Unknown quest")), 34, "accent")
 	t.text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS
 	titles.add_child(t)
@@ -423,6 +425,7 @@ func _build_top_bar(art: QuestArt) -> Control:
 	_xp_chip = _chip("+%d XP" % XP_REWARD, "accent_text", "accent", null, 22)
 	_xp_chip.size_flags_vertical = Control.SIZE_SHRINK_CENTER
 	_xp_chip.tooltip_text = "Reward for passing all tests"
+	_xp_chip.visible = not Screen.is_narrow()   # no room on a portrait phone
 	h.add_child(_xp_chip)
 
 	# light / dark segmented toggle
@@ -554,8 +557,11 @@ func _test_row(fn: String, tc: Dictionary) -> Control:
 	h.add_child(call_l)
 	h.add_child(_label("→", 24, "muted"))
 	var expected := _chip(_py_repr(tc.get("expected")), "accent", "chip", _mono, 17)
-	expected.custom_minimum_size = Vector2(96, 0)
-	(expected.get_child(0) as Label).horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	var exp_l := expected.get_child(0) as Label
+	exp_l.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	exp_l.text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS   # long results can't widen the page
+	expected.custom_minimum_size = Vector2(clampf(exp_l.text.length() * 10.0 + 24.0, 96.0, 200.0), 0)
+	expected.tooltip_text = exp_l.text
 	h.add_child(expected)
 	return row
 

@@ -1345,7 +1345,8 @@ func _show_upgrades() -> void:
 	(v.get_child(0) as HBoxContainer).get_child(1).visible = false   # no close: you always pick one
 	sfx.play("upgrade", 0.0)
 	v.add_child(PixelUI.label("Round %d cleared · Score %d" % [round_no, score], 26, PixelUI.MUTED))
-	var row := HBoxContainer.new()
+	var row := BoxContainer.new()
+	row.vertical = Screen.is_narrow()   # stacked on a portrait phone
 	row.add_theme_constant_override("separation", 12)
 	v.add_child(row)
 	var picks := range(UPGRADES.size())
@@ -1364,7 +1365,7 @@ func _show_upgrades() -> void:
 				_show_armory(func():
 					get_tree().paused = false
 					_next_round()), i == picks[0])
-		b.custom_minimum_size = Vector2(220, 120)
+		b.custom_minimum_size = Vector2(220, 120) if not row.vertical else Vector2(0, 86)
 		if _bot and i == picks[0]:
 			get_tree().create_timer(1.0, true).timeout.connect(b.emit_signal.bind("pressed"))
 		b.add_theme_font_size_override("font_size", 26)
