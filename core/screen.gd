@@ -125,5 +125,5 @@ func fullscreen_label() -> String:
 # Text helpers so hints match the device ("Tap" vs "Press E").
 func controls_hint() -> String:
 	if is_touch:
-		return "Move: joystick   Jump: JUMP   Answer: walk into a well\nTap Bolt for voice, torch and chat"
+		return "Move: joystick (push far to sprint)   Jump: JUMP\nAnswer: walk into a well or terminal   Tap Bolt for voice, torch and chat"
 	return "Move: WASD   Sprint: Shift   Jump: Space   Talk: V   Torch: F\nClick Bolt for more"

@@ -61,7 +61,8 @@ func _install_icon_font() -> void:
 	for f in [load("res://assets/fonts/Jersey10-Regular.ttf"), ThemeDB.fallback_font]:
 		if not f is Font:
 			continue
-		var fb: Array[Font] = chain.duplicate()
+		var fb: Array[Font] = []
+		fb.append_array(chain)
 		for old in f.fallbacks:
 			if not fb.has(old):
 				fb.append(old)
