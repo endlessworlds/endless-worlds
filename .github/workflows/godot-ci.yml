@@ -54,6 +54,13 @@ jobs:
         with:
           path: build/web
 
+      # Last step so its summary is at the end of the log. Doesn't block the deploy.
+      - name: Check GDScript compiles
+        continue-on-error: true
+        run: |
+          godot --headless --path . --script res://tools/check_scripts.gd 2>&1 | grep -E "SCRIPT CHECK|SCRIPT ERROR|Parse Error|Compile Error|ERROR:" | head -80
+          exit ${PIPESTATUS[0]}
+
   pages:
     # Repo Settings → Pages → Source: "GitHub Actions"
     name: Deploy web build to GitHub Pages
