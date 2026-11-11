@@ -400,12 +400,12 @@ func _dev_autoplay() -> void:
 		Net.host_room(args.get("name", "Host"), args["host-room"])
 		while Net.peers.size() < int(args.get("players", "2")):
 			await get_tree().create_timer(0.25).timeout
-		Net.host_start_round(args.get("topic", "space"), 1)
-		get_tree().change_scene_to_file("res://map_components/map.tscn")
+		Net.host_start_round(args.get("topic", "space"), 1, args.get("mode", "island"))   # --mode=survival for co-op
+		get_tree().change_scene_to_file(Net.round_scene())
 	elif args.has("join-room"):
 		Net.message.connect(func(_f, d):
-			if str(d.get("t", "")) == "start":
-				get_tree().change_scene_to_file("res://map_components/map.tscn"))
+			if str(d.get("t", "")) == "start" and is_inside_tree():
+				get_tree().change_scene_to_file(Net.round_scene()))
 		Net.disconnected.connect(func(_r):  # host may not be up yet: retry
 			await get_tree().create_timer(1.0).timeout
 			Net.join_room(args["join-room"], args.get("name", "Guest")))

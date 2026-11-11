@@ -1,0 +1,66 @@
+name: smoke-test
+
+# Automated play-through with the real engine: every screen, every answer type, coding,
+# survival (all weapons, mobs, bosses), the on-screen keyboard, and two-player online
+# sessions through the relay. Read the "Summary" steps: any SCRIPT ERROR is a real bug.
+on:
+  push:
+    branches: ['claude/**', 'feature/**']
+  pull_request:
+  workflow_dispatch:
+
+env:
+  GODOT_VERSION: 4.5.1
+
+jobs:
+  smoke:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          lfs: true
+
+      - name: Install Godot
+        run: |
+          wget -q https://github.com/godotengine/godot/releases/download/${GODOT_VERSION}-stable/Godot_v${GODOT_VERSION}-stable_linux.x86_64.zip
+          unzip -q Godot_v${GODOT_VERSION}-stable_linux.x86_64.zip
+          sudo mv Godot_v${GODOT_VERSION}-stable_linux.x86_64 /usr/local/bin/godot
+          echo "RELAY_URL=wss://endless-worlds-relay.srujanmpadmashali.workers.dev" > .env
+
+      - name: Import
+        run: godot --headless --import > import.log 2>&1 || true
+
+      - name: Compile check
+        run: godot --headless --path . res://tools/check_scripts.tscn 2>&1 | grep -E "SCRIPT CHECK|SCRIPT ERROR|Parse Error|Compile Error|at: .*gd:" | head -80 || true
+
+      - name: Play-through (desktop)
+        run: timeout 300 godot --headless --path . res://tools/smoke_test.tscn -- --surv-bot --surv-god > desktop.log 2>&1 || true
+
+      - name: Play-through (phone / touch UI)
+        run: timeout 300 godot --headless --path . res://tools/smoke_test.tscn -- --surv-bot --surv-god --touch > touch.log 2>&1 || true
+
+      - name: Two players online (riddle island)
+        run: |
+          CODE=T$(printf '%04d' $((RANDOM % 10000)))
+          timeout 50 godot --headless --path . -- --host-room=$CODE --name=Ann --sim-hint-at=10 --sim-chat-at=12 --sim-win-at=18 > mp_host.log 2>&1 &
+          sleep 3
+          timeout 46 godot --headless --path . -- --join-room=$CODE --name=Bob --sim-chat-at=14 > mp_guest.log 2>&1 || true
+          wait || true
+
+      - name: Two players online (co-op survival)
+        run: |
+          CODE=S$(printf '%04d' $((RANDOM % 10000)))
+          timeout 60 godot --headless --path . -- --host-room=$CODE --name=Ann --mode=survival --surv-bot --surv-god > sv_host.log 2>&1 &
+          sleep 3
+          timeout 56 godot --headless --path . -- --join-room=$CODE --name=Bob --surv-bot --surv-god > sv_guest.log 2>&1 || true
+          wait || true
+
+      - name: Summary
+        if: always()
+        run: |
+          for f in desktop touch mp_host mp_guest sv_host sv_guest; do
+            echo "=================== $f ==================="
+            grep -vE "RID allocations|resources still in use|^$" $f.log | grep -nE "SMOKE|SCRIPT ERROR|ERROR|WARNING: .*gd|at: |\[Net\]|\[Survival\]|Round " | cut -c1-260 | head -150 || true
+            echo "--- errors: $(grep -c 'SCRIPT ERROR' $f.log || true)"
+          done
