@@ -75,6 +75,21 @@ var _aim_view: Control
 var _reticle: Node2D
 var _coin_lbl: Label
 var _arm_list: VBoxContainer
+# day / night: one full day every DAY_LEN seconds
+const DAY_LEN := 210.0
+var _day_t := 0.25 * DAY_LEN          # start in the morning
+var _night_mod: CanvasModulate
+var _torch: HandTorch
+var _lava_lights: Array[PointLight2D] = []
+var _post: ShaderMaterial
+var dark := 0.0                       # 0 noon … 1 midnight
+var _was_night := false
+static var UNSHADED := _unshaded_mat()
+
+static func _unshaded_mat() -> CanvasItemMaterial:
+	var m := CanvasItemMaterial.new()
+	m.light_mode = CanvasItemMaterial.LIGHT_MODE_UNSHADED   # glows: not darkened at night
+	return m
 var _arm_coins: Label
 var _spawn_t := 1.0
 var _fire_t := 0.0
@@ -124,9 +139,11 @@ func _ready() -> void:
 	weapons = SurvivalArsenal.owned()
 	_build_hud()
 	_decorate_arena()
+	_build_daynight()
 	_reticle = _Reticle.new()
 	_reticle.game = self
 	_reticle.z_index = 4090
+	_reticle.material = UNSHADED
 	add_child(_reticle)
 	if Screen.is_touch:
 		_build_touch()
@@ -393,9 +410,68 @@ func _build_arena() -> void:
 	var mat := ShaderMaterial.new()
 	mat.shader = POST_SHADER
 	mat.set_shader_parameter("vignette", 0.5)
+	_post = mat
 	fx.material = mat
+	fx.visible = not Screen.low()
 	layer.add_child(fx)
 	add_child(layer)
+
+
+# ------------------------------------------------------------------ day / night
+# Same idea as the main island: one CanvasModulate darkens the world, lights add it
+# back (your torch, glowing lava), shots and blasts stay bright, low sun = light shafts.
+func _build_daynight() -> void:
+	_night_mod = CanvasModulate.new()
+	add_child(_night_mod)
+	_torch = HandTorch.new(player.get_node("AnimatedSprite2D"))
+	_torch.max_energy = 0.9
+	player.add_child(_torch)
+	var buckets := {}
+	for cell in tilemap.get_used_cells():
+		if tilemap.get_cell_atlas_coords(cell) == LAVA:
+			var key := Vector2i(cell.x / 5, cell.y / 5)
+			if not buckets.has(key):
+				buckets[key] = [Vector2.ZERO, 0]
+			buckets[key][0] += (Vector2(cell) + Vector2(0.5, 0.5)) * TILE
+			buckets[key][1] += 1
+	for key in buckets:
+		if Screen.low() and _lava_lights.size() >= 3:
+			break
+		var n: int = buckets[key][1]
+		var l := PointLight2D.new()
+		l.texture = preload("res://assets/wildlife/light_soft.png")
+		l.color = Color(1.0, 0.45, 0.12)
+		l.texture_scale = clampf(0.35 + sqrt(n) * 0.16, 0.45, 1.4)
+		l.position = buckets[key][0] / n
+		l.range_z_min = -4096
+		l.range_z_max = 4096
+		l.energy = 0.0
+		add_child(l)
+		_lava_lights.append(l)
+
+
+func _update_daynight(delta: float) -> void:
+	if state != "intro":
+		_day_t = fmod(_day_t + delta, DAY_LEN)
+	var h := _day_t / DAY_LEN * 24.0                  # 0..24 "hours"
+	var day := smoothstep(4.5, 7.5, h) * (1.0 - smoothstep(17.5, 20.5, h))
+	dark = 1.0 - day
+	var dusk := clampf(1.0 - absf(h - 19.0) / 1.8, 0.0, 1.0) + clampf(1.0 - absf(h - 6.0) / 1.8, 0.0, 1.0)
+	var night := Color(0.3, 0.34, 0.58)
+	var c := night.lerp(Color.WHITE, day).lerp(Color(1.0, 0.75, 0.55), dusk * 0.45)
+	_night_mod.color = c
+	_torch.set_lit(dark > 0.4)
+	for l in _lava_lights:
+		l.energy = lerpf(0.15, 0.9, dark) * (0.9 + 0.1 * sin(_t * 2.0 + l.position.x))
+	if _post:
+		_post.set_shader_parameter("vignette", lerpf(0.42, 0.62, dark))
+		_post.set_shader_parameter("saturation", lerpf(1.12, 0.92, dark))
+		_post.set_shader_parameter("sun_rays", dusk * day * 0.9)
+		_post.set_shader_parameter("sun_pos", Vector2(1.15 if h < 12.0 else -0.15, -0.2))
+	var is_night := dark > 0.6
+	if is_night != _was_night and state in ["waves", "boss_wait", "boss"]:
+		banner_small("Night falls… light your way" if is_night else "The sun rises")
+	_was_night = is_night
 
 
 func _island_center() -> Vector2:
@@ -549,6 +625,7 @@ func clone_of(b: SurvivalMob) -> void:
 
 # ------------------------------------------------------------------ main loop
 func _process(delta: float) -> void:
+	_update_daynight(delta)
 	if state == "intro" or state == "over":
 		return
 	_t += delta
@@ -791,6 +868,7 @@ func _zap(pts: Array[Vector2]) -> void:
 	var z := _Zap.new()
 	z.points = pts
 	z.z_index = 4070
+	z.material = UNSHADED
 	add_child(z)
 
 
@@ -902,6 +980,7 @@ func shoot(at: Vector2, vel: Vector2, dmg: float, col: Color, hostile := true) -
 	s.color = col
 	s.hostile = hostile
 	s.z_index = 4000
+	s.material = UNSHADED
 	add_child(s)
 	shots.append(s)
 	return s
@@ -931,6 +1010,7 @@ func explode(at: Vector2, radius: float, dmg: int, hurts_player: bool, hurts_mob
 	b.position = at
 	b.radius = radius
 	b.z_index = 4050
+	b.material = UNSHADED
 	add_child(b)
 	sfx.play("boom", 0.2)
 	if hurts_player or radius > 34.0:
@@ -943,7 +1023,13 @@ func explode(at: Vector2, radius: float, dmg: int, hurts_player: bool, hurts_mob
 				m.hit(mob_dmg, (m.position - at).normalized())
 
 
+var _floaters := 0
+
 func floater(at: Vector2, text: String, col: Color) -> void:
+	# cap damage numbers (shotguns + swarms made hundreds of labels on phones)
+	if _floaters > (12 if Screen.low() else 30) and not text.ends_with("!"):
+		return
+	_floaters += 1
 	var l := Label.new()
 	l.text = text
 	l.add_theme_font_override("font", FONT)
@@ -954,11 +1040,14 @@ func floater(at: Vector2, text: String, col: Color) -> void:
 	l.scale = Vector2(0.5, 0.5)
 	l.position = at + Vector2(randf_range(-6, 2), -6)
 	l.z_index = 4095
+	l.material = UNSHADED
 	add_child(l)
 	var tw := create_tween().set_parallel()
 	tw.tween_property(l, "position:y", l.position.y - 14.0, 0.6)
 	tw.tween_property(l, "modulate:a", 0.0, 0.6).set_delay(0.2)
-	tw.chain().tween_callback(l.queue_free)
+	tw.chain().tween_callback(func():
+		_floaters -= 1
+		l.queue_free())
 
 
 func telegraph(at: Vector2, radius: float, time: float) -> void:
@@ -967,6 +1056,7 @@ func telegraph(at: Vector2, radius: float, time: float) -> void:
 	w.radius = radius
 	w.time = time
 	w.z_index = int(at.y / 2.0) - 1
+	w.material = UNSHADED
 	add_child(w)
 
 
@@ -976,6 +1066,7 @@ func telegraph_line(from: Vector2, dir: Vector2, length: float, time: float) -> 
 	w.line = dir * length
 	w.time = time
 	w.z_index = int(from.y / 2.0) - 1
+	w.material = UNSHADED
 	add_child(w)
 
 
@@ -989,6 +1080,7 @@ func drop_coins(at: Vector2, total: int) -> void:
 		c.position = at
 		c.vel = Vector2.RIGHT.rotated(randf() * TAU) * randf_range(30.0, 90.0)
 		c.z_index = int(at.y / 2.0) + 1
+		c.material = UNSHADED
 		add_child(c)
 
 

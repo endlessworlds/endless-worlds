@@ -16,7 +16,7 @@ func _process(_delta):
 	visible = (h >= 19 or h <= 4) # ✅ 7PM → 4AM
 
 func _spawn_fireflies():
-	for i in range(firefly_count):
+	for i in range(Screen.fx_count(firefly_count, 0.3)):
 		var f := Sprite2D.new()
 		f.texture = _make_pixel_texture()
 		f.modulate = Color(1.0, 1.0, 0.6, 0.0)

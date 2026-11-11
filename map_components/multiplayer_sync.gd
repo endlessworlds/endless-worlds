@@ -158,7 +158,7 @@ func _process(delta: float) -> void:
 		return
 	_send_t = 1.0 / SEND_HZ
 	var msg := {"t": "pos", "x": snappedf(player.position.x, 0.1), "y": snappedf(player.position.y, 0.1),
-		"a": str(_sprite.animation), "f": _sprite.frame, "h": _sprite.flip_h, "s": Global.score,
+		"a": str(_sprite.animation), "h": _sprite.flip_h, "s": Global.score,
 		"tc": map.atmosphere != null and map.atmosphere.torch.lit, "z": snappedf(player.jump_h, 0.5), "c": Global.character}
 	if msg == _last_sent and _since_sent < 1.0:
 		return  # idle: only a 1 Hz heartbeat

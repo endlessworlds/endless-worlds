@@ -32,6 +32,8 @@ func setup(map: Node2D, player: Node2D, time_sys: Node, snowy: bool) -> void:
 	_post.shader = POST_SHADER
 	_post.set_shader_parameter("tint", Vector3(0.94, 0.98, 1.06) if snowy else Vector3(1.03, 1.0, 0.96))
 	rect.material = _post
+	rect.visible = not Screen.low()   # the full-screen pass is the costliest thing on phones
+	Screen.quality_changed.connect(func(): rect.visible = not Screen.low())
 	layer.add_child(rect)
 	map.add_child(layer)
 	map.move_child(layer, 0)
