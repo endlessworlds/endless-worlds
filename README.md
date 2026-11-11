@@ -61,10 +61,11 @@ The PDFs are generated from `docs/src/*.html`; see *Rebuild the PDFs* below.
 - Auto fullscreen on phones, Fullscreen button, and an **Install app** button (`web/manifest.webmanifest`)
 
 **Survival mode** (hidden: the small 🐛 button on the Stats page)
-- A separate arcade game, pure GDScript (no AI server): waves of 10 mob types, each with its own AI (chasers, archers, splitting slimes, erratic bats, lunging spiders, phasing ghosts, exploding bombers, teleporting mages, tanky golems, wolf packs)
-- Random mutations on mobs: Giant, Swift, Armored, Vampiric, Explosive, Regenerating, Splitting, Phasing, Burning, Tiny
-- A boss with a boss bar ends every round: 10 named bosses, then endless generated ones (random look, name and 3 of 12 attack patterns); bosses enrage at half health
-- Shoot toward the mouse (or J), dash with right-click (or K), pick 1 of 3 upgrades after each boss; best round and score saved
+- A separate arcade game, pure GDScript (no AI server), on a random island (coastline, ponds, lava; walkers can't swim, flyers can)
+- 12 mob types with their own AI (chasers, multi-coloured splitting slimes, erratic bats, ramming flying eyes, skeleton archers, lunging spiders, stinger-firing hornets, wolf packs, phasing ghosts, bombers, teleporting mages, golems) plus random mutations
+- A boss ends every round: 12 named bosses, then endless generated ones; telegraphed slams and charges (red zones)
+- 6 weapons (bolt, scatter wand, flame staff, star spear, moon boomerang, storm rod), bought and levelled to ★5 with coins in the Armory, saved between runs; perks after each boss; crits
+- PC: mouse aim + reticle, Q/E or wheel to switch; phones: twin-stick (left move, right drag to aim, auto-aim when idle)
 - Sprites: `tools/make_mobs.py`; test flags `--surv-round=N --surv-bot --surv-god --surv-boss-now`
 
 **Multiplayer** (details in the PDF)

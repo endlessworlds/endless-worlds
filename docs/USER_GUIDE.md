@@ -112,21 +112,34 @@ Want the details? See [Multiplayer-How-It-Works.pdf](Multiplayer-How-It-Works.pd
 
 Open **Stats** and press the small **🐛** button next to the close button.
 
-- Waves of monsters climb out of purple portals. Clear them all and a **boss** arrives, with its
-  health bar at the top. Beat it to pick one of three upgrades, then the next round starts.
-- After the 10 named bosses (Slime King, Bone Lord, Ember Golem…), every round brings a brand-new
-  generated boss. It never ends.
-- Some monsters are **mutated**: their tag (Swift, Giant, Explosive, Vampiric…) shows when they're close.
+- Every run is a new **island**: beaches, ponds, lava pools and trees. Walkers can't cross water;
+  bats, eyes, hornets and ghosts fly over it.
+- Waves of monsters climb out of purple portals: zombies, slimes in many colours, bats, flying eyes,
+  skeleton archers, spiders, hornets, wolf packs, ghosts, bombers, mages and golems. Some are
+  **mutated** (Swift, Giant, Explosive, Vampiric…).
+- Clear a wave and a **boss** arrives (Slime King, The Watcher, Bone Lord, Hive Queen… then endless
+  generated ones). Red zones on the ground show where a slam or charge will land: step out of them.
+- After each boss: pick a **perk** (damage, fire rate, multishot, crits, max heart…), then visit the
+  **🛒 Armory**.
+- Monsters drop **🪙 coins**. In the Armory buy new weapons and level them up to ★5. Coins and weapons
+  are **saved between runs**.
 
-| Action | Control |
+| Weapon | |
 |---|---|
-| Shoot | hold left mouse (aims at the cursor) or **J** |
-| Dash (brief invulnerability) | right mouse or **K** |
-| Move / sprint / jump | WASD / Shift / Space |
-| Pause | Esc |
+| ✦ Arcane Bolt | quick bolts, any range (you start with it) |
+| ✸ Scatter Wand | shotgun burst, huge up close |
+| 🔥 Flame Staff | exploding fireballs for groups |
+| ➶ Star Spear | very fast, pierces several enemies |
+| ☾ Moon Boomerang | flies out and back, hits twice |
+| ⚡ Storm Rod | lightning that chains between enemies |
 
-On a phone: joystick to move, bolts **auto-aim** at the nearest monster, **DASH** and jump (**↑**)
-buttons bottom-right, **II** to pause.
+| Action | PC | Phone |
+|---|---|---|
+| Aim + shoot | mouse, hold left button (or **J**) | drag on the right half of the screen; let go to auto-aim |
+| Switch weapon | **Q / E**, **1-6**, mouse wheel | **⇄** button |
+| Dash (brief invulnerability) | right mouse or **K** | **DASH** |
+| Move / sprint / jump | WASD / Shift / Space | left joystick (push far to sprint) / **↑** |
+| Pause | Esc | **II** |
 
 Your best round and score appear on the Stats page.
 
