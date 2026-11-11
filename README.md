@@ -66,10 +66,12 @@ The PDFs are generated from `docs/src/*.html`; see *Rebuild the PDFs* below.
 - A boss ends every round: 12 named bosses, then endless generated ones; telegraphed slams and charges (red zones)
 - 6 weapons (bolt, scatter wand, flame staff, star spear, moon boomerang, storm rod), bought and levelled to ★5 with coins in the Armory, saved between runs; perks after each boss; crits
 - PC: mouse aim + reticle, Q/E or wheel to switch; phones: twin-stick (left move, right drag to aim, auto-aim when idle)
+- Co-op over the relay (👥 Co-op): host-authoritative monsters streamed at 10 Hz, batched monster shots simulated on every client, guests report hits; per-player coins/weapons/perks; ghosts revive next round
+- Day/night cycle with hand torch, glowing lava and light shafts
 - Sprites: `tools/make_mobs.py`; test flags `--surv-round=N --surv-bot --surv-god --surv-boss-now`
 
 **Multiplayer** (details in the PDF)
-- Room codes, up to 10 players, coloured name tags, chat bubbles, live scoreboard; everyone keeps their chosen character
+- Room codes and invite links (`?room=CODE` joins directly), up to 10 players, coloured name tags, chat bubbles, live scoreboard; everyone keeps their chosen character
 - The host is the authority: one seed → identical worlds; the host's riddle and hints are shared; first correct answer wins
 - Guests' voice questions are answered by the **host's** AI server through the relay, so guests need no Python
 - Relay: Cloudflare Worker + Durable Object on the **free plan**, deployed at `wss://endless-worlds-relay.srujanmpadmashali.workers.dev`

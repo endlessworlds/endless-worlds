@@ -71,6 +71,11 @@ var _spiral_a := 0.0
 var _shots_left := 0
 var _jump_from := Vector2.ZERO
 var enraged := false
+# co-op
+var net_id := 0                 # id shared with the other players (0 = solo)
+var remote := false             # guest-side copy of a monster the host simulates
+var net_target := Vector2.ZERO
+var _last_x := 0.0
 
 
 func setup(g: Node, tname: String, muts: Array[String], round_no: int, boss_def: Dictionary = {}) -> void:
@@ -168,8 +173,15 @@ func untouchable() -> bool:
 	return dead or phased or state == "vanish"
 
 
-func hit(amount: float, dir: Vector2, crit := false) -> void:
+func hit(amount: float, dir: Vector2, crit := false, from_net := false) -> void:
 	if untouchable():
+		return
+	if remote:   # co-op guest: the host owns this monster's health
+		game.report_hit(self, amount, dir, crit)
+		flash = 0.09
+		game.sfx.play("hit", 0.2)
+		var t2 := str(snappedf(amount * armor, 0.1)).trim_suffix(".0")
+		game.floater(center(), t2 + "!" if crit else t2, Color(1.0, 0.55, 0.2) if crit else Color(1, 0.95, 0.6))
 		return
 	var real := amount * armor
 	hp -= real
@@ -177,8 +189,9 @@ func hit(amount: float, dir: Vector2, crit := false) -> void:
 	game.sfx.play("hit", 0.2)
 	if not is_boss and type_name != "golem":
 		kb += dir * (130.0 if crit else 90.0)
-	var txt := str(snappedf(real, 0.1)).trim_suffix(".0")
-	game.floater(center(), txt + "!" if crit else txt, Color(1.0, 0.55, 0.2) if crit else Color(1, 0.95, 0.6))
+	if not from_net:   # a guest's hit already showed its number on their screen
+		var txt := str(snappedf(real, 0.1)).trim_suffix(".0")
+		game.floater(center(), txt + "!" if crit else txt, Color(1.0, 0.55, 0.2) if crit else Color(1, 0.95, 0.6))
 	if hp <= 0.0:
 		dead = true
 		game.mob_died(self)
@@ -304,6 +317,29 @@ func tick(delta: float, ppos: Vector2) -> void:
 	z_index = int(position.y * 2.0 / 4.0)
 	if tag:   # mutation names only near the player, so big swarms stay readable
 		tag.visible = dist < 140.0
+
+
+# Co-op guests: glide to the host's position and animate locally (no AI here).
+func puppet_tick(delta: float) -> void:
+	t += delta
+	flash -= delta
+	position = position.lerp(net_target, clampf(delta * 12.0, 0.0, 1.0))
+	var dx := position.x - _last_x
+	_last_x = position.x
+	if absf(dx) > 0.05:
+		spr.flip_h = dx < 0.0
+	spr.frame = int(t * 5.0) % 2
+	var c := Color(3, 3, 3) if flash > 0.0 else tint
+	if state == "tele_dash" and int(t * 12.0) % 2 == 0:
+		c = Color(2.5, 0.6, 0.6)
+	if enraged:
+		c = c * Color(1.25, 0.8, 0.8)
+	spr.self_modulate = Color(c, 0.3 if phased else 1.0)
+	if is_flyer():
+		spr.position.y = -4.0 + sin(t * 5.0) * 1.5
+	z_index = int(position.y * 2.0 / 4.0)
+	if tag:
+		tag.visible = position.distance_to(game.ppos()) < 140.0
 
 
 # telegraph, then dash at the player (spiders, wolves)

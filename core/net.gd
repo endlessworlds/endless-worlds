@@ -39,6 +39,7 @@ var _connecting_for := 0.0
 
 
 func _ready() -> void:
+	process_mode = Node.PROCESS_MODE_ALWAYS   # keep the connection alive behind paused menus
 	var env := EnvLoader.load_env()
 	relay_url = str(env.get("RELAY_URL", ProjectSettings.get_setting("application/config/relay_url", DEFAULT_RELAY))).trim_suffix("/")
 	set_process(false)
@@ -185,6 +186,41 @@ func _handle(d: Dictionary) -> void:
 			message.emit(int(d.get("from", 0)), d)
 
 
+# Scene for the running round: the riddle island or co-op Survival.
+func round_scene() -> String:
+	return "res://survival/survival.tscn" if str(round_data.get("mode", "island")) == "survival" else "res://map_components/map.tscn"
+
+
+func in_survival() -> bool:
+	return active and str(round_data.get("mode", "")) == "survival"
+
+
+# Invite link for the current room: the game's own URL with ?room=CODE.
+func invite_link() -> String:
+	var base := "https://endlessworlds.github.io/endless-worlds/"
+	if OS.has_feature("web"):
+		var v = JavaScriptBridge.eval("location.origin + location.pathname", true)
+		if typeof(v) == TYPE_STRING and not str(v).is_empty():
+			base = str(v)
+	return "%s?room=%s" % [base, room_code]
+
+
+# Room code from an invite link this page was opened with (web), once.
+var _invite_checked := false
+
+func take_invite_code() -> String:
+	if _invite_checked or not OS.has_feature("web"):
+		return ""
+	_invite_checked = true
+	var v = JavaScriptBridge.eval("""(function () {
+		var c = new URLSearchParams(location.search).get('room') || '';
+		if (c) { try { history.replaceState(null, '', location.pathname); } catch (e) {} }
+		return c;
+	})()""", true)
+	var code := str(v).strip_edges().to_upper() if typeof(v) == TYPE_STRING else ""
+	return code if code.length() >= 4 and code.length() <= 8 else ""
+
+
 # Host helper: change the room's topic (lobby + next rounds) and tell everyone.
 func set_topic(topic: String) -> void:
 	room_topic = topic.strip_edges().left(40)
@@ -193,11 +229,13 @@ func set_topic(topic: String) -> void:
 
 
 # Host helper: start a round for everyone (and remember it locally).
-func host_start_round(topic: String, round_no: int) -> void:
+func host_start_round(topic: String, round_no: int, mode := "") -> void:
 	var pool := [Global.QuestionType.MCQ, Global.QuestionType.FILL_BLANK, Global.QuestionType.WORDLE,
 		Global.QuestionType.WHACK, Global.QuestionType.WORD_LOCK, Global.QuestionType.KBC]
 	room_topic = topic
-	round_data = {"t": "start", "seed": randi(), "qtype": pool.pick_random(), "topic": topic, "round": round_no}
+	if mode.is_empty():
+		mode = str(round_data.get("mode", "island"))
+	round_data = {"t": "start", "seed": randi(), "qtype": pool.pick_random(), "topic": topic, "round": round_no, "mode": mode}
 	round_riddle = {}
 	round_hints = []
 	send(round_data.duplicate())

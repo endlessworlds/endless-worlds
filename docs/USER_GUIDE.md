@@ -82,6 +82,8 @@ Want the details? See [Multiplayer-How-It-Works.pdf](Multiplayer-How-It-Works.pd
 - **Topic:** the host types or picks the topic in the room (everyone sees it change). During a game the
   host can open pause → **Topic** to start a new round on a different topic. Without the AI server the
   riddle comes from the built-in question bank.
+- **Invite link:** in the room, **🔗 Share invite link** (phones open the share sheet; it's also
+  copied). Anyone who opens the link joins your room straight away.
 - **Find your friends:** small arrows in each player's colour circle around you and point to where they are.
 
 ## Controls
@@ -102,6 +104,9 @@ Want the details? See [Multiplayer-How-It-Works.pdf](Multiplayer-How-It-Works.pd
 | Fullscreen | pause menu or home screen | pause menu or home screen |
 
 ### Phones and tablets (web build)
+
+- **Graphics** (Stats page): *Auto* uses *Low* on phones and tablets for smooth play: the game draws at
+  its own resolution, skips the full-screen effects pass and uses fewer particles. Pick *High* or *Low* yourself any time.
 
 - Works in portrait and landscape; the screen re-fits when you rotate.
 - Tap any text box (topic, name, room code, chat, Bolt, code editor) and the game's own keyboard
@@ -145,6 +150,12 @@ Open **Stats** and press the small **🐛** button next to the close button.
 | Dash (brief invulnerability) | right mouse or **K** | **DASH** |
 | Move / sprint / jump | WASD / Shift / Space | left joystick (push far to sprint) / **↑** |
 | Pause | Esc | **II** |
+
+**Co-op:** on the Survival start screen press **👥 Co-op**, create a room and share the code or the
+invite link. The host's game runs the monsters; everyone shares the waves and bosses, but each
+player keeps their own coins, weapons and perks. If you fall you're a ghost until the next round;
+the run ends when the whole team is down. Day turns to night every few minutes: your torch lights
+itself and lava glows.
 
 Your best round and score appear on the Stats page.
 

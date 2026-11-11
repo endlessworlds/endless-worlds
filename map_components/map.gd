@@ -267,7 +267,7 @@ func _open_topic_picker() -> void:
 		Global.input_locked = false
 		Net.set_topic(topic)
 		Net.host_start_round(topic, int(Net.round_data.get("round", 1)) + 1)
-		get_tree().change_scene_to_file("res://map_components/map.tscn"), true)
+		get_tree().change_scene_to_file(Net.round_scene()), true)
 	go.custom_minimum_size = Vector2(0, 56)
 	field.text_submitted.connect(func(_t): go.pressed.emit())
 	v.add_child(go)
