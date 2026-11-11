@@ -14,18 +14,15 @@ var key_nodes: Dictionary = {}
 const ALPHA_ROWS = [
 	["Q", "W", "E", "R", "T", "Y", "U", "I", "O", "P"],
 	["A", "S", "D", "F", "G", "H", "J", "K", "L"],
-	["SHIFT", "Z", "X", "C", "V", "B", "N", "M", "BKSP"],
+	["Z", "X", "C", "V", "B", "N", "M", "BKSP"],
 	["SPACE", "ENTER"]
 ]
+const KEY_LABELS = {"BKSP": "DEL", "SPACE": "SPACE", "ENTER": "ENTER"}
 
 func _ready():
-	# --- SCREEN SIZING LOGIC ---
-	var screen_width = get_viewport_rect().size.x
-	# Set max width to half of screen
-	custom_minimum_size.x = screen_width / 2
-	
-	# Center the keyboard horizontally
-	size_flags_horizontal = Control.SIZE_SHRINK_CENTER
+	# Fill the popup's column (it used to be fixed at half the screen width, which was
+	# far too narrow to hit on a phone). Keys get taller in portrait where there's room.
+	size_flags_horizontal = Control.SIZE_FILL
 	
 	# Tray Background
 	var tray_style = StyleBoxFlat.new()
@@ -60,18 +57,20 @@ func _build_alpha_rows():
 		
 		for key_text in row_data:
 			var btn = _create_key_button(key_text)
-			if key_text in ["SPACE", "ENTER", "SHIFT", "BKSP"]:
-				btn.size_flags_stretch_ratio = 1.5
+			if key_text in ["SPACE", "ENTER", "BKSP"]:
+				btn.size_flags_stretch_ratio = 3.0 if key_text == "SPACE" else 1.6
 			row_hbox.add_child(btn)
 
 func _create_key_button(txt: String) -> Button:
 	var btn = Button.new()
-	btn.text = txt
+	btn.text = KEY_LABELS.get(txt, txt)
 	btn.focus_mode = Control.FOCUS_NONE
+	# Register on finger-down, like a phone keyboard (fast typing doesn't drop keys).
+	btn.action_mode = BaseButton.ACTION_MODE_BUTTON_PRESS
 	
 	btn.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	btn.size_flags_vertical = Control.SIZE_EXPAND_FILL
-	btn.custom_minimum_size.y = 40
+	btn.custom_minimum_size = Vector2(24, 54 if Screen.is_portrait() else (46 if Screen.is_touch else 40))
 	btn.pivot_offset = Vector2(20, 20) # Center pivot for scaling
 	
 	# Store in dictionary for PC input lookup
@@ -95,7 +94,7 @@ func _create_key_button(txt: String) -> Button:
 	btn.add_theme_stylebox_override("normal", style)
 	btn.add_theme_stylebox_override("hover", style)
 	btn.add_theme_stylebox_override("pressed", style)
-	btn.add_theme_font_size_override("font_size", 20)
+	btn.add_theme_font_size_override("font_size", 26 if Screen.is_touch else 20)
 	
 	btn.pressed.connect(_on_key_down.bind(txt))
 	return btn
@@ -144,5 +143,4 @@ func _on_key_down(key: String):
 		"BKSP": backspace_pressed.emit()
 		"ENTER": enter_pressed.emit()
 		"SPACE": key_pressed.emit(" ")
-		"SHIFT": pass
 		_: key_pressed.emit(key)

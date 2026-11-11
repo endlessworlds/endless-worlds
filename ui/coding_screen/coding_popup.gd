@@ -44,6 +44,7 @@ var _mono: Font
 var _c: Dictionary = DARK
 var _http: HTTPRequest
 var _root: Control
+var _body: BoxContainer          # quest + editor: row on wide screens, column in portrait
 var _hearts: Node
 var _current_q: Dictionary
 var _category := "generic"
@@ -94,7 +95,7 @@ func open(hearts: Node = null) -> void:
 	_root.modulate.a = 0.0
 	var tw := create_tween().set_parallel()
 	tw.tween_property(_root, "modulate:a", 1.0, 0.3).set_ease(Tween.EASE_OUT)
-	_editor.grab_focus.call_deferred()
+	_focus_editor.call_deferred()
 
 
 func close() -> void:
@@ -146,7 +147,7 @@ func _show_current_quest() -> void:
 	var old := _root
 	_load_question()
 	_build()
-	_editor.grab_focus()
+	_focus_editor()
 	if old:
 		old.queue_free()
 	_root.modulate.a = 0.0
@@ -189,7 +190,7 @@ func _toggle_theme(to_light: bool) -> void:
 	if _solved:
 		_show_success(_success_feedback)   # keep the "quest complete" card up
 		return
-	_editor.grab_focus()
+	_focus_editor()
 	_editor.set_caret_line(_caret.y)
 	_editor.set_caret_column(_caret.x)
 
@@ -201,10 +202,24 @@ func _capture_state() -> void:
 
 
 func _make_mono() -> Font:
+	# Browsers expose no system fonts to the web build: ship our own monospace there.
+	if OS.has_feature("web"):
+		return load("res://assets/fonts/DejaVuSansMono-Code.ttf")
 	var sf := SystemFont.new()
 	sf.font_names = PackedStringArray(["Cascadia Mono", "Consolas", "JetBrains Mono", "Menlo", "DejaVu Sans Mono", "Courier New", "monospace"])
 	sf.antialiasing = TextServer.FONT_ANTIALIASING_GRAY
 	return sf
+
+
+func _on_layout_changed() -> void:
+	if is_instance_valid(_body):
+		_body.vertical = Screen.is_portrait()
+
+
+# Phones: don't pop the on-screen keyboard over the quest before the player taps the editor.
+func _focus_editor() -> void:
+	if _editor and not Screen.is_touch:
+		_editor.grab_focus()
 
 
 func _sb(bg: Color, border: Color = Color(0, 0, 0, 0), radius := 10, bw := 0, pad := Vector4(0, 0, 0, 0)) -> StyleBoxFlat:
@@ -331,12 +346,19 @@ func _build() -> void:
 	art.setup(_current_q, _is_dark())
 	col.add_child(_build_top_bar(art))
 
-	var body := HBoxContainer.new()
+	# Side by side on wide screens; stacked (quest above editor) on a portrait phone.
+	var body := BoxContainer.new()
+	body.vertical = Screen.is_portrait()
+	_body = body
 	body.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	body.add_theme_constant_override("separation", 14)
 	col.add_child(body)
 	body.add_child(_build_left(art))
 	body.add_child(_build_right())
+	for side in body.get_children():
+		(side as Control).size_flags_vertical = Control.SIZE_EXPAND_FILL
+	if not Screen.layout_changed.is_connected(_on_layout_changed):
+		Screen.layout_changed.connect(_on_layout_changed)
 
 	_set_status(_status)
 	_refresh_hearts()
@@ -612,7 +634,9 @@ func _build_right() -> Control:
 	var fh := HBoxContainer.new()
 	fh.add_theme_constant_override("separation", 10)
 	foot.add_child(fh)
-	var keys := _label("Ctrl + Enter  to run     ·     Esc  to close", 19, "muted")
+	var keys := _label("Tap RUN CODE to test" if Screen.is_touch else "Ctrl + Enter  to run     ·     Esc  to close", 19, "muted")
+	keys.text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS
+	keys.clip_text = true
 	keys.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	keys.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
 	fh.add_child(keys)
@@ -752,7 +776,7 @@ func _reset_code() -> void:
 	_editor.text = str(_current_q.get("startingCode", ""))
 	_editor.set_caret_line(_editor.get_line_count() - 1)
 	_editor.set_caret_column(_editor.get_line(_editor.get_line_count() - 1).length())
-	_editor.grab_focus()
+	_focus_editor()
 
 
 func _on_editor_input(event: InputEvent) -> void:
@@ -928,6 +952,7 @@ func _show_success(feedback: String) -> void:
 	(card.get_theme_stylebox("panel") as StyleBoxFlat).border_color = _c.accent
 	(card.get_theme_stylebox("panel") as StyleBoxFlat).set_border_width_all(3)
 	center.add_child(card)
+	ScreenFit.attach(center, card)
 	var v := VBoxContainer.new()
 	v.add_theme_constant_override("separation", 10)
 	card.add_child(v)

@@ -59,7 +59,7 @@ func _entry(text: String, answer: String, topic: String) -> void:
 	p.add_child(box)
 	var body := PixelUI.label(text, 24, PixelUI.CREAM, false)
 	body.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	body.custom_minimum_size = Vector2(700, 0)
+	body.custom_minimum_size = Vector2(minf(700.0, PixelUI.avail_width(70.0)), 0)
 	box.add_child(body)
 	var foot := HBoxContainer.new()
 	box.add_child(foot)

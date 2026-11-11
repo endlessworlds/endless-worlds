@@ -56,6 +56,8 @@ try {
     if (-not $SkipWeb) {
         Write-Host "==> Exporting Web build"
         & $Godot --headless --path $root --export-release "Web" "build/web/index.html"
+        # "Add to Home Screen" manifest + icons (fullscreen app on phones)
+        Copy-Item "$root\web\manifest.webmanifest", "$root\web\icon_*.png" "$build\web\" -Force
     }
 }
 finally {

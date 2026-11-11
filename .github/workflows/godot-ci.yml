@@ -42,6 +42,8 @@ jobs:
           godot --headless --export-release "Web" build/web/index.html
           godot --headless --export-release "Windows Desktop" build/windows/EndlessWorlds.exe
           cp build/web/index.html build/web/404.html
+          # "Add to Home Screen" manifest + icons (fullscreen app on phones)
+          cp web/manifest.webmanifest web/icon_*.png build/web/
 
       - uses: actions/upload-artifact@v4
         with:

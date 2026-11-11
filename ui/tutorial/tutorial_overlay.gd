@@ -11,6 +11,7 @@ const SLIDES := [
 	["res://assets/tutorial/slide5.ogv", "Walk into a well to answer the riddle"],
 	["res://assets/tutorial/slide6.ogv", "Avoid lava and deep water. Have fun learning!"],
 ]
+const TOUCH_KEYS := "Joystick move (push far to sprint) · JUMP hop · II pause · tap Bolt to talk, torch and chat"
 const KEYS := "WASD move · Shift sprint · Space jump · V talk to Bolt · F torch · T chat · Esc pause"
 
 var _video: VideoStreamPlayer
@@ -28,7 +29,8 @@ func open() -> void:
 	_video = VideoStreamPlayer.new()
 	_video.expand = true
 	_video.loop = true
-	_video.custom_minimum_size = Vector2(640, 360)
+	var vw := minf(640.0, PixelUI.avail_width(60.0))
+	_video.custom_minimum_size = Vector2(vw, vw * 9.0 / 16.0)
 	frame.add_child(_video)
 	_text = PixelUI.label("", 30)
 	v.add_child(_text)
@@ -45,7 +47,10 @@ func open() -> void:
 	_next = PixelUI.button("Next", _go.bind(1), true)
 	_next.custom_minimum_size.x = 150
 	nav.add_child(_next)
-	v.add_child(PixelUI.label(KEYS, 20, PixelUI.MUTED))
+	var keys := PixelUI.label(TOUCH_KEYS if Screen.is_touch else KEYS, 20, PixelUI.MUTED)
+	keys.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	keys.custom_minimum_size.x = minf(640.0, PixelUI.avail_width(60.0))
+	v.add_child(keys)
 	_go(0)
 
 
@@ -57,6 +62,8 @@ func _go(step: int) -> void:
 	_video.stream = load(SLIDES[_i][0])
 	_video.play()
 	_text.text = SLIDES[_i][1]
+	if Screen.is_touch:
+		_text.text = _text.text.replace("Click", "Tap").replace("Hover", "Tap")
 	_count.text = "%d / %d" % [_i + 1, SLIDES.size()]
 	_prev.disabled = _i == 0
 	_next.text = "Got it!" if _i == SLIDES.size() - 1 else "Next"

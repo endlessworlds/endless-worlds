@@ -34,8 +34,8 @@ func _ready():
 	panel.anchor_bottom = 0.5
 	panel.offset_left = -340 
 	panel.offset_right = -10
-	panel.offset_top = -200 
-	panel.offset_bottom = 350
+	panel.offset_top = -275   # centred vertically so it fits short (phone) screens
+	panel.offset_bottom = 275
 
 	var vbox = $Panel/VBox
 	vbox.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT, Control.PRESET_MODE_KEEP_SIZE, 12)
@@ -71,9 +71,16 @@ func _ready():
 
 	set_process(true)
 
-func _process(_d):
+var _refresh_t := 0.0
+
+# The table is rebuilt from scratch, so refresh it a few times a second, not every
+# frame (rebuilding ~30 labels per frame made phones stutter while it was open).
+func _process(d):
 	if panel.visible:
-		update_text()
+		_refresh_t -= d
+		if _refresh_t <= 0.0:
+			_refresh_t = 0.5
+			update_text()
 
 ## Logic updated to hide 'btn' when panel is shown
 func toggle():

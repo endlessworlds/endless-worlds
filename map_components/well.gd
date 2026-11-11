@@ -40,7 +40,7 @@ func _unhandled_input(event):
 func _set_prompt(on: bool) -> void:
 	if _prompt == null:
 		_prompt = Label.new()
-		_prompt.text = "[E]  " + prompt_text
+		_prompt.text = prompt_text if Screen.is_touch else "[E]  " + prompt_text
 		_prompt.add_theme_font_override("font", FONT)
 		_prompt.add_theme_font_size_override("font_size", 18)
 		_prompt.add_theme_color_override("font_color", Color(1.0, 0.92, 0.7))

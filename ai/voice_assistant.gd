@@ -159,9 +159,13 @@ func toggle_menu() -> void:
 	_menu_open = not _menu_open
 	var ids: Array = _items.keys()
 	# tray slides out to the left of Bolt, below his speech bubble
+	# Narrow (portrait phone) screens: wrap the tray onto a second row above the first.
+	var per_row := maxi(1, int((_bot_center.x - _bot_size.x * 0.5 - 62.0 - 30.0) / 54.0) + 1)
 	for i in ids.size():
 		var b: Button = _items[ids[i]]
-		var target := Vector2(_bot_center.x - _bot_size.x * 0.5 - 62.0 - i * 54.0, _bot_center.y - 4.0) - b.size * 0.5
+		var col := i % per_row
+		var row := i / per_row
+		var target := Vector2(_bot_center.x - _bot_size.x * 0.5 - 62.0 - col * 54.0, _bot_center.y - 4.0 - row * 58.0) - b.size * 0.5
 		var tw := b.create_tween().set_parallel()
 		if _menu_open:
 			b.visible = true

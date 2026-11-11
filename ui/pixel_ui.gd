@@ -58,6 +58,12 @@ static func panel(tex: Texture2D = FRAME, pad_x: int = 18, pad_y: int = 12) -> P
 	return p
 
 
+# Usable screen width for a page (narrower on a portrait phone).
+static func avail_width(margin := 24.0) -> float:
+	var tree := Engine.get_main_loop() as SceneTree
+	return (tree.root.get_visible_rect().size.x if tree else 1280.0) - margin * 2.0
+
+
 # Builds dim background + centered framed panel with a title and a close button
 # inside `layer`. Returns the content VBox to fill. Esc also closes.
 static func page(layer: CanvasLayer, title: String, width: float, on_close: Callable) -> VBoxContainer:
@@ -71,8 +77,10 @@ static func page(layer: CanvasLayer, title: String, width: float, on_close: Call
 	center.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	layer.add_child(center)
 	var p := panel(FRAME, 30, 22)
-	p.custom_minimum_size = Vector2(width, 0)
+	p.custom_minimum_size = Vector2(minf(width, avail_width(12.0)), 0)
 	center.add_child(p)
+	ScreenFit.attach(center, p)   # shrink to fit small / portrait phone screens
+	layer.add_to_group("modal")
 	var v := VBoxContainer.new()
 	v.add_theme_constant_override("separation", 14)
 	p.add_child(v)
@@ -85,7 +93,7 @@ static func page(layer: CanvasLayer, title: String, width: float, on_close: Call
 	t.add_theme_constant_override("shadow_offset_y", 3)
 	head.add_child(t)
 	var close := button("✕", on_close)
-	close.custom_minimum_size = Vector2(48, 48)
+	close.custom_minimum_size = Vector2(56, 56)
 	close.shortcut = Shortcut.new()
 	var esc := InputEventKey.new()
 	esc.keycode = KEY_ESCAPE

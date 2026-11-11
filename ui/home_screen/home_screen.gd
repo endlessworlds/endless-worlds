@@ -12,6 +12,14 @@ var _journal_button: Button
 var _coding_button: Button
 var _mp_button: Button
 var _status_label: Label
+var _top_row: HFlowContainer
+var _top_buttons: Array[Button] = []
+var _fs_button: Button
+var _title: Label
+var _title_box: Control
+var _col: VBoxContainer
+var _kb_cover := 0.0     # logical px hidden by the phone keyboard (iOS)
+var _kb_poll := 0.0
 const TOPIC_CHIPS := ["Python", "Space", "Biology", "History", "Math"]
 
 func _ready():
@@ -23,6 +31,11 @@ func _ready():
 
 	_create_journal_button()
 	_polish()
+	topic_input.text_submitted.connect(func(_t): _on_start_pressed())
+	topic_input.focus_entered.connect(_relayout)
+	topic_input.focus_exited.connect(_relayout)
+	get_viewport().size_changed.connect(_on_size_changed)
+	_on_size_changed()
 	if Net.active:  # came back from a room: drop the connection
 		Net.leave()
 	_dev_autoplay()
@@ -35,18 +48,32 @@ func _ready():
 
 
 func _create_journal_button() -> void:
-	var row := HBoxContainer.new()
-	row.add_theme_constant_override("separation", 10)
-	row.set_anchors_preset(Control.PRESET_TOP_RIGHT)
-	row.grow_horizontal = Control.GROW_DIRECTION_BEGIN
+	# A flow row: one line on wide screens, wraps onto a second line on a portrait phone.
+	var row := HFlowContainer.new()
+	row.alignment = FlowContainer.ALIGNMENT_END
+	row.add_theme_constant_override("h_separation", 10)
+	row.add_theme_constant_override("v_separation", 8)
+	row.anchor_left = 0.0
+	row.anchor_right = 1.0
+	row.offset_left = 130   # leave room for the Stats button (top-left)
 	row.offset_top = 10
 	row.offset_right = -10
+	row.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	$JoyStickUI.add_child(row)
+	_top_row = row
 
 	_mp_button = _top_button("🌐 Multiplayer", func(): Lobby.open(self, func(): return topic_input.text.strip_edges()))
 	_coding_button = _top_button("💻 Coding", _on_coding_pressed)
 	_journal_button = _top_button("📖 Journal", _open_journal)
-	for b in [_mp_button, _coding_button, _journal_button]:
+	_top_buttons = [_mp_button, _coding_button, _journal_button]
+	if Screen.can_fullscreen():
+		_fs_button = _top_button(Screen.fullscreen_label(), func():
+			Screen.toggle_fullscreen()
+			await get_tree().create_timer(0.4).timeout
+			if is_instance_valid(_fs_button):
+				_fs_button.text = Screen.fullscreen_label())
+		_top_buttons.append(_fs_button)
+	for b in _top_buttons:
 		row.add_child(b)
 
 
@@ -139,7 +166,9 @@ func _polish() -> void:
 
 	# Title, centered near the top, gently floating
 	var title: Label = $TitleLabel
+	_title = title
 	var title_box := Control.new()
+	_title_box = title_box
 	title_box.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	title_box.set_anchors_preset(Control.PRESET_CENTER_TOP)
 	title_box.offset_top = 96
@@ -155,6 +184,7 @@ func _polish() -> void:
 
 	# Controls column, centered below the character
 	var col := VBoxContainer.new()
+	_col = col
 	col.alignment = BoxContainer.ALIGNMENT_BEGIN
 	col.add_theme_constant_override("separation", 10)
 	col.anchor_left = 0.5
@@ -192,7 +222,7 @@ func _polish() -> void:
 
 	topic_input.reparent(col, false)
 	topic_input.set_anchors_preset(Control.PRESET_TOP_LEFT)
-	topic_input.custom_minimum_size = Vector2(560, 56)
+	topic_input.custom_minimum_size = Vector2(560, 60 if Screen.is_touch else 56)
 	topic_input.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
 	topic_input.alignment = HORIZONTAL_ALIGNMENT_CENTER
 	var sb := StyleBoxFlat.new()
@@ -280,6 +310,75 @@ func _polish() -> void:
 		var online: bool = result == HTTPRequest.RESULT_SUCCESS and code == 200
 		_set_status("● AI online" if online else "● Offline mode", Color(0.5, 1.0, 0.6) if online else Color(1.0, 0.8, 0.45)))
 	http.request(Global.api_url("/health"))
+
+
+# Lay out now, then once more after the containers have re-sorted (the button row may
+# have wrapped onto a second line).
+func _on_size_changed() -> void:
+	_relayout()
+	await get_tree().process_frame
+	_relayout()
+
+
+# Re-fit the home screen to the window: phone portrait / landscape, rotation, and the
+# phone keyboard (which shrinks the page while the topic box is being typed in).
+func _relayout() -> void:
+	if not is_inside_tree() or _title == null:
+		return
+	var vp := get_viewport().get_visible_rect().size
+	var narrow := vp.x < 960.0
+	var short := vp.y < 680.0
+
+	for b in _top_buttons:
+		b.add_theme_font_size_override("font_size", 24 if narrow else 30)
+	var stats: Button = $JoyStickUI/StatsButton
+	stats.add_theme_font_size_override("font_size", 24 if narrow else 30)
+	_top_row.offset_left = stats.get_combined_minimum_size().x + 16
+
+	# Title: as big as fits, below the (possibly two-line) button row.
+	var fs := int(clampf(minf(vp.x / 7.0, vp.y / 6.0), 48.0, 120.0))
+	_title.add_theme_font_size_override("font_size", fs)
+	_title.size = Vector2(minf(900.0, vp.x - 24.0), _title.get_minimum_size().y)
+	_title.position.x = -_title.size.x * 0.5
+	var row_bottom := _top_row.offset_top + _top_row.get_combined_minimum_size().y
+	_title_box.offset_top = maxf(row_bottom + (36.0 if narrow else 16.0), 64.0 if short else 96.0)
+
+	# Typing on a phone: the keyboard leaves little room, so lift the topic box to the top.
+	_kb_cover = Screen.keyboard_cover() if topic_input.has_focus() else 0.0
+	var typing := topic_input.has_focus() and (vp.y - _kb_cover < 520.0 or _kb_cover > 40.0)
+	_title_box.visible = not typing
+	_col.offset_top = 30.0
+	if typing:
+		_col.offset_top = 8.0 - vp.y * 0.5 - topic_input.position.y
+	_col.offset_bottom = _col.offset_top
+
+	# Tutorial button: bottom-centre on desktop, bottom-right corner where space is tight
+	var tut: Control = $JoyStickUI/TutorialButton
+	if narrow or short or Screen.is_touch:
+		tut.set_anchors_preset(Control.PRESET_BOTTOM_RIGHT)
+		var vis := tut.size * tut.scale
+		tut.offset_left = -vis.x - 16.0
+		tut.offset_top = -vis.y - 12.0
+		tut.offset_right = tut.offset_left + tut.size.x
+		tut.offset_bottom = tut.offset_top + tut.size.y
+
+
+# iOS draws its keyboard over the page without resizing it: watch for it while typing.
+func _process(delta: float) -> void:
+	if not Screen.is_mobile or not topic_input.has_focus():
+		return
+	_kb_poll -= delta
+	if _kb_poll <= 0.0:
+		_kb_poll = 0.3
+		if absf(Screen.keyboard_cover() - _kb_cover) > 20.0:
+			_relayout()
+
+
+func _unhandled_input(event: InputEvent) -> void:
+	# Tap anywhere else to put the phone keyboard away.
+	if topic_input.has_focus() and (event is InputEventScreenTouch or event is InputEventMouseButton) and event.pressed \
+			and not topic_input.get_global_rect().has_point(event.position):
+		topic_input.release_focus()
 
 
 func _set_status(text: String, col: Color) -> void:
