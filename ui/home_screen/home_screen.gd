@@ -70,16 +70,9 @@ func _create_journal_button() -> void:
 	_coding_button = _top_button("💻 Coding", _on_coding_pressed)
 	_journal_button = _top_button("📖 Journal", _open_journal)
 	_top_buttons = [_mp_button, _coding_button, _journal_button]
-	if Screen.can_fullscreen():
-		_fs_button = _top_button(Screen.fullscreen_label(), func():
-			Screen.toggle_fullscreen()
-			await get_tree().create_timer(0.4).timeout
-			if is_instance_valid(_fs_button):
-				_fs_button.text = Screen.fullscreen_label())
-		_top_buttons.append(_fs_button)
+	_top_buttons.append(_top_button("⚙ Settings", func(): SettingsPage.open(self)))
 	if Screen.can_install():
-		var inst := _top_button("📲 Install app", func(): Screen.install_app(self))
-		_top_buttons.append(inst)
+		_top_buttons.append(_top_button("📲 Install", func(): Screen.install_app(self)))
 	for b in _top_buttons:
 		row.add_child(b)
 
@@ -293,7 +286,17 @@ func _polish() -> void:
 	# One-line stats strip replaces the old floating panel
 	$PlayerPanel.visible = false
 	var stats := Label.new()
-	stats.text = "⭐ Score %d     🧭 Level %d     🏆 Best %d" % [Global.score, Global.level, Global.high_score]
+	var bonus := Global.daily_checkin()
+	stats.text = "⭐ Score %d     🧭 Level %d     🏆 Best %d     🔥 Day %d" % [Global.score, Global.level, Global.high_score, int(Global.stats.get("day_streak", 1))]
+	if bonus > 0:   # first visit today
+		var toast := PixelUI.label("Day %d streak!  +%d coins for the Survival armory" % [int(Global.stats.get("day_streak", 1)), bonus], 26, PixelUI.GOLD)
+		toast.add_theme_color_override("font_outline_color", Color(0, 0, 0, 0.85))
+		toast.add_theme_constant_override("outline_size", 6)
+		col.add_child(toast)
+		var tw := create_tween()
+		tw.tween_interval(4.0)
+		tw.tween_property(toast, "modulate:a", 0.0, 1.0)
+		tw.tween_callback(toast.queue_free)
 	stats.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	stats.add_theme_font_override("font", font)
 	stats.add_theme_font_size_override("font_size", 24)
@@ -400,12 +403,12 @@ func _dev_autoplay() -> void:
 		Net.host_room(args.get("name", "Host"), args["host-room"])
 		while Net.peers.size() < int(args.get("players", "2")):
 			await get_tree().create_timer(0.25).timeout
-		Net.host_start_round(args.get("topic", "space"), 1)
-		get_tree().change_scene_to_file("res://map_components/map.tscn")
+		Net.host_start_round(args.get("topic", "space"), 1, args.get("mode", "island"))   # --mode=survival for co-op
+		get_tree().change_scene_to_file(Net.round_scene())
 	elif args.has("join-room"):
 		Net.message.connect(func(_f, d):
-			if str(d.get("t", "")) == "start":
-				get_tree().change_scene_to_file("res://map_components/map.tscn"))
+			if str(d.get("t", "")) == "start" and is_inside_tree():
+				get_tree().change_scene_to_file(Net.round_scene()))
 		Net.disconnected.connect(func(_r):  # host may not be up yet: retry
 			await get_tree().create_timer(1.0).timeout
 			Net.join_room(args["join-room"], args.get("name", "Guest")))

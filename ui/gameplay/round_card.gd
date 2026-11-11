@@ -61,9 +61,18 @@ func _build(title: String, body: String, buttons: Array) -> void:
 		b.add_theme_color_override("default_color", Color(0.88, 0.92, 1.0))
 		v.add_child(b)
 
-	var row := HBoxContainer.new()
-	row.alignment = BoxContainer.ALIGNMENT_CENTER
-	row.add_theme_constant_override("separation", 16)
+	var row: Container
+	if buttons.size() > 3:   # many buttons: wrap two per line instead of one very wide row
+		var flow := HFlowContainer.new()
+		flow.alignment = FlowContainer.ALIGNMENT_CENTER
+		flow.add_theme_constant_override("h_separation", 16)
+		flow.add_theme_constant_override("v_separation", 10)
+		row = flow
+	else:
+		var hb := HBoxContainer.new()
+		hb.alignment = BoxContainer.ALIGNMENT_CENTER
+		hb.add_theme_constant_override("separation", 16)
+		row = hb
 	v.add_child(row)
 	var first: Button = null
 	for spec in buttons:

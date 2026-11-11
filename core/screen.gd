@@ -84,6 +84,12 @@ func _apply_quality() -> void:
 	quality_changed.emit()
 
 
+# Phones: a short buzz (hurt, knocked out). No-op elsewhere or when switched off.
+func vibrate(ms: int) -> void:
+	if is_touch and Global.vibration:
+		Input.vibrate_handheld(ms)
+
+
 # Scale a particle / critter count for the current quality.
 func fx_count(n: int, low_factor := 0.4) -> int:
 	return maxi(1, int(n * low_factor)) if low() else n

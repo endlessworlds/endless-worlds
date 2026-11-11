@@ -86,6 +86,15 @@ Want the details? See [Multiplayer-How-It-Works.pdf](Multiplayer-How-It-Works.pd
   copied). Anyone who opens the link joins your room straight away.
 - **Find your friends:** small arrows in each player's colour circle around you and point to where they are.
 
+## Settings, streaks and achievements
+
+- **⚙ Settings** (home screen and pause menu): graphics quality, sound volume, vibration on phones,
+  fullscreen, install as an app.
+- **Day streak:** the first visit each day extends your streak and adds bonus coins (10 per day, up to 50)
+  for the Survival armory.
+- **🏆 Achievements** (Stats page): 18 milestones across riddles, the journal, streaks and Survival.
+- **New riddle** in the solo pause menu deals a fresh island and riddle on the same topic.
+
 ## Controls
 
 | Action | Keyboard / mouse | Gamepad / touch |
@@ -105,16 +114,16 @@ Want the details? See [Multiplayer-How-It-Works.pdf](Multiplayer-How-It-Works.pd
 
 ### Phones and tablets (web build)
 
-- **Graphics** (Stats page): *Auto* uses *Low* on phones and tablets for smooth play: the game draws at
+- **Graphics** (⚙ Settings): *Auto* uses *Low* on phones and tablets for smooth play: the game draws at
   its own resolution, skips the full-screen effects pass and uses fewer particles. Pick *High* or *Low* yourself any time.
 
 - Works in portrait and landscape; the screen re-fits when you rotate.
 - Tap any text box (topic, name, room code, chat, Bolt, code editor) and the game's own keyboard
   slides up: letters, numbers, symbols (`#+=`), an emoji page (😀), and a code row ( ⇥ ( ) [ ] { } : = ← → )
   in the coding editor. Hold ⌫ to delete quickly; ⌄ closes it. The phone's keyboard is not used.
-- **Fullscreen:** turns on by itself at your first tap (Android, iPad). *Exit fullscreen* on the home
-  screen or in the pause menu turns it off (and stops it coming back).
-- **Install it like an app:** the **📲 Install app** button on the home screen (Android Chrome shows
+- **Fullscreen:** turns on by itself at your first tap (Android, iPad). *Exit fullscreen* in ⚙ Settings
+  turns it off (and stops it coming back).
+- **Install it like an app:** the **📲 Install** button on the home screen (also in ⚙ Settings) (Android Chrome shows
   the install prompt; on iPhone it shows how: Share → *Add to Home Screen*). It then opens
   fullscreen with its own icon.
 
@@ -133,6 +142,11 @@ Open **Stats** and press the small **🐛** button next to the close button.
   **🛒 Armory**.
 - Monsters drop **🪙 coins**. In the Armory buy new weapons and level them up to ★5. Coins and weapons
   are **saved between runs**.
+
+- **Power-ups** sometimes drop from monsters (always from bosses): **Rage** (double fire rate),
+  **Shield** (no damage), **Magnet** (every coin flies to you), **Bomb** (blast around you).
+- **Night** brings monsters faster but they drop about 50% more coins.
+- The **radar** (left side) shows monsters as red dots, the boss as a big dot and co-op friends in their colour.
 
 | Weapon | |
 |---|---|

@@ -80,6 +80,7 @@ func _screen_shake():
 # PUBLIC API
 # ==================================================
 func damage(amount := 1):
+	Screen.vibrate(70)
 	_shake_camera()
 	_shake_hearts()
 

@@ -60,6 +60,10 @@ The PDFs are generated from `docs/src/*.html`; see *Rebuild the PDFs* below.
 - Bundled emoji + symbol fonts, so emoji and ● ✓ → render in the browser too (no system fonts there)
 - Auto fullscreen on phones, Fullscreen button, and an **Install app** button (`web/manifest.webmanifest`)
 
+**Quality of life**
+- ⚙ Settings (graphics quality, sound volume, vibration, fullscreen, install), daily visit streak with coin bonus, 18 achievements, "New riddle" in the pause menu
+- CI play-through (`tools/smoke_test.gd`, `.github/workflows/smoke.yml`): every screen, answer type, weapon, mob and boss plus two-player online sessions run in headless Godot on every branch push
+
 **Survival mode** (hidden: the small 🐛 button on the Stats page)
 - A separate arcade game, pure GDScript (no AI server), on a random island (coastline, ponds, lava; walkers can't swim, flyers can)
 - 12 mob types with their own AI (chasers, multi-coloured splitting slimes, erratic bats, ramming flying eyes, skeleton archers, lunging spiders, stinger-firing hornets, wolf packs, phasing ghosts, bombers, teleporting mages, golems) plus random mutations
@@ -67,7 +71,7 @@ The PDFs are generated from `docs/src/*.html`; see *Rebuild the PDFs* below.
 - 6 weapons (bolt, scatter wand, flame staff, star spear, moon boomerang, storm rod), bought and levelled to ★5 with coins in the Armory, saved between runs; perks after each boss; crits
 - PC: mouse aim + reticle, Q/E or wheel to switch; phones: twin-stick (left move, right drag to aim, auto-aim when idle)
 - Co-op over the relay (👥 Co-op): host-authoritative monsters streamed at 10 Hz, batched monster shots simulated on every client, guests report hits; per-player coins/weapons/perks; ghosts revive next round
-- Day/night cycle with hand torch, glowing lava and light shafts
+- Day/night cycle with hand torch, glowing lava and light shafts (night: faster spawns, +50% coins); power-up drops (rage, shield, magnet, bomb); radar
 - Sprites: `tools/make_mobs.py`; test flags `--surv-round=N --surv-bot --surv-god --surv-boss-now`
 
 **Multiplayer** (details in the PDF)

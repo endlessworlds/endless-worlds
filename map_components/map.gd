@@ -183,6 +183,9 @@ func _ready():
 		if gemini:
 			gemini.set_process(false)
 
+	# bonus treasure chests (score + coins for the Survival armory)
+	Treasure.scatter(self, tilemap, player, 4)
+
 	# 🤖 AGENTIC BOT
 	agentic_bot = AgenticBot.new()
 	add_child(agentic_bot)
@@ -221,8 +224,9 @@ func _open_pause() -> void:
 	if Net.active and not Screen.is_touch:
 		hint = hint.replace("Torch: F", "Torch: F   Chat: T")
 	var buttons := [["Resume", func(): pass]]
-	if Screen.can_fullscreen():
-		buttons.append([Screen.fullscreen_label(), Screen.toggle_fullscreen])
+	if not Net.active and not Global.is_coding_mode:
+		buttons.append(["New riddle", func(): get_tree().reload_current_scene()])
+	buttons.append(["Settings", func(): SettingsPage.open(self)])
 	if Net.is_host():
 		buttons.append(["Topic", _open_topic_picker])
 	buttons.append([leave_text, _go_home])

@@ -26,7 +26,8 @@ static func attach(p_target: Control, p_content: Control = null, p_margin := 12.
 
 func _ready() -> void:
 	content.resized.connect(refit)
-	target.resized.connect(refit)
+	if target != content:
+		target.resized.connect(refit)
 	get_viewport().size_changed.connect(refit)
 	Screen.keyboard_changed.connect(_on_keyboard)
 	refit.call_deferred()
