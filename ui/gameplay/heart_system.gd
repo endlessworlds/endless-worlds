@@ -42,7 +42,8 @@ func create_hearts_ui():
 		hearts_container.add_child(heart)
 
 	# Position top-right AFTER viewport is ready, and again on rotate / resize
-	get_viewport().size_changed.connect(update_position)
+	if not get_viewport().size_changed.is_connected(update_position):
+		get_viewport().size_changed.connect(update_position)
 	await get_tree().process_frame
 	update_position()
 
@@ -148,3 +149,13 @@ func _shake_hearts():
 
 func _emit_player_died():
 	emit_signal("player_died")
+
+
+# More (or fewer) heart slots, e.g. the Survival "Iron heart" perk.
+func set_max(n: int) -> void:
+	max_hearts = n
+	current_hearts = mini(current_hearts, n)
+	if hearts_container:
+		hearts_container.queue_free()
+	create_hearts_ui()
+	update_hearts_ui()

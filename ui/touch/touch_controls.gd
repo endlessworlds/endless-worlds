@@ -31,8 +31,9 @@ func add(id: String, text: String, anchor: Vector2, offset: Vector2, diameter: f
 		action := "", on_press := Callable(), touch_only := true, wide := 1.0) -> TouchScreenButton:
 	var size := Vector2(diameter * wide, diameter)
 	var b := TouchScreenButton.new()
-	b.texture_normal = _make_tex(size, false)
-	b.texture_pressed = _make_tex(size, true)
+	var minimal := text.begins_with("icon:")   # icon buttons: just a faint ring + the icon
+	b.texture_normal = _make_tex(size, false, minimal)
+	b.texture_pressed = _make_tex(size, true, minimal)
 	b.passby_press = false
 	if not action.is_empty():
 		b.action = action
@@ -40,7 +41,8 @@ func add(id: String, text: String, anchor: Vector2, offset: Vector2, diameter: f
 		b.pressed.connect(on_press)
 	if text.begins_with("icon:"):   # a small drawn icon instead of a word
 		var ic := Sprite2D.new()
-		ic.texture = _make_icon(text.trim_prefix("icon:"), int(diameter * 0.5))
+		ic.texture = _make_icon(text.trim_prefix("icon:"), int(diameter * 0.42))
+		ic.modulate = Color(1, 1, 1, 0.9)
 		ic.position = size * 0.5
 		b.add_child(ic)
 		add_child(b)
@@ -99,8 +101,8 @@ func _layout() -> void:
 
 
 # Rounded translucent pill / circle, drawn once per size.
-func _make_tex(size: Vector2, pressed: bool) -> Texture2D:
-	var key := "%dx%d%s" % [int(size.x), int(size.y), "p" if pressed else ""]
+func _make_tex(size: Vector2, pressed: bool, minimal := false) -> Texture2D:
+	var key := "%dx%d%s%s" % [int(size.x), int(size.y), "p" if pressed else "", "m" if minimal else ""]
 	if _tex_cache.has(key):
 		return _tex_cache[key]
 	var w := int(size.x)
@@ -109,12 +111,17 @@ func _make_tex(size: Vector2, pressed: bool) -> Texture2D:
 	var r := h * 0.5
 	var fill := Color(0.06, 0.08, 0.16, 0.62) if not pressed else Color(0.95, 0.62, 0.15, 0.85)
 	var edge := Color(1.0, 0.82, 0.35, 0.85)
+	var edge_w := 3.0
+	if minimal:
+		fill = Color(1, 1, 1, 0.08) if not pressed else Color(1, 1, 1, 0.28)
+		edge = Color(1, 1, 1, 0.45)
+		edge_w = 1.6
 	for y in h:
 		for x in w:
 			# distance to the pill's centre line
 			var cx := clampf(x + 0.5, r, w - r)
 			var d := Vector2(x + 0.5 - cx, y + 0.5 - r).length()
-			if d <= r - 3.0:
+			if d <= r - edge_w:
 				img.set_pixel(x, y, fill)
 			elif d <= r:
 				img.set_pixel(x, y, edge)
@@ -123,7 +130,7 @@ func _make_tex(size: Vector2, pressed: bool) -> Texture2D:
 	return tex
 
 
-# Pixel icons for buttons: "jump" = an up arrow over a ground line.
+# Pixel icons for buttons: "jump" = a plain up arrow.
 func _make_icon(kind: String, px: int) -> Texture2D:
 	var n := maxi(12, px)
 	var img := Image.create(n, n, false, Image.FORMAT_RGBA8)
@@ -135,12 +142,10 @@ func _make_icon(kind: String, px: int) -> Texture2D:
 			var on := false
 			match kind:
 				"jump":
-					var head := n * 0.5                                   # arrow head height
-					if fy < head and absf(fx - c) <= fy / head * n * 0.42:
+					var head := n * 0.45                                  # a plain up arrow
+					if fy > n * 0.08 and fy < head and absf(fx - c) <= (fy - n * 0.08) / (head - n * 0.08) * n * 0.36:
 						on = true
-					elif fy >= head and fy < n * 0.78 and absf(fx - c) <= n * 0.13:
-						on = true
-					elif fy >= n * 0.88 and absf(fx - c) <= n * 0.42:
+					elif fy >= head and fy < n * 0.92 and absf(fx - c) <= n * 0.09:
 						on = true
 			if on:
 				img.set_pixel(x, y, Color(1.0, 0.96, 0.86))
@@ -156,3 +161,12 @@ func _make_icon(kind: String, px: int) -> Texture2D:
 					out.set_pixel(x, y, Color(0.05, 0.04, 0.1, 0.9))
 					break
 	return ImageTexture.create_from_image(out)
+
+
+# True when `p` (viewport coordinates) lands on a visible button.
+func hit_test(p: Vector2) -> bool:
+	for id in _buttons:
+		var e: Dictionary = _buttons[id]
+		if e.btn.visible and Rect2(e.btn.position, e.size).has_point(p):
+			return true
+	return false

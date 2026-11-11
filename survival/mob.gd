@@ -16,8 +16,15 @@ const TYPES := {
 	"bomber":   {"hp": 3.0, "speed": 52.0, "dmg": 2, "r": 7.0, "scale": 1.6, "ai": "bomber", "pts": 15},
 	"mage":     {"hp": 4.0, "speed": 30.0, "dmg": 1, "r": 7.0, "scale": 1.7, "ai": "mage", "pts": 20},
 	"golem":    {"hp": 12.0, "speed": 22.0, "dmg": 2, "r": 11.0, "scale": 2.2, "ai": "chase", "pts": 30},
+	"eye":      {"hp": 3.0, "speed": 58.0, "dmg": 1, "r": 7.0, "scale": 1.6, "ai": "eye", "pts": 14, "fly": true},
+	"hornet":   {"hp": 2.5, "speed": 56.0, "dmg": 1, "r": 6.0, "scale": 1.5, "ai": "hornet", "pts": 16, "fly": true},
 }
-const ORDER := ["zombie", "bat", "slime", "skeleton", "spider", "wolf", "ghost", "bomber", "mage", "golem"]
+# Unlock order: round N spawns the first N + 2 types.
+const ORDER := ["zombie", "slime", "bat", "eye", "skeleton", "spider", "hornet", "wolf", "ghost", "bomber", "mage", "golem"]
+const FLYERS := ["bat", "ghost", "eye", "hornet"]   # cross water
+# Slimes come in many colours (the sprite is pale and tinted per slime).
+const SLIME_COLORS := [Color(0.45, 1.0, 0.5), Color(0.45, 0.7, 1.0), Color(1.0, 0.55, 0.8), Color(0.75, 0.5, 1.0),
+	Color(1.0, 0.9, 0.35), Color(1.0, 0.45, 0.4), Color(0.4, 1.0, 0.95), Color(0.55, 0.55, 0.65)]
 const MUTATIONS := ["Giant", "Swift", "Armored", "Vampiric", "Explosive", "Regenerating", "Splitting", "Phasing", "Burning", "Tiny"]
 const MUT_COLOR := {
 	"Giant": Color(1.0, 0.75, 0.45), "Swift": Color(1.0, 0.95, 0.4), "Armored": Color(0.75, 0.8, 0.9),
@@ -47,6 +54,7 @@ var boss: Dictionary = {}
 var dead := false
 
 var spr: Sprite2D
+var _px := 1.0                  # sprite pixels -> world: 16 px art and 24 px art end up the same size
 var tag: Label
 var t := randf() * 10.0
 var kb := Vector2.ZERO
@@ -81,9 +89,13 @@ func setup(g: Node, tname: String, muts: Array[String], round_no: int, boss_def:
 		scale_k = float(boss_def.scale)
 		radius = 5.5 * scale_k
 		speed = float(boss_def.speed)
-		dmg = 2
+		dmg = 1 if round_no <= 4 else 2
 		tint = boss_def.tint
 		cd = 2.0
+	elif tname == "slime":
+		tint = SLIME_COLORS.pick_random()
+		if randf() < 0.3:   # some big slimes (they split when killed)
+			scale_k *= 1.35; radius *= 1.35; hp *= 1.6
 	for m in muts:
 		_mutate(m)
 	max_hp = hp
@@ -94,10 +106,12 @@ func setup(g: Node, tname: String, muts: Array[String], round_no: int, boss_def:
 	sh.position = Vector2(0, 1)
 	add_child(sh)
 	spr = Sprite2D.new()
-	spr.texture = load("res://assets/survival/%s.png" % tname)
+	spr.texture = load("res://assets/survival/%s.png" % str(boss_def.get("sprite", tname)))
 	spr.hframes = 2
-	spr.scale = Vector2.ONE * scale_k
-	spr.offset = Vector2(0, -8)
+	var fh := float(spr.texture.get_height())
+	_px = 16.0 / fh
+	spr.scale = Vector2.ONE * scale_k * _px
+	spr.offset = Vector2(0, -fh * 0.5)
 	spr.self_modulate = tint
 	add_child(spr)
 	if not mutations.is_empty():
@@ -113,6 +127,16 @@ func setup(g: Node, tname: String, muts: Array[String], round_no: int, boss_def:
 		tag.scale = Vector2(0.5, 0.5)
 		tag.position = Vector2(-30, -16 * scale_k - 12)
 		add_child(tag)
+
+
+# Resize (used by clones and split slimes).
+func set_size(k: float) -> void:
+	scale_k = k
+	spr.scale = Vector2.ONE * k * _px
+
+
+func is_flyer() -> bool:
+	return type_name in FLYERS
 
 
 func _mutate(m: String) -> void:
@@ -144,7 +168,7 @@ func untouchable() -> bool:
 	return dead or phased or state == "vanish"
 
 
-func hit(amount: float, dir: Vector2) -> void:
+func hit(amount: float, dir: Vector2, crit := false) -> void:
 	if untouchable():
 		return
 	var real := amount * armor
@@ -152,8 +176,9 @@ func hit(amount: float, dir: Vector2) -> void:
 	flash = 0.09
 	game.sfx.play("hit", 0.2)
 	if not is_boss and type_name != "golem":
-		kb += dir * 90.0
-	game.floater(center(), str(snappedf(real, 0.1)).trim_suffix(".0"), Color(1, 0.95, 0.6))
+		kb += dir * (130.0 if crit else 90.0)
+	var txt := str(snappedf(real, 0.1)).trim_suffix(".0")
+	game.floater(center(), txt + "!" if crit else txt, Color(1.0, 0.55, 0.2) if crit else Color(1, 0.95, 0.6))
 	if hp <= 0.0:
 		dead = true
 		game.mob_died(self)
@@ -221,6 +246,20 @@ func tick(delta: float, ppos: Vector2) -> void:
 					state = "fuse"; state_t = 0.8
 				else:
 					move_dir = dir
+			"eye":   # circles you, then rams in after a short glare
+				_dash_ai(dir, dist, 170.0, 250.0, 2.6)
+				if state == "":
+					move_dir = (dir.orthogonal() * 0.9 + dir * (0.7 if dist > 80.0 else -0.5)).normalized()
+					move_dir = move_dir.rotated(sin(t * 3.0) * 0.4)
+				elif state == "dash":
+					move_dir = aim; spd = 250.0
+			"hornet":   # keeps its distance and fires stingers
+				move_dir = dir if dist > 140.0 else (-dir if dist < 90.0 else dir.orthogonal() * (1.0 if int(t / 2.0) % 2 == 0 else -1.0))
+				move_dir = (move_dir + Vector2(0, sin(t * 7.0) * 0.4)).normalized()
+				if cd <= 0.0 and dist < 240.0:
+					cd = 2.4
+					var sting: SurvivalShot = game.shoot(center(), dir * 165.0, 1, Color(1.0, 0.85, 0.2))
+					sting.r = 2.5
 			"mage":
 				if state == "vanish":
 					if state_t <= 0.0:
@@ -240,9 +279,10 @@ func tick(delta: float, ppos: Vector2) -> void:
 			_fire_drop = 0.6
 			game.fire(position)
 
-	position += (move_dir * spd + kb) * delta
+	# walkers slide along the shore; flyers and bosses may cross water
+	var next := position + (move_dir * spd + kb) * delta
+	position = game.clamp_box(next) if (is_flyer() or is_boss) else game.move_in(position, next)
 	kb = kb.move_toward(Vector2.ZERO, 400.0 * delta)
-	position = game.clamp_arena(position)
 
 	# look
 	spr.frame = int(t * 5.0) % 2
@@ -256,7 +296,9 @@ func tick(delta: float, ppos: Vector2) -> void:
 		c = c * Color(1.25, 0.8, 0.8)
 	spr.self_modulate = Color(c, a)
 	if state == "hop" or state == "slam":
-		spr.position.y = -sin(clampf(1.0 - state_t / (0.7 if state == "slam" else 0.35), 0.0, 1.0) * PI) * (40.0 if state == "slam" else 6.0)
+		spr.position.y = -sin(clampf(1.0 - state_t / (0.9 if state == "slam" else 0.35), 0.0, 1.0) * PI) * (40.0 if state == "slam" else 6.0)
+	elif is_flyer():
+		spr.position.y = -4.0 + sin(t * 5.0) * 1.5   # hover
 	else:
 		spr.position.y = 0.0
 	z_index = int(position.y * 2.0 / 4.0)
@@ -291,35 +333,35 @@ func _boss_tick(delta: float, ppos: Vector2, dir: Vector2, dist: float) -> void:
 				_start_pattern(str(patterns[_pattern_i % patterns.size()]), dir, ppos)
 				_pattern_i += 1
 		"spiral":
-			if fmod(state_t, 0.08) < delta:
+			if fmod(state_t, 0.13) < delta:
 				for k in 2:
-					game.shoot(center(), Vector2.RIGHT.rotated(_spiral_a + k * PI) * 105.0, 1, boss.shot)
-				_spiral_a += 0.33
+					game.shoot(center(), Vector2.RIGHT.rotated(_spiral_a + k * PI) * 90.0, 1, boss.shot)
+				_spiral_a += 0.4
 			if state_t <= 0.0: _end_pattern()
 		"aimed":
-			if _shots_left > 0 and fmod(state_t, 0.15) < delta:
-				game.fan(center(), dir, 3, 0.12, 170.0, 1, boss.shot)
+			if _shots_left > 0 and fmod(state_t, 0.2) < delta:
+				game.fan(center(), dir, 3, 0.16, 140.0, 1, boss.shot)
 				_shots_left -= 1
 			if state_t <= 0.0: _end_pattern()
 		"tele_charge":
 			if state_t <= 0.0:
-				state = "charge"; state_t = 0.75
+				state = "charge"; state_t = 0.7
 		"charge":
 			move_dir = aim
-			position += aim * 250.0 * delta
+			position = game.clamp_box(position + aim * 220.0 * delta)
 			if state_t <= 0.0: _end_pattern()
 		"slam":
-			var k := clampf(1.0 - state_t / 0.7, 0.0, 1.0)
+			var k := clampf(1.0 - state_t / 0.9, 0.0, 1.0)
 			position = _jump_from.lerp(aim, k)
 			if state_t <= 0.0:
-				game.ring(center(), 12, 100.0, 1, boss.shot)
+				game.ring(center(), 10, 85.0, 1, boss.shot)
 				game.explode(position, 40.0, 1, true, false, self)
 				game.shake()
 				_end_pattern()
 		"vanish":
 			if state_t <= 0.0:
 				position = game.near_player(100.0, 130.0)
-				game.ring(center(), 10, 95.0, 1, boss.shot)
+				game.ring(center(), 8, 85.0, 1, boss.shot)
 				_end_pattern()
 		"trail":
 			move_dir = dir
@@ -333,19 +375,21 @@ func _start_pattern(p: String, dir: Vector2, ppos: Vector2) -> void:
 	var c: Color = boss.shot
 	match p:
 		"ring":
-			game.ring(center(), 14 + mini(game.round_no, 10), 105.0, 1, c); _end_pattern()
+			game.ring(center(), 10 + mini(game.round_no, 8) / 2, 85.0, 1, c); _end_pattern()
 		"spread":
-			game.fan(center(), dir, 5, 0.22, 140.0, 1, c); _end_pattern()
+			game.fan(center(), dir, 5, 0.24, 120.0, 1, c); _end_pattern()
 		"spiral":
-			state = "spiral"; state_t = 1.6
+			state = "spiral"; state_t = 1.4
 		"aimed":
-			state = "aimed"; state_t = 0.5; _shots_left = 3
+			state = "aimed"; state_t = 0.6; _shots_left = 3
 		"charge":
-			state = "tele_charge"; state_t = 0.6; aim = dir
+			state = "tele_charge"; state_t = 0.85; aim = dir
+			game.telegraph_line(position, dir, 180.0, 0.85)
 		"slam":
-			state = "slam"; state_t = 0.7; _jump_from = position; aim = game.clamp_arena(ppos)
+			state = "slam"; state_t = 0.9; _jump_from = position; aim = game.clamp_arena(ppos)
+			game.telegraph(aim, 40.0, 0.9)
 		"summon":
-			for k in 3:
+			for k in 2:
 				game.portal(boss.minion, game.near(position, 30.0, 60.0), [] as Array[String])
 			_end_pattern()
 		"teleport":
@@ -372,4 +416,4 @@ func _start_pattern(p: String, dir: Vector2, ppos: Vector2) -> void:
 
 func _end_pattern() -> void:
 	state = ""
-	cd = 1.5 if enraged else 2.4
+	cd = 2.2 if enraged else 3.0   # breathing room between attacks
