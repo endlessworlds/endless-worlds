@@ -216,6 +216,13 @@ func _ready():
 		# Hide mole below clip
 		mole.position.y = clip.size.y
 	# Listen to custom 2D keyboard buttons
+	# Long riddles wrap instead of stretching the popup off-screen, and the whole column
+	# shrinks to fit small / portrait phone screens.
+	question_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	question_label.custom_minimum_size.x = 560
+	message.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	message.custom_minimum_size.x = 560
+	ScreenFit.attach($Panel/VBoxContainer)
 	if keyboard:
 		keyboard.key_pressed.connect(_on_custom_key_pressed)
 		keyboard.backspace_pressed.connect(_on_custom_backspace)
@@ -612,6 +619,8 @@ func _build_wordle_grid():
 	current_col = 0
 	for row in wordle_grid.get_children(): row.queue_free()
 
+	# Smaller tiles on short (landscape phone) screens so the keyboard keeps a usable size.
+	var tile := 60 if get_viewport().get_visible_rect().size.y >= 700 else 46
 	for r in range(max_attempts):
 		var row := HBoxContainer.new()
 		row.alignment = BoxContainer.ALIGNMENT_CENTER
@@ -636,12 +645,12 @@ func _build_wordle_grid():
 			style.border_color = COLOR_EMPTY
 			
 			panel.add_theme_stylebox_override("panel", style)
-			panel.custom_minimum_size = Vector2(60, 60)
-			panel.pivot_offset = Vector2(30, 30)
+			panel.custom_minimum_size = Vector2(tile, tile)
+			panel.pivot_offset = Vector2(tile, tile) * 0.5
 			
 			lbl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 			lbl.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
-			lbl.add_theme_font_size_override("font_size", 32)
+			lbl.add_theme_font_size_override("font_size", 32 if tile >= 60 else 26)
 			lbl.add_theme_color_override("font_color", Color.WHITE)
 			
 			panel.add_child(lbl)

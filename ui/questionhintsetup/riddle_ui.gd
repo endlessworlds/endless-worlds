@@ -24,6 +24,12 @@ func _ready() -> void:
 	tooltip.visible = false
 	tooltip.text = ""
 
+	# Long riddles / hints wrap to the screen instead of running off a phone screen.
+	riddle_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	tooltip.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	_fit_riddle()
+	get_viewport().size_changed.connect(_fit_riddle)
+
 	# Toggle riddle
 	toggle_button.pressed.connect(_on_toggle_pressed)
 
@@ -35,6 +41,12 @@ func _ready() -> void:
 			bulb.set_off()
 			bulb.hovered.connect(_on_bulb_hovered.bind(bulb))
 			bulb.unhovered.connect(_on_bulb_unhovered)
+
+func _fit_riddle() -> void:
+	var w := minf(900.0, get_viewport().get_visible_rect().size.x - 40.0)
+	riddle_label.offset_left = -w * 0.5
+	riddle_label.offset_right = w * 0.5
+
 
 # ==================================================
 # SETUP RIDDLE (called from Map.gd)
@@ -100,8 +112,9 @@ func _on_bulb_hovered(text: String, bulb: HintBulb) -> void:
 	# Convert to PANEL-local space (Control-safe)
 	var local_pos: Vector2 = bulb_global - panel.global_position
 
-	# Place tooltip to the RIGHT of the bulb
+	# Place tooltip to the RIGHT of the bulb, wrapped to the space that's left
 	tooltip.position = local_pos + Vector2(bulb.size.x + 12, 30)
+	tooltip.size = Vector2(clampf(panel.size.x - tooltip.position.x - 24.0, 160.0, 520.0), 0)
 
 
 

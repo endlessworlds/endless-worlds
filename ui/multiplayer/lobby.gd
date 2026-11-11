@@ -49,6 +49,8 @@ func _ready() -> void:
 	_panel.custom_minimum_size = Vector2(620, 0)
 	_panel.add_theme_stylebox_override("panel", _box(FRAME, 30, 22))
 	center.add_child(_panel)
+	ScreenFit.attach(center, _panel)   # phones: shrink to fit (also while the keyboard is up)
+	add_to_group("modal")
 	var v := VBoxContainer.new()
 	v.add_theme_constant_override("separation", 14)
 	_panel.add_child(v)

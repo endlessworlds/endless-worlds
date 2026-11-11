@@ -27,6 +27,7 @@ var water: Water
 var atmosphere: Atmosphere
 var _round_ended := false
 var _coding_popup: CanvasLayer   # open coding quest screen (coding mode only)
+var touch: TouchControls         # on-screen pause / jump / answer buttons
 
 var current_solution: String = ""
 var current_options: Array = []   # ✅ ADD THIS
@@ -186,7 +187,8 @@ func _ready():
 	agentic_bot = AgenticBot.new()
 	add_child(agentic_bot)
 
-	joystick.modulate.a = 0.3
+	joystick.modulate.a = 0.6 if Screen.is_touch else 0.3
+	_create_touch_controls()
 
 	# 🧭 objective + compass
 	var hud_layer := CanvasLayer.new()
@@ -215,9 +217,43 @@ func _unhandled_input(event: InputEvent) -> void:
 
 func _open_pause() -> void:
 	var leave_text := "Leave room" if Net.active else "Home"
-	RoundCard.show_card(self, "Paused",
-		"Move: WASD   Sprint: Shift   Talk: V   Torch: F" + ("   Chat: T" if Net.active else "") + "\nClick Bolt for more",
-		[["Resume", func(): pass], [leave_text, _go_home]], not Net.active)
+	var hint := Screen.controls_hint()
+	if Net.active and not Screen.is_touch:
+		hint = hint.replace("Torch: F", "Torch: F   Chat: T")
+	var buttons := [["Resume", func(): pass]]
+	if Screen.can_fullscreen():
+		buttons.append([Screen.fullscreen_label(), Screen.toggle_fullscreen])
+	buttons.append([leave_text, _go_home])
+	RoundCard.show_card(self, "Paused", hint, buttons, not Net.active)
+
+
+# ------------------------------------------------------------------ touch
+# Phones have no Esc / Space / E: pause (also shown on desktop), jump and a context
+# "Answer" button that appears while standing at a well or terminal.
+func _create_touch_controls() -> void:
+	touch = TouchControls.new()
+	add_child(touch)
+	touch.show_when = func() -> bool:
+		return not answer_popup.visible and not Global.input_locked and not _round_ended \
+			and get_tree().get_nodes_in_group("modal").is_empty() \
+			and not (is_instance_valid(_coding_popup) and not _coding_popup.is_queued_for_deletion())
+	touch.add("pause", "II", Vector2(0, 0), Vector2(14, 14), 60, "", func():
+		if not answer_popup.visible and not get_tree().paused:
+			_open_pause(), false)
+	touch.add("jump", "JUMP", Vector2(1, 1), Vector2(-22, -100), 100, "jump")
+	touch.add("answer", "Use terminal" if Global.is_coding_mode else "Answer", Vector2(0.5, 1), Vector2(0, -170), 64,
+		"", func():
+			var w := _well_nearby()
+			if w:
+				w.emit_signal("interact"), true, 2.8)
+	touch.set_visible_button("answer", false)
+
+
+func _well_nearby() -> Node:
+	for w in get_tree().get_nodes_in_group("wells"):
+		if w.get("player_inside"):
+			return w
+	return null
 
 
 func _go_home() -> void:
@@ -347,6 +383,8 @@ func _on_riddle_generated(data: Dictionary) -> void:
 func _process(_delta):
 	update_player_tile_info()
 	update_score_label()
+	if touch:
+		touch.set_visible_button("answer", _well_nearby() != null)
 
 # ==================================================
 # TILE & COORDS INFO UI
@@ -374,6 +412,7 @@ func create_tile_info_ui():
 	_debug_panel.offset_bottom = -12
 	_debug_panel.modulate.a = 0.85
 	_debug_panel.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_debug_panel.visible = not Screen.is_touch   # phones: the joystick lives in that corner
 	ui.add_child(_debug_panel)
 
 	var box := VBoxContainer.new()
@@ -467,6 +506,7 @@ func create_bubble_ui():
 		bubble.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT
 		bubble_container.add_child(bubble)
 
+	get_viewport().size_changed.connect(func(): position_bubbles.call_deferred())
 	await get_tree().process_frame
 	position_bubbles()
 
@@ -557,7 +597,7 @@ func create_score_ui():
 	# Color(1, 1, 1) keeps it white, 0.8  sets the transparency
 	score_label.modulate = Color(1, 1, 1, 0.8) 
 	
-	score_label.position = Vector2(20, 20)
+	score_label.position = Vector2(88, 20)   # right of the pause button
 	update_score_label()
 
 func update_score_label():

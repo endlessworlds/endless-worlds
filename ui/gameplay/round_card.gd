@@ -32,6 +32,8 @@ func _build(title: String, body: String, buttons: Array) -> void:
 	panel.add_theme_stylebox_override("panel", PixelUI.box(PixelUI.FRAME, 30, 24))
 	panel.custom_minimum_size = Vector2(520, 0)
 	center.add_child(panel)
+	ScreenFit.attach(center, panel)
+	add_to_group("modal")
 
 	var v := VBoxContainer.new()
 	v.add_theme_constant_override("separation", 14)
@@ -80,7 +82,7 @@ func _build(title: String, body: String, buttons: Array) -> void:
 		first.call_deferred("grab_focus")
 
 	# pop-in
-	panel.pivot_offset = Vector2(260, 120)
+	panel.resized.connect(func(): panel.pivot_offset = panel.size * 0.5)
 	panel.scale = Vector2(0.85, 0.85)
 	panel.modulate.a = 0.0
 	var tw := create_tween().set_parallel()

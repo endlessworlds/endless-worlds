@@ -55,3 +55,18 @@ func _on_mouse_entered():
 
 func _on_mouse_exited():
 	emit_signal("unhovered")
+
+
+# Phones have no hover: tapping a lit bulb shows its hint for a few seconds.
+var _tap_id := 0
+
+func _gui_input(event: InputEvent) -> void:
+	if not Screen.is_touch or not is_on:
+		return
+	if event is InputEventMouseButton and event.pressed and event.button_index == MOUSE_BUTTON_LEFT:
+		emit_signal("hovered", hint_text)
+		_tap_id += 1
+		var id := _tap_id
+		await get_tree().create_timer(5.0).timeout
+		if id == _tap_id:
+			emit_signal("unhovered")

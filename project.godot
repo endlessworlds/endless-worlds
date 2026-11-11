@@ -24,6 +24,7 @@ driver/enable_input=true
 
 [autoload]
 
+Screen="*res://core/screen.gd"
 Global="*res://core/global.gd"
 Net="*res://core/net.gd"
 
@@ -33,6 +34,7 @@ window/size/viewport_width=1280
 window/size/viewport_height=720
 window/stretch/mode="canvas_items"
 window/stretch/aspect="expand"
+window/handheld/orientation=6
 
 [filesystem]
 

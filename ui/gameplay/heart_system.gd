@@ -41,7 +41,8 @@ func create_hearts_ui():
 		heart.modulate = Color(1, 1, 1, 0.8)
 		hearts_container.add_child(heart)
 
-	# Position top-right AFTER viewport is ready
+	# Position top-right AFTER viewport is ready, and again on rotate / resize
+	get_viewport().size_changed.connect(update_position)
 	await get_tree().process_frame
 	update_position()
 

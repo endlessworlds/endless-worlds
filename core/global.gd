@@ -40,20 +40,34 @@ var input_locked := false  # true while typing (chat / ask-the-bot) so WASD does
 # Pixel-art icon font mapped onto emoji code points (assets/fonts/pixel_icons.fnt).
 # Installed as the first fallback of every UI font, so any emoji in any label renders
 # as a matching 16px pixel icon instead of a glossy system emoji.
+# Behind it: a full colour emoji font (anything players type: chat, topics, names) and a
+# symbol font (● ✓ ✗ → ▸ …). Desktop can borrow those from the OS, but the web build
+# gets no system fonts at all, so without them every emoji/symbol showed as a box.
 var _fonts_keepalive: Array = []
 
 func _install_icon_font() -> void:
+	var chain: Array[Font] = []
 	var icons: FontFile = load("res://assets/fonts/pixel_icons.fnt")
-	if icons == null:
-		return
-	icons.fixed_size_scale_mode = TextServer.FIXED_SIZE_SCALE_INTEGER_ONLY  # crisp 1x/2x/3x pixels
+	if icons:
+		icons.fixed_size_scale_mode = TextServer.FIXED_SIZE_SCALE_INTEGER_ONLY  # crisp 1x/2x/3x pixels
+		chain.append(icons)
+	for path in ["res://assets/fonts/NotoColorEmoji-Regular.ttf", "res://assets/fonts/DejaVuSans-Symbols.ttf"]:
+		if ResourceLoader.exists(path):
+			var f: FontFile = load(path)
+			if f:
+				f.modulate_color_glyphs = false   # keep emoji in their own colours
+				chain.append(f)
+	_fonts_keepalive.append_array(chain)
 	for f in [load("res://assets/fonts/Jersey10-Regular.ttf"), ThemeDB.fallback_font]:
-		if f is Font and not f.fallbacks.has(icons):
-			var fb: Array[Font] = [icons]
-			fb.append_array(f.fallbacks)
-			f.fallbacks = fb
-			_fonts_keepalive.append(f)  # keep the patched resource cached for later load() calls
-	_fonts_keepalive.append(icons)
+		if not f is Font:
+			continue
+		var fb: Array[Font] = []
+		fb.append_array(chain)
+		for old in f.fallbacks:
+			if not fb.has(old):
+				fb.append(old)
+		f.fallbacks = fb
+		_fonts_keepalive.append(f)  # keep the patched resource cached for later load() calls
 
 
 func _ready():

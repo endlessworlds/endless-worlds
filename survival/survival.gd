@@ -69,6 +69,8 @@ var _t := 0.0
 # dev/testing: -- --surv-round=N --surv-bot (auto-aim + auto-upgrade) --surv-god (no damage)
 var _bot := "--surv-bot" in OS.get_cmdline_user_args()
 var _god := "--surv-god" in OS.get_cmdline_user_args()
+var _touch_dash := false   # DASH button tapped (phones)
+var touch: TouchControls
 
 var sfx: SurvivalSfx
 var _hurt_flash: ColorRect
@@ -101,7 +103,10 @@ func _ready() -> void:
 	add_child(sfx)
 	_build_hud()
 	_decorate_arena()
-	_set_crosshair()
+	if Screen.is_touch:
+		_build_touch()
+	else:
+		_set_crosshair()
 	for a in OS.get_cmdline_user_args():
 		if a.begins_with("--surv-round="):
 			round_no = int(a.get_slice("=", 1)) - 1
@@ -114,6 +119,22 @@ func _ready() -> void:
 
 func _exit_tree() -> void:
 	Input.set_custom_mouse_cursor(null)   # give the rest of the game its normal cursor back
+
+
+# Phones: joystick to move, bolts auto-aim at the nearest mob, DASH / JUMP / pause buttons.
+func _build_touch() -> void:
+	var joy: CanvasLayer = load("res://ui/gameplay/joy_stick_ui.tscn").instantiate()
+	add_child(joy)
+	(joy.get_node("VirtualJoystick") as Control).modulate.a = 0.6
+	touch = TouchControls.new()
+	add_child(touch)
+	touch.show_when = func() -> bool:
+		return state != "over" and get_tree().get_nodes_in_group("modal").is_empty()
+	touch.add("pause", "II", Vector2(1, 0), Vector2(-14, 86), 60, "", func():
+		if state != "over" and not get_tree().paused:
+			_open_pause(), false)
+	touch.add("jump", "JUMP", Vector2(1, 1), Vector2(-22, -40), 96, "jump")
+	touch.add("dash", "DASH", Vector2(1, 1), Vector2(-134, -150), 96, "", func(): _touch_dash = true)
 
 
 # Pixel crosshair so you always know where bolts will go.
@@ -178,8 +199,12 @@ func _show_intro() -> void:
 	keys.columns = 2
 	keys.add_theme_constant_override("h_separation", 24)
 	v.add_child(keys)
-	for row in [["Shoot", "hold Left mouse  /  J"], ["Dash", "Right mouse  /  K"], ["Move", "WASD  ·  Shift sprint"],
-			["Jump", "Space"], ["Pause", "Esc"]]:
+	var rows := [["Shoot", "hold Left mouse  /  J"], ["Dash", "Right mouse  /  K"], ["Move", "WASD  ·  Shift sprint"],
+			["Jump", "Space"], ["Pause", "Esc"]]
+	if Screen.is_touch:
+		rows = [["Shoot", "automatic: aims at the nearest mob"], ["Dash", "DASH button"], ["Move", "joystick (push far to sprint)"],
+			["Jump", "JUMP button"], ["Pause", "II button"]]
+	for row in rows:
 		keys.add_child(PixelUI.label(row[0], 26, PixelUI.GOLD, false))
 		keys.add_child(PixelUI.label(row[1], 26, PixelUI.CREAM, false))
 	if best > 0:
@@ -425,11 +450,12 @@ func _player_combat(_delta: float) -> void:
 	if Global.input_locked:
 		return
 	var aim := Vector2.ZERO
-	if Input.is_mouse_button_pressed(MOUSE_BUTTON_LEFT):
+	# On a touchscreen every finger is also a "left click" (the joystick too), so phones auto-aim.
+	if not Screen.is_touch and Input.is_mouse_button_pressed(MOUSE_BUTTON_LEFT):
 		aim = (get_local_mouse_position() - ppos()).normalized()
 	elif Input.is_key_pressed(KEY_J):
 		aim = player.last_dir
-	elif _bot and not mobs.is_empty():
+	elif (_bot or Screen.is_touch) and not mobs.is_empty():
 		var best: SurvivalMob = null
 		for m in mobs:
 			if is_instance_valid(m) and not m.dead and (best == null or m.position.distance_squared_to(player.position) < best.position.distance_squared_to(player.position)):
@@ -452,7 +478,8 @@ func _player_combat(_delta: float) -> void:
 			s.pierce = stats.pierce
 			s.r = 3.0 * stats.size
 			s.life = 1.6
-	var dash_now := Input.is_mouse_button_pressed(MOUSE_BUTTON_RIGHT) or Input.is_key_pressed(KEY_K)
+	var dash_now := Input.is_mouse_button_pressed(MOUSE_BUTTON_RIGHT) or Input.is_key_pressed(KEY_K) or _touch_dash
+	_touch_dash = false
 	if dash_now and not _dash_was and _dash_t <= 0.0:
 		_dash()
 	_dash_was = dash_now
@@ -755,9 +782,17 @@ func _on_died() -> void:
 func _unhandled_input(event: InputEvent) -> void:
 	if event.is_action_pressed("ui_cancel") and state != "over" and not get_tree().paused:
 		get_viewport().set_input_as_handled()
-		RoundCard.show_card(self, "Paused",
-			"Mouse / J shoot · Right-click / K dash\nSpace jump · Shift sprint",
-			[["Resume", func(): pass], ["Quit", func(): get_tree().change_scene_to_file("res://ui/home_screen/home_screen.tscn")]], true)
+		_open_pause()
+
+
+func _open_pause() -> void:
+	var buttons := [["Resume", func(): pass]]
+	if Screen.can_fullscreen():
+		buttons.append([Screen.fullscreen_label(), Screen.toggle_fullscreen])
+	buttons.append(["Quit", func(): get_tree().change_scene_to_file("res://ui/home_screen/home_screen.tscn")])
+	RoundCard.show_card(self, "Paused",
+		"Joystick move · bolts auto-aim\nDASH dodge · JUMP hop" if Screen.is_touch
+			else "Mouse / J shoot · Right-click / K dash\nSpace jump · Shift sprint", buttons, true)
 
 
 # ------------------------------------------------------------------ HUD
@@ -824,6 +859,7 @@ func _build_hud() -> void:
 	hud.add_child(_banner)
 
 	var keys := PixelUI.label("Shoot: mouse / J   ·   Dash: right-click / K   ·   Esc pause", 18, Color(PixelUI.MUTED, 0.75))
+	keys.visible = not Screen.is_touch
 	keys.set_anchors_and_offsets_preset(Control.PRESET_CENTER_BOTTOM)
 	keys.offset_left = -400
 	keys.offset_right = 400
