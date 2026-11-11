@@ -221,6 +221,8 @@ func _open_pause() -> void:
 	if Net.active and not Screen.is_touch:
 		hint = hint.replace("Torch: F", "Torch: F   Chat: T")
 	var buttons := [["Resume", func(): pass]]
+	if not Net.active and not Global.is_coding_mode:
+		buttons.append(["New riddle", func(): get_tree().reload_current_scene()])
 	buttons.append(["Settings", func(): SettingsPage.open(self)])
 	if Net.is_host():
 		buttons.append(["Topic", _open_topic_picker])

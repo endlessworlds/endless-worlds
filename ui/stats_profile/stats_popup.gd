@@ -58,6 +58,9 @@ func _ready() -> void:
 	v.add_child(PixelUI.label("AI difficulty right now: %s%s" % [Global.difficulty.capitalize(),
 		("   ·   💀 Survival best: round %d" % surv) if surv > 0 else ""], 24, PixelUI.MUTED))
 
+	v.add_child(PixelUI.button("🏆 Achievements  %d/%d" % [Achievements.unlocked(), Achievements.list().size()],
+		func(): Achievements.open(get_parent())))
+
 	# reset asks twice
 	var reset := PixelUI.button("Reset all progress", func(): pass)
 	reset.pressed.connect(func():

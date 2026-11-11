@@ -75,6 +75,16 @@ var _aim_view: Control
 var _reticle: Node2D
 var _coin_lbl: Label
 var _arm_list: VBoxContainer
+# power-ups dropped by monsters: [name, colour, seconds (0 = instant)]
+const POWERUPS := {
+	"rage": ["Rage: double fire rate", Color(1.0, 0.4, 0.3), 8.0],
+	"shield": ["Shield: no damage", Color(0.5, 0.8, 1.0), 6.0],
+	"magnet": ["Magnet: all coins fly to you", Color(1.0, 0.82, 0.3), 0.0],
+	"bomb": ["Bomb!", Color(1.0, 0.6, 0.2), 0.0],
+}
+var _rage_t := 0.0
+var _shield_t := 0.0
+var bosses_killed := 0
 # co-op (Net room in "survival" mode): see survival_net.gd
 var net: SurvivalNet
 var down := false                     # co-op: knocked out until the next round
@@ -185,6 +195,8 @@ func _ready() -> void:
 
 func _exit_tree() -> void:
 	Input.set_custom_mouse_cursor(null)   # give the rest of the game its normal cursor back
+	Global.stats["survival_kills"] = int(Global.stats.get("survival_kills", 0)) + kills
+	Global.stats["survival_bosses"] = int(Global.stats.get("survival_bosses", 0)) + bosses_killed
 	Global.save_game()                    # coins picked up are kept even if you quit
 
 
@@ -502,7 +514,7 @@ func _update_daynight(delta: float) -> void:
 		_post.set_shader_parameter("sun_pos", Vector2(1.15 if h < 12.0 else -0.15, -0.2))
 	var is_night := dark > 0.6
 	if is_night != _was_night and state in ["waves", "boss_wait", "boss"]:
-		banner_small("Night falls… light your way" if is_night else "The sun rises")
+		banner_small("Night falls: more monsters, more coins" if is_night else "The sun rises")
 	_was_night = is_night
 
 
@@ -670,7 +682,10 @@ func _process(delta: float) -> void:
 	_dash_t -= delta
 	_slow_t -= delta
 	var sp: AnimatedSprite2D = player.get_node("AnimatedSprite2D")
-	sp.self_modulate.a = 0.35 if (_invuln > 0.0 and int(_t * 14.0) % 2 == 0) else 1.0
+	_rage_t -= delta
+	_shield_t -= delta
+	var tintc := Color(0.55, 0.85, 1.0) if _shield_t > 0.0 else (Color(1.0, 0.75, 0.7) if _rage_t > 0.0 else Color.WHITE)
+	sp.self_modulate = Color(tintc, 0.35 if (_invuln > 0.0 and int(_t * 14.0) % 2 == 0) else 1.0)
 	sp.modulate.a = 0.35 if down else 1.0   # co-op: a ghost while knocked out
 	var slow := 0.5 if _slow_t > 0.0 else 1.0
 	player.speed = _base_speed * stats.speed * slow
@@ -686,7 +701,7 @@ func _process(delta: float) -> void:
 		if to_spawn > 0:
 			_spawn_t -= delta
 			if _spawn_t <= 0.0:
-				_spawn_t = maxf(0.35, 1.5 - round_no * 0.08)
+				_spawn_t = maxf(0.35, 1.5 - round_no * 0.08) * (0.8 if dark > 0.6 else 1.0)
 				var pool: Array = SurvivalMob.ORDER.slice(0, mini(SurvivalMob.ORDER.size(), 2 + round_no))
 				var tname: String = pool.pick_random()
 				var at := _spawn_point()
@@ -841,7 +856,7 @@ func _roll_dmg(base: float) -> Array:   # [damage, crit?]
 
 func _fire(id: String, aim: Vector2) -> void:
 	var w := SurvivalArsenal.at_level(id, SurvivalArsenal.level(id))
-	_fire_t = float(w.cd) / float(stats.fire_rate)
+	_fire_t = float(w.cd) / float(stats.fire_rate) / (2.0 if _rage_t > 0.0 else 1.0)
 	_fire_t_max = _fire_t
 	var col: Color = w.color
 	var at := ppos() + aim * 9.0
@@ -1165,6 +1180,34 @@ func drop_coins(at: Vector2, total: int) -> void:
 		add_child(c)
 
 
+func _maybe_powerup(at: Vector2, sure := false) -> void:
+	if not sure and randf() > 0.05:
+		return
+	var p := _Pickup.new()
+	p.game = self
+	p.kind = POWERUPS.keys().pick_random()
+	p.position = at
+	p.z_index = int(at.y / 2.0) + 1
+	p.material = UNSHADED
+	add_child(p)
+
+
+func take_powerup(kind: String) -> void:
+	var def: Array = POWERUPS[kind]
+	sfx.play("upgrade", 0.0)
+	floater(ppos() + Vector2(0, -22), str(def[0]) + "!", def[1])
+	match kind:
+		"rage": _rage_t = float(def[2])
+		"shield": _shield_t = float(def[2])
+		"magnet":
+			for c in get_children():
+				if c is _Coin:
+					c.pull = true
+		"bomb":
+			explode(ppos(), 110.0, 0, false, true, null, 6.0 * float(stats.dmg))
+			shake()
+
+
 func collect_coin(v: int, at: Vector2) -> void:
 	run_coins += v
 	SurvivalArsenal.add_coins(v)
@@ -1187,7 +1230,7 @@ func shake() -> void:
 
 
 func hurt_player(dmg: int) -> bool:
-	if _invuln > 0.0 or state == "over" or dmg <= 0 or _god or down:
+	if _invuln > 0.0 or state == "over" or dmg <= 0 or _god or down or _shield_t > 0.0:
 		return false
 	_invuln = 1.0
 	hearts.damage(dmg)
@@ -1230,7 +1273,12 @@ func mob_died(m: SurvivalMob, give_points := true) -> void:
 	var coins := 0
 	if give_points and not m.is_clone:
 		coins = 25 + 5 * round_no if m.is_boss else 1 + int(m.kind.pts) / 12 + (1 if m.mutations.size() > 0 else 0)
+		if dark > 0.6:   # night pays better
+			coins = int(coins * 1.5) + 1
 		drop_coins(m.position, coins)
+		_maybe_powerup(m.position, m.is_boss)
+		if m.is_boss:
+			bosses_killed += 1
 	if net and net.is_host and m.net_id != 0:
 		net.died(m, coins)   # every player gets their own coins
 	if randf() < 0.08 and not m.is_clone:
@@ -1525,6 +1573,9 @@ func copy_died(m: SurvivalMob, coins: int) -> void:
 	sfx.play("kill" if not m.is_boss else "boom", 0.1)
 	if coins > 0:
 		drop_coins(m.position, coins)
+		_maybe_powerup(m.position, m.is_boss)
+		if m.is_boss:
+			bosses_killed += 1
 	if m == boss:
 		boss = null
 		_boss_panel.visible = false
@@ -1680,7 +1731,8 @@ func _update_hud() -> void:
 	var wd: Dictionary = SurvivalArsenal.WEAPONS[wid]
 	_weapon_lbl.text = "%s %s Lv%d%s" % [wd.icon, wd.name, SurvivalArsenal.level(wid),
 		("   (%d/%d)" % [weapon_i + 1, weapons.size()]) if weapons.size() > 1 else ""]
-	_coin_lbl.text = "🪙 %d" % SurvivalArsenal.coins()
+	_coin_lbl.text = "🪙 %d%s%s" % [SurvivalArsenal.coins(), ("   RAGE %d" % ceili(_rage_t)) if _rage_t > 0.0 else "",
+		("   SHIELD %d" % ceili(_shield_t)) if _shield_t > 0.0 else ""]
 	_dash_fill.size.x = 160.0 * clampf(1.0 - _dash_t / stats.dash_cd, 0.0, 1.0)
 	_dash_fill.color = Color(0.45, 0.9, 1.0) if _dash_t <= 0.0 else Color(0.3, 0.45, 0.6)
 	if boss and is_instance_valid(boss):
@@ -1833,12 +1885,13 @@ class _Coin extends Node2D:
 	var game: Node
 	var value := 1
 	var vel := Vector2.ZERO
+	var pull := false   # magnet power-up: fly to the player from anywhere
 	var _t := 0.0
 	func _process(delta: float) -> void:
 		_t += delta
 		var to: Vector2 = game.ppos() + Vector2(0, 6) - position
 		var d := to.length()
-		if _t > 0.35 and d < float(game.stats.magnet):
+		if _t > 0.35 and (pull or d < float(game.stats.magnet)):
 			vel = vel.move_toward(to.normalized() * 260.0, 900.0 * delta)
 		else:
 			vel = vel.move_toward(Vector2.ZERO, 300.0 * delta)
@@ -1918,3 +1971,25 @@ class _Radar extends Control:
 					var d2: Vector2 = (pl.root.position - me) / RANGE
 					draw_circle(c + d2.limit_length(1.0) * (r - 4.0), 3.0, Net.color_of(id))
 		draw_circle(c, 2.5, Color(1, 1, 1))
+
+
+# Power-up dropped by a monster (see POWERUPS): walk over it.
+class _Pickup extends Node2D:
+	var game: Node
+	var kind := "rage"
+	var _t := 0.0
+	func _process(delta: float) -> void:
+		_t += delta
+		queue_redraw()
+		if _t > 15.0:
+			queue_free()
+		elif _t > 0.3 and game.ppos().distance_to(position + Vector2(0, -6)) < 13.0:
+			game.take_powerup(kind)
+			queue_free()
+	func _draw() -> void:
+		var col: Color = game.POWERUPS[kind][1]
+		var y := -6.0 + sin(_t * 4.0) * 1.5
+		var blink := 1.0 if _t < 11.0 or int(_t * 6.0) % 2 == 0 else 0.35
+		draw_circle(Vector2(0, y), 7.5 + sin(_t * 6.0) * 0.8, Color(col, 0.25 * blink))
+		draw_colored_polygon(PackedVector2Array([Vector2(0, y - 6), Vector2(5, y), Vector2(0, y + 6), Vector2(-5, y)]), Color(col, blink))
+		draw_colored_polygon(PackedVector2Array([Vector2(0, y - 3), Vector2(2.5, y), Vector2(0, y + 3), Vector2(-2.5, y)]), Color(1, 1, 1, 0.85 * blink))

@@ -91,6 +91,10 @@ class Runner extends Node:
 		await close_modals()
 		Global.sound_volume = 1.0
 		Global.apply_sound()
+		step("achievements")
+		Achievements.open(home)
+		await frames(5)
+		await close_modals()
 		step("journal")
 		home._open_journal()
 		await frames(5)
@@ -310,6 +314,10 @@ class Runner extends Node:
 		g.drop_coins(g.player.position + Vector2(10, 0), 17)
 		g.telegraph(g.player.position, 30.0, 0.5)
 		g.telegraph_line(g.player.position, Vector2.RIGHT, 100.0, 0.5)
+		for k in SurvivalGame.POWERUPS:
+			g.take_powerup(k)
+			await frames(3)
+		g._maybe_powerup(g.player.position + Vector2(30, 0), true)
 		g._dash()
 		g._cycle_weapon(1)
 		await secs(1.0)
