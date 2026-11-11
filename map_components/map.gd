@@ -223,8 +223,54 @@ func _open_pause() -> void:
 	var buttons := [["Resume", func(): pass]]
 	if Screen.can_fullscreen():
 		buttons.append([Screen.fullscreen_label(), Screen.toggle_fullscreen])
+	if Net.is_host():
+		buttons.append(["Topic", _open_topic_picker])
 	buttons.append([leave_text, _go_home])
 	RoundCard.show_card(self, "Paused", hint, buttons, not Net.active)
+
+
+# Host only: pick a new topic and start a fresh round for everyone. Without the AI
+# server the riddle comes from the offline bank, like solo play.
+func _open_topic_picker() -> void:
+	var layer := CanvasLayer.new()
+	add_child(layer)
+	Global.input_locked = true   # typing must not walk the player
+	var v := PixelUI.page(layer, "Change topic", 560, func():
+		Global.input_locked = false
+		layer.queue_free())
+	var sub := PixelUI.label("Starts a new round with this topic for everyone.", 22, PixelUI.MUTED)
+	sub.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	v.add_child(sub)
+	var field := LineEdit.new()
+	field.text = Global.selected_topic if Global.selected_topic != "programming" else ""
+	field.placeholder_text = "Any topic, e.g. Volcanoes"
+	field.max_length = 40
+	field.custom_minimum_size = Vector2(0, 56)
+	field.alignment = HORIZONTAL_ALIGNMENT_CENTER
+	field.add_theme_font_override("font", PixelUI.FONT)
+	field.add_theme_font_size_override("font_size", 30)
+	v.add_child(field)
+	var chips := HFlowContainer.new()
+	chips.alignment = FlowContainer.ALIGNMENT_CENTER
+	chips.add_theme_constant_override("h_separation", 8)
+	v.add_child(chips)
+	for t in ["Python", "Space", "Biology", "History", "Math", "Geography"]:
+		var c := PixelUI.button(t, func(): field.text = t)
+		c.add_theme_font_size_override("font_size", 22)
+		c.custom_minimum_size = Vector2(0, 42)
+		chips.add_child(c)
+	var go := PixelUI.button("Start new round", func():
+		var topic := field.text.strip_edges()
+		if topic.is_empty():
+			topic = "programming"
+		Global.selected_topic = topic
+		Global.input_locked = false
+		Net.set_topic(topic)
+		Net.host_start_round(topic, int(Net.round_data.get("round", 1)) + 1)
+		get_tree().change_scene_to_file("res://map_components/map.tscn"), true)
+	go.custom_minimum_size = Vector2(0, 56)
+	field.text_submitted.connect(func(_t): go.pressed.emit())
+	v.add_child(go)
 
 
 # ------------------------------------------------------------------ touch

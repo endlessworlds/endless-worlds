@@ -5,7 +5,8 @@ class_name MultiplayerSync
 # "puppet", shares hint pickups, shows chat bubbles and a live scoreboard.
 # The host's game decides rounds; everyone else just follows "start" messages.
 
-const SEND_HZ := 12.0
+const SEND_HZ := 15.0
+const INTERP_DELAY := 0.12    # draw other players 120 ms in the past, between two real updates
 const FONT := preload("res://assets/fonts/Jersey10-Regular.ttf")
 const BUBBLE_FRAME := preload("res://assets/ui/pixel/frame_normal.png")
 static var UNSHADED := _unshaded()
@@ -108,7 +109,8 @@ func _ensure_puppet(id: int) -> Dictionary:
 	if map.atmosphere:
 		torch.max_energy = map.atmosphere.torch.max_energy
 	root.add_child(torch)
-	var p := {"root": root, "spr": spr, "tag": deco.tag, "bubble": deco.bubble, "target": root.position, "torch": torch}
+	var p := {"root": root, "spr": spr, "tag": deco.tag, "bubble": deco.bubble, "target": root.position, "torch": torch,
+		"snaps": [], "ch_i": -1, "anim": "", "z": 0.0}
 	_puppets[id] = p
 	return p
 
@@ -127,9 +129,28 @@ func _on_peer_left(id: int) -> void:
 
 # ---------------------------------------------------------------- network
 func _process(delta: float) -> void:
-	# Smoothly chase the last known position (12 Hz updates -> 60 fps motion).
+	# Snapshot interpolation: show each player where they were INTERP_DELAY ago, blended
+	# between the two updates around that moment. Network jitter disappears; a short
+	# extrapolation covers a late packet.
+	var now := Time.get_ticks_msec() / 1000.0
+	var render_t := now - INTERP_DELAY
 	for p in _puppets.values():
-		p.root.position = p.root.position.lerp(p.target, clampf(delta * 14.0, 0.0, 1.0))
+		var snaps: Array = p.snaps
+		if snaps.is_empty():
+			continue
+		while snaps.size() > 2 and snaps[1][0] <= render_t:
+			snaps.pop_front()
+		var pos: Vector2
+		if snaps.size() >= 2 and render_t >= snaps[0][0]:
+			var a: Array = snaps[0]
+			var b: Array = snaps[1]
+			pos = (a[1] as Vector2).lerp(b[1], clampf((render_t - a[0]) / maxf(b[0] - a[0], 0.001), 0.0, 1.0))
+		elif snaps.size() >= 2:
+			pos = snaps[0][1]
+		else:
+			pos = snaps[0][1]
+		p.root.position = pos
+		p.spr.position.y = lerpf(p.spr.position.y, player.base_sprite_pos.y - float(p.z), clampf(delta * 20.0, 0.0, 1.0))
 		p.root.z_index = int((p.root.global_position.y + 32.0) / 4.0)
 	_send_t -= delta
 	_since_sent += delta
@@ -151,16 +172,32 @@ func _on_message(from: int, d: Dictionary) -> void:
 	match str(d.get("t", "")):
 		"pos":
 			var p := _ensure_puppet(from)
-			p.target = Vector2(float(d.x), float(d.y))
-			if not p.root.visible:
-				p.root.position = p.target
+			var at := Vector2(float(d.x), float(d.y))
+			var now := Time.get_ticks_msec() / 1000.0
+			var snaps: Array = p.snaps
+			if not p.root.visible or snaps.is_empty() or (snaps.back()[1] as Vector2).distance_to(at) > 220.0:
+				snaps.clear()   # first update or a respawn/teleport: jump there
+				snaps.append([now - INTERP_DELAY, at])
+				p.root.position = at
 				p.root.visible = true
-			Characters.apply(p.spr, int(d.get("c", 0)))
-			if p.spr.sprite_frames.has_animation(str(d.a)):
-				p.spr.animation = str(d.a)
-				p.spr.frame = int(d.f)
+			elif now - float(snaps.back()[0]) > 2.5 / SEND_HZ:
+				# after an idle gap, start the move from "just now" instead of sliding from long ago
+				snaps.append([now - 1.0 / SEND_HZ, snaps.back()[1]])
+			snaps.append([now, at])
+			if snaps.size() > 12:
+				snaps.pop_front()
+			p.target = at
+			var ch := int(d.get("c", 0))
+			if ch != int(p.ch_i):   # only when it changes: re-applying restarts the animation
+				p.ch_i = ch
+				Characters.apply(p.spr, ch)
+				p.anim = ""
+			var anim := str(d.a)
+			if anim != p.anim and p.spr.sprite_frames.has_animation(anim):
+				p.anim = anim
+				p.spr.play(anim)   # animate locally at full frame rate
 			p.spr.flip_h = bool(d.get("h", false))
-			p.spr.position.y = player.base_sprite_pos.y - float(d.get("z", 0.0))
+			p.z = float(d.get("z", 0.0))
 			p.torch.set_lit(bool(d.get("tc", false)))
 			if int(d.get("s", 0)) != int(_scores.get(from, -1)):
 				_scores[from] = int(d.get("s", 0))
@@ -246,6 +283,14 @@ func _build_ui() -> void:
 	_banner.modulate.a = 0.0
 	_banner.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	layer.add_child(_banner)
+
+	# small arrows in each teammate's colour, around you, pointing to where they are
+	var arrows := _Arrows.new()
+	arrows.sync = self
+	arrows.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	arrows.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	layer.add_child(arrows)
+	layer.move_child(arrows, 0)
 
 	_chat_input = LineEdit.new()
 	_chat_input.placeholder_text = "Say something…"
@@ -353,3 +398,34 @@ func _unhandled_input(event: InputEvent) -> void:
 
 func is_typing() -> bool:
 	return _chat_input != null and _chat_input.visible
+
+
+
+# Teammate finder: a small arrow per player, in their colour, on a ring around you.
+# Hidden when they are close by on screen; fades in with distance.
+class _Arrows extends Control:
+	var sync: MultiplayerSync
+	func _process(_delta: float) -> void:
+		queue_redraw()
+	func _draw() -> void:
+		if sync == null or not is_instance_valid(sync.player):
+			return
+		var me: Vector2 = sync.player.get_global_transform_with_canvas().origin + Vector2(0, -16)
+		for id in sync._puppets:
+			var p: Dictionary = sync._puppets[id]
+			if not p.root.visible:
+				continue
+			var them: Vector2 = p.root.get_global_transform_with_canvas().origin + Vector2(0, -16)
+			var to := them - me
+			var d := to.length()
+			if d < 110.0:
+				continue
+			var dir := to / d
+			var a := clampf((d - 110.0) / 120.0, 0.0, 1.0) * 0.9
+			var col: Color = Net.color_of(id)
+			var tip := me + dir * 78.0
+			var side := dir.orthogonal() * 7.0
+			var back := tip - dir * 13.0
+			var pts := PackedVector2Array([tip, back + side, back - side])
+			draw_colored_polygon(pts, Color(col, a))
+			draw_polyline(PackedVector2Array([tip, back + side, back - side, tip]), Color(0, 0, 0, a * 0.8), 1.5)
