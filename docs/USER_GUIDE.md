@@ -85,7 +85,7 @@ Want the details? See [Multiplayer-How-It-Works.pdf](Multiplayer-How-It-Works.pd
 |---|---|---|
 | Move | WASD / arrow keys | left stick / on-screen joystick |
 | Sprint | Shift (or middle mouse) | push the joystick all the way |
-| Jump | **Space** (clears small lava patches) | A button / **JUMP** button |
+| Jump | **Space** (clears small lava patches) | A button / **↑** button |
 | Answer at a well | walk in, or **E** / Enter | walk in, or the **Answer** button |
 | Read riddle | click the magnifier | tap |
 | Read a hint | hover a lit bulb | tap a lit bulb |
@@ -101,7 +101,8 @@ Want the details? See [Multiplayer-How-It-Works.pdf](Multiplayer-How-It-Works.pd
 - Works in portrait and landscape; the screen re-fits when you rotate.
 - Tap any text box (topic, name, room code, chat, code editor) to get your phone keyboard,
   emoji included. Riddle answers use the game's own big on-screen keyboard.
-- **Fullscreen:** the *Fullscreen* button on the home screen or in the pause menu (Android, iPad).
+- **Fullscreen:** turns on by itself at your first tap (Android, iPad). *Exit fullscreen* on the home
+  screen or in the pause menu turns it off (and stops it coming back).
 - **Install it like an app:** browser menu → *Add to Home Screen* (iPhone: Share → *Add to Home Screen*).
   It then opens fullscreen with its own icon.
 
@@ -122,7 +123,7 @@ Open **Stats** and press the small **🐛** button next to the close button.
 | Move / sprint / jump | WASD / Shift / Space |
 | Pause | Esc |
 
-On a phone: joystick to move, bolts **auto-aim** at the nearest monster, **DASH** and **JUMP**
+On a phone: joystick to move, bolts **auto-aim** at the nearest monster, **DASH** and jump (**↑**)
 buttons bottom-right, **II** to pause.
 
 Your best round and score appear on the Stats page.

@@ -133,7 +133,7 @@ func _build_touch() -> void:
 	touch.add("pause", "II", Vector2(1, 0), Vector2(-14, 86), 60, "", func():
 		if state != "over" and not get_tree().paused:
 			_open_pause(), false)
-	touch.add("jump", "JUMP", Vector2(1, 1), Vector2(-22, -40), 96, "jump")
+	touch.add("jump", "icon:jump", Vector2(1, 1), Vector2(-22, -40), 96, "jump")
 	touch.add("dash", "DASH", Vector2(1, 1), Vector2(-134, -150), 96, "", func(): _touch_dash = true)
 
 
@@ -203,7 +203,7 @@ func _show_intro() -> void:
 			["Jump", "Space"], ["Pause", "Esc"]]
 	if Screen.is_touch:
 		rows = [["Shoot", "automatic: aims at the nearest mob"], ["Dash", "DASH button"], ["Move", "joystick (push far to sprint)"],
-			["Jump", "JUMP button"], ["Pause", "II button"]]
+			["Jump", "↑ button"], ["Pause", "II button"]]
 	for row in rows:
 		keys.add_child(PixelUI.label(row[0], 26, PixelUI.GOLD, false))
 		keys.add_child(PixelUI.label(row[1], 26, PixelUI.CREAM, false))
@@ -791,7 +791,7 @@ func _open_pause() -> void:
 		buttons.append([Screen.fullscreen_label(), Screen.toggle_fullscreen])
 	buttons.append(["Quit", func(): get_tree().change_scene_to_file("res://ui/home_screen/home_screen.tscn")])
 	RoundCard.show_card(self, "Paused",
-		"Joystick move · bolts auto-aim\nDASH dodge · JUMP hop" if Screen.is_touch
+		"Joystick move · bolts auto-aim\nDASH dodge · ↑ jump" if Screen.is_touch
 			else "Mouse / J shoot · Right-click / K dash\nSpace jump · Shift sprint", buttons, true)
 
 

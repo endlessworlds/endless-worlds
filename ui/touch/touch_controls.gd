@@ -2,12 +2,12 @@ extends CanvasLayer
 class_name TouchControls
 
 # On-screen buttons for phones and tablets (pause, jump, answer, dash...).
-# TouchScreenButton is used instead of Button so a thumb can press JUMP while the
+# TouchScreenButton is used instead of Button so a thumb can press jump while the
 # other thumb is still on the joystick (GUI buttons only see one finger).
 #
 #   var tc := TouchControls.new()
 #   add_child(tc)
-#   tc.add("jump", "JUMP", Vector2(1, 1), Vector2(-24, -96), 96, "jump")        # fires an input action
+#   tc.add("jump", "icon:jump", Vector2(1, 1), Vector2(-24, -96), 96, "jump")        # fires an input action
 #   tc.add("pause", "II", Vector2(0, 0), Vector2(14, 14), 60, "", _open_pause)  # or calls a function
 #   tc.show_when = func(): return not popup.visible                            # hide during popups
 #
@@ -38,6 +38,15 @@ func add(id: String, text: String, anchor: Vector2, offset: Vector2, diameter: f
 		b.action = action
 	if on_press.is_valid():
 		b.pressed.connect(on_press)
+	if text.begins_with("icon:"):   # a small drawn icon instead of a word
+		var ic := Sprite2D.new()
+		ic.texture = _make_icon(text.trim_prefix("icon:"), int(diameter * 0.5))
+		ic.position = size * 0.5
+		b.add_child(ic)
+		add_child(b)
+		_buttons[id] = {"btn": b, "anchor": anchor, "offset": offset, "size": size, "touch_only": touch_only}
+		_layout()
+		return b
 	var l := Label.new()
 	l.text = text
 	l.size = size
@@ -62,7 +71,7 @@ func get_button(id: String) -> TouchScreenButton:
 
 func set_label(id: String, text: String) -> void:
 	var b := get_button(id)
-	if b and b.get_child_count() > 0:
+	if b and b.get_child_count() > 0 and b.get_child(0) is Label:
 		(b.get_child(0) as Label).text = text
 
 
@@ -112,3 +121,38 @@ func _make_tex(size: Vector2, pressed: bool) -> Texture2D:
 	var tex := ImageTexture.create_from_image(img)
 	_tex_cache[key] = tex
 	return tex
+
+
+# Pixel icons for buttons: "jump" = an up arrow over a ground line.
+func _make_icon(kind: String, px: int) -> Texture2D:
+	var n := maxi(12, px)
+	var img := Image.create(n, n, false, Image.FORMAT_RGBA8)
+	var c := n * 0.5
+	for y in n:
+		for x in n:
+			var fx := x + 0.5
+			var fy := y + 0.5
+			var on := false
+			match kind:
+				"jump":
+					var head := n * 0.5                                   # arrow head height
+					if fy < head and absf(fx - c) <= fy / head * n * 0.42:
+						on = true
+					elif fy >= head and fy < n * 0.78 and absf(fx - c) <= n * 0.13:
+						on = true
+					elif fy >= n * 0.88 and absf(fx - c) <= n * 0.42:
+						on = true
+			if on:
+				img.set_pixel(x, y, Color(1.0, 0.96, 0.86))
+	# dark outline so it reads on any background
+	var out := img.duplicate() as Image
+	for y in n:
+		for x in n:
+			if img.get_pixel(x, y).a > 0.0:
+				continue
+			for o in [Vector2i(1, 0), Vector2i(-1, 0), Vector2i(0, 1), Vector2i(0, -1)]:
+				var q: Vector2i = Vector2i(x, y) + o
+				if q.x >= 0 and q.y >= 0 and q.x < n and q.y < n and img.get_pixelv(q).a > 0.0:
+					out.set_pixel(x, y, Color(0.05, 0.04, 0.1, 0.9))
+					break
+	return ImageTexture.create_from_image(out)

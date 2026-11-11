@@ -105,13 +105,24 @@ func can_fullscreen() -> bool:
 	return not OS.has_feature("mobile")
 
 
+# The web page goes fullscreen as a whole (see ewFullscreen in the export's head include):
+# that keeps the phone keyboard's hidden text field inside the fullscreen area.
 func is_fullscreen() -> bool:
+	if is_web:
+		return JavaScriptBridge.eval("!!(document.fullscreenElement || document.webkitFullscreenElement)", true) == true
 	var m := DisplayServer.window_get_mode()
 	return m == DisplayServer.WINDOW_MODE_FULLSCREEN or m == DisplayServer.WINDOW_MODE_EXCLUSIVE_FULLSCREEN
 
 
 # Must be called from a tap / click handler: browsers only allow fullscreen after a gesture.
+# Leaving fullscreen with this button also stops the automatic fullscreen-on-tap.
 func toggle_fullscreen() -> void:
+	if is_web:
+		if is_fullscreen():
+			JavaScriptBridge.eval("window.ewAutoFullscreen = false; window.ewExitFullscreen && window.ewExitFullscreen();", true)
+		else:
+			JavaScriptBridge.eval("window.ewAutoFullscreen = window.ewIsPhone; window.ewFullscreen && window.ewFullscreen();", true)
+		return
 	if is_fullscreen():
 		DisplayServer.window_set_mode(DisplayServer.WINDOW_MODE_WINDOWED)
 	else:
@@ -125,5 +136,5 @@ func fullscreen_label() -> String:
 # Text helpers so hints match the device ("Tap" vs "Press E").
 func controls_hint() -> String:
 	if is_touch:
-		return "Move: joystick (push far to sprint)   Jump: JUMP\nAnswer: walk into a well or terminal   Tap Bolt for voice, torch and chat"
+		return "Move: joystick (push far to sprint)   Jump: ↑ button\nAnswer: walk into a well or terminal   Tap Bolt for voice, torch and chat"
 	return "Move: WASD   Sprint: Shift   Jump: Space   Talk: V   Torch: F\nClick Bolt for more"

@@ -331,6 +331,8 @@ func _relayout() -> void:
 
 	for b in _top_buttons:
 		b.add_theme_font_size_override("font_size", 24 if narrow else 30)
+	if _fs_button:   # fullscreen may have switched on by itself (first tap on a phone)
+		_fs_button.text = Screen.fullscreen_label()
 	var stats: Button = $JoyStickUI/StatsButton
 	stats.add_theme_font_size_override("font_size", 24 if narrow else 30)
 	_top_row.offset_left = stats.get_combined_minimum_size().x + 16
