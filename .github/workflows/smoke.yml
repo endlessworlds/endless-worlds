@@ -29,16 +29,20 @@ jobs:
           echo "RELAY_URL=wss://endless-worlds-relay.srujanmpadmashali.workers.dev" > .env
 
       - name: Import
-        run: godot --headless --import > import.log 2>&1 || true
+        run: |
+          godot --headless --import > import.log 2>&1 || true
 
       - name: Compile check
-        run: godot --headless --path . res://tools/check_scripts.tscn 2>&1 | grep -E "SCRIPT CHECK|SCRIPT ERROR|Parse Error|Compile Error|at: .*gd:" | head -80 || true
+        run: |
+          godot --headless --path . res://tools/check_scripts.tscn 2>&1 | grep -E "SCRIPT CHECK|SCRIPT ERROR|Parse Error|Compile Error|at: .*gd:" | head -80 || true
 
       - name: Play-through (desktop)
-        run: timeout 300 godot --headless --path . res://tools/smoke_test.tscn -- --surv-bot --surv-god > desktop.log 2>&1 || true
+        run: |
+          timeout 300 godot --headless --path . res://tools/smoke_test.tscn -- --surv-bot --surv-god > desktop.log 2>&1 || true
 
       - name: Play-through (phone / touch UI)
-        run: timeout 300 godot --headless --path . res://tools/smoke_test.tscn -- --surv-bot --surv-god --touch > touch.log 2>&1 || true
+        run: |
+          timeout 300 godot --headless --path . res://tools/smoke_test.tscn -- --surv-bot --surv-god --touch > touch.log 2>&1 || true
 
       - name: Two players online (riddle island)
         run: |
