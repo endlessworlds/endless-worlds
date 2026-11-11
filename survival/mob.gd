@@ -442,6 +442,9 @@ func _start_pattern(p: String, dir: Vector2, ppos: Vector2) -> void:
 			state = "slam"; state_t = 0.9; _jump_from = position; aim = game.clamp_arena(ppos)
 			game.telegraph(aim, 40.0, 0.9)
 		"summon":
+			if game.mobs.size() > 6:   # enough helpers already: no endless minion flood
+				game.ring(center(), 8, 85.0, 1, c); _end_pattern()
+				return
 			for k in 2:
 				game.portal(boss.minion, game.near(position, 30.0, 60.0), [] as Array[String])
 			_end_pattern()
@@ -460,6 +463,9 @@ func _start_pattern(p: String, dir: Vector2, ppos: Vector2) -> void:
 				s.homing = 2.2; s.life = 4.0; s.r = 4.0
 			_end_pattern()
 		"clones":
+			if game.mobs.size() > 5:
+				game.fan(center(), dir, 5, 0.24, 120.0, 1, c); _end_pattern()
+				return
 			for k in 2:
 				game.clone_of(self)
 			_end_pattern()
