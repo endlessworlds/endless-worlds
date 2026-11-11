@@ -82,6 +82,15 @@ class Runner extends Node:
 			Screen.cycle_graphics()
 			await frames(2)
 		await close_modals()
+		step("settings page")
+		SettingsPage.open(home)
+		await frames(5)
+		Global.sound_volume = 0.5
+		Global.apply_sound()
+		Screen.vibrate(10)
+		await close_modals()
+		Global.sound_volume = 1.0
+		Global.apply_sound()
 		step("journal")
 		home._open_journal()
 		await frames(5)

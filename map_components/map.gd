@@ -221,8 +221,7 @@ func _open_pause() -> void:
 	if Net.active and not Screen.is_touch:
 		hint = hint.replace("Torch: F", "Torch: F   Chat: T")
 	var buttons := [["Resume", func(): pass]]
-	if Screen.can_fullscreen():
-		buttons.append([Screen.fullscreen_label(), Screen.toggle_fullscreen])
+	buttons.append(["Settings", func(): SettingsPage.open(self)])
 	if Net.is_host():
 		buttons.append(["Topic", _open_topic_picker])
 	buttons.append([leave_text, _go_home])

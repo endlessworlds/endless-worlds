@@ -70,16 +70,9 @@ func _create_journal_button() -> void:
 	_coding_button = _top_button("💻 Coding", _on_coding_pressed)
 	_journal_button = _top_button("📖 Journal", _open_journal)
 	_top_buttons = [_mp_button, _coding_button, _journal_button]
-	if Screen.can_fullscreen():
-		_fs_button = _top_button(Screen.fullscreen_label(), func():
-			Screen.toggle_fullscreen()
-			await get_tree().create_timer(0.4).timeout
-			if is_instance_valid(_fs_button):
-				_fs_button.text = Screen.fullscreen_label())
-		_top_buttons.append(_fs_button)
+	_top_buttons.append(_top_button("⚙ Settings", func(): SettingsPage.open(self)))
 	if Screen.can_install():
-		var inst := _top_button("📲 Install app", func(): Screen.install_app(self))
-		_top_buttons.append(inst)
+		_top_buttons.append(_top_button("📲 Install", func(): Screen.install_app(self)))
 	for b in _top_buttons:
 		row.add_child(b)
 

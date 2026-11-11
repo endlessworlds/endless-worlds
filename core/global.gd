@@ -35,6 +35,8 @@ var player_name: String = "Explorer"
 var character: int = 0   # index into Characters.NAMES
 var torch_mode := 0  # 0 auto (night), 1 always on, 2 off
 var graphics := "auto"  # "auto" | "high" | "low" (saved); see Screen.low()
+var sound_volume := 1.0  # 0..1 master volume (saved)
+var vibration := true    # phones: short buzz when hurt (saved)
 var input_locked := false  # true while typing (chat / ask-the-bot) so WASD doesn't move the player
 
 
@@ -82,10 +84,16 @@ func _ready():
 			api_base_url = js_url
 	api_base_url = api_base_url.trim_suffix("/")
 	load_game()
+	apply_sound()
 	for arg in OS.get_cmdline_user_args():  # dev: -- --char=N tries a character without the picker
 		if arg.begins_with("--char="):
 			character = int(arg.get_slice("=", 1))
 	_init_rl()
+
+
+func apply_sound() -> void:
+	AudioServer.set_bus_mute(0, sound_volume <= 0.0)
+	AudioServer.set_bus_volume_db(0, linear_to_db(maxf(sound_volume, 0.001)))
 
 
 func api_url(path: String) -> String:
@@ -148,6 +156,8 @@ func save_game():
 		"character": character,
 		"coding_theme": coding_theme,
 		"graphics": graphics,
+		"sound_volume": sound_volume,
+		"vibration": vibration,
 		"learning_journal": learning_journal
 	}
 
@@ -181,6 +191,8 @@ func load_game():
 	graphics = str(data.get("graphics", "auto"))
 	if not graphics in ["auto", "high", "low"]:
 		graphics = "auto"
+	sound_volume = clampf(float(data.get("sound_volume", 1.0)), 0.0, 1.0)
+	vibration = bool(data.get("vibration", true))
 	if data.has("learning_journal"):
 		var lj = data["learning_journal"]
 		if lj.has("solved_riddles"):

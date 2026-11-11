@@ -1453,8 +1453,7 @@ func _unhandled_input(event: InputEvent) -> void:
 
 func _open_pause() -> void:
 	var buttons := [["Resume", func(): pass]]
-	if Screen.can_fullscreen():
-		buttons.append([Screen.fullscreen_label(), Screen.toggle_fullscreen])
+	buttons.append(["Settings", func(): SettingsPage.open(self)])
 	buttons.append(["Leave" if net else "Quit", func():
 		if net:
 			Net.leave()
@@ -1617,6 +1616,15 @@ func _build_hud() -> void:
 	_dash_fill.color = Color(0.45, 0.9, 1.0)
 	_dash_fill.size = Vector2(160, 6)
 	dash_bg.add_child(_dash_fill)
+
+	# radar: where the monsters (red), the boss (big), coins-rich friends (their colour) are
+	var radar := _Radar.new()
+	radar.game = self
+	radar.position = Vector2(16, 170)
+	radar.custom_minimum_size = Vector2(92, 92)
+	radar.size = Vector2(92, 92)
+	radar.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	hud.add_child(radar)
 
 	_hurt_flash = ColorRect.new()
 	_hurt_flash.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
@@ -1872,3 +1880,41 @@ class _Warn extends Node2D:
 			draw_set_transform(Vector2.ZERO, 0.0, Vector2(1.0, 0.6))
 			draw_circle(Vector2.ZERO, radius, c)
 			draw_arc(Vector2.ZERO, radius * k, 0.0, TAU, 32, Color(1.0, 0.45, 0.35, 0.8), 2.0)
+
+
+# Mini radar: monsters around you (red dots, boss = big dot), friends in their colour.
+# Things further away than the radar range sit on its rim, so you always know which way to go.
+class _Radar extends Control:
+	const RANGE := 420.0
+	var game: Node
+	var _t := 0.0
+	func _process(delta: float) -> void:
+		_t += delta
+		if _t > 0.1:   # 10 fps is plenty
+			_t = 0.0
+			queue_redraw()
+	func _draw() -> void:
+		var c := size * 0.5
+		var r := size.x * 0.5
+		draw_circle(c, r, Color(0.04, 0.06, 0.12, 0.55))
+		draw_arc(c, r, 0.0, TAU, 32, Color(1.0, 0.82, 0.35, 0.6), 1.5)
+		if game.state in ["intro", "over"]:
+			return
+		var me: Vector2 = game.player.position
+		for m in game.mobs:
+			if not is_instance_valid(m) or m.dead:
+				continue
+			var d: Vector2 = (m.position - me) / RANGE
+			var p := c + d.limit_length(1.0) * (r - 4.0)
+			if m.is_boss:
+				draw_circle(p, 5.0, Color(1.0, 0.35, 0.2))
+				draw_arc(p, 6.5, 0.0, TAU, 12, Color(1, 1, 1, 0.8), 1.0)
+			else:
+				draw_circle(p, 2.0, Color(1.0, 0.3, 0.3, 0.9))
+		if game.net:
+			for id in game.net.players:
+				var pl: Dictionary = game.net.players[id]
+				if pl.root.visible:
+					var d2: Vector2 = (pl.root.position - me) / RANGE
+					draw_circle(c + d2.limit_length(1.0) * (r - 4.0), 3.0, Net.color_of(id))
+		draw_circle(c, 2.5, Color(1, 1, 1))

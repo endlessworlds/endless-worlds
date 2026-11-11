@@ -58,14 +58,6 @@ func _ready() -> void:
 	v.add_child(PixelUI.label("AI difficulty right now: %s%s" % [Global.difficulty.capitalize(),
 		("   ·   💀 Survival best: round %d" % surv) if surv > 0 else ""], 24, PixelUI.MUTED))
 
-	# graphics quality (Low = smooth on phones / older laptops)
-	var gfx := PixelUI.button(Screen.graphics_label(), func(): pass)
-	gfx.pressed.connect(func():
-		Screen.cycle_graphics()
-		gfx.text = Screen.graphics_label())
-	gfx.tooltip_text = "Low: draws at game resolution, no post-processing, fewer particles"
-	v.add_child(gfx)
-
 	# reset asks twice
 	var reset := PixelUI.button("Reset all progress", func(): pass)
 	reset.pressed.connect(func():
