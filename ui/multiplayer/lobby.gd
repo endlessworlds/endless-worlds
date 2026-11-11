@@ -14,6 +14,8 @@ const CREAM := Color(0.96, 0.92, 0.82)
 const MUTED := Color(0.66, 0.7, 0.82)
 
 var get_topic: Callable
+var mode := "island"          # "island" (riddle rounds) or "survival" (co-op waves)
+var on_close: Callable        # optional: called after the lobby closes without starting
 var _panel: PanelContainer
 var _intro: Array[Control] = []   # subtitle + name row, hidden inside a room
 var _name: LineEdit
@@ -27,15 +29,25 @@ var _start: Button
 var _waiting: Label
 var _topic: LineEdit          # room topic: host edits, guests see it live
 var _topic_chips: HBoxContainer
+var _topic_row: HBoxContainer
+var _share_note: Label
 var _t := 0.0
 
 
-static func open(parent: Node, topic_getter: Callable) -> Lobby:
+static func open(parent: Node, topic_getter: Callable, p_mode := "island", p_on_close := Callable()) -> Lobby:
 	var l := Lobby.new()
-	l.layer = 40
+	l.layer = 70
 	l.get_topic = topic_getter
+	l.mode = p_mode
+	l.on_close = p_on_close
 	parent.add_child(l)
 	return l
+
+
+# Invite links (…/?room=CODE): open the lobby and join straight away.
+func join_code(code: String) -> void:
+	_code.text = code
+	_on_join()
 
 
 func _ready() -> void:
@@ -60,7 +72,7 @@ func _ready() -> void:
 	# header: title + close
 	var head := HBoxContainer.new()
 	v.add_child(head)
-	var title := _label("🌐 Play Together", 54, GOLD)
+	var title := _label("💀 Co-op Survival" if mode == "survival" else "🌐 Play Together", 54, GOLD)
 	title.horizontal_alignment = HORIZONTAL_ALIGNMENT_LEFT
 	title.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	title.add_theme_color_override("font_shadow_color", Color(0.45, 0.2, 0.0, 0.9))
@@ -70,7 +82,7 @@ func _ready() -> void:
 	close.custom_minimum_size = Vector2(48, 48)
 	close.tooltip_text = "Close"
 	head.add_child(close)
-	var sub := _label("Same island · same riddle · up to 10 explorers", 24, MUTED)
+	var sub := _label("Fight the waves together · up to 10 players" if mode == "survival" else "Same island · same riddle · up to 10 explorers", 24, MUTED)
 	sub.horizontal_alignment = HORIZONTAL_ALIGNMENT_LEFT
 	v.add_child(sub)
 	_intro.append(sub)
@@ -132,7 +144,15 @@ func _ready() -> void:
 	_code_tiles = HBoxContainer.new()
 	_code_tiles.add_theme_constant_override("separation", 6)
 	code_row.add_child(_code_tiles)
-	_room.add_child(_label("Copied to your clipboard - send it to your friends", 20, MUTED))
+	var share_row := HBoxContainer.new()
+	share_row.alignment = BoxContainer.ALIGNMENT_CENTER
+	share_row.add_theme_constant_override("separation", 10)
+	_room.add_child(share_row)
+	var share := _button("🔗 Share invite link", _share_link, FRAME_HOVER, FRAME_ACTIVE)
+	share.add_theme_font_size_override("font_size", 24)
+	share_row.add_child(share)
+	_share_note = _label("Friends who open the link join this room", 20, MUTED)
+	_room.add_child(_share_note)
 	_grid = GridContainer.new()
 	_grid.columns = 2
 	_grid.add_theme_constant_override("h_separation", 10)
@@ -141,6 +161,7 @@ func _ready() -> void:
 	var topic_row := HBoxContainer.new()
 	topic_row.add_theme_constant_override("separation", 12)
 	_room.add_child(topic_row)
+	_topic_row = topic_row
 	var tl := _label("Topic", 26, CREAM)
 	tl.custom_minimum_size = Vector2(70, 0)
 	topic_row.add_child(tl)
@@ -325,7 +346,7 @@ func _on_connected(_id: int) -> void:
 		tile.add_theme_stylebox_override("panel", _box(FRAME_HOVER, 6, 0))
 		tile.add_child(_label(ch, 40, GOLD))
 		_code_tiles.add_child(tile)
-	DisplayServer.clipboard_set(Net.room_code)
+	DisplayServer.clipboard_set(Net.invite_link())
 	_refresh()
 
 
@@ -340,7 +361,8 @@ func _refresh() -> void:
 	_start.text = "Start game  (%d/%d)" % [Net.peers.size(), Net.MAX_PLAYERS]
 	_waiting.visible = not Net.is_host()
 	_topic.editable = Net.is_host()
-	_topic_chips.visible = Net.is_host()
+	_topic_chips.visible = Net.is_host() and mode != "survival"
+	_topic_row.visible = mode != "survival"
 	if Net.is_host() and _topic.text.is_empty():
 		var t: String = get_topic.call()
 		_topic.text = t if not t.is_empty() else (Net.room_topic if not Net.room_topic.is_empty() else "")
@@ -350,16 +372,27 @@ func _refresh() -> void:
 		_topic.placeholder_text = "The host picks the topic"
 
 
+# Phones: the system share sheet (WhatsApp, Messages…); elsewhere copy the link.
+func _share_link() -> void:
+	var link := Net.invite_link()
+	DisplayServer.clipboard_set(link)
+	_share_note.text = "Link copied:  " + link
+	if OS.has_feature("web"):
+		JavaScriptBridge.eval("""(function (u) {
+			if (navigator.share) { navigator.share({title: 'Endless Worlds', text: 'Join my game!', url: u}).catch(function () {}); }
+		})(%s)""" % JSON.stringify(link), true)
+
+
 func _on_start() -> void:
 	var topic: String = _topic.text.strip_edges()
-	Net.host_start_round(topic if not topic.is_empty() else "programming", 1)
-	get_tree().change_scene_to_file("res://map_components/map.tscn")
+	Net.host_start_round(topic if not topic.is_empty() else "programming", 1, mode)
+	get_tree().change_scene_to_file(Net.round_scene())
 
 
 func _on_message(_from: int, d: Dictionary) -> void:
 	match str(d.get("t", "")):
 		"start":
-			get_tree().change_scene_to_file("res://map_components/map.tscn")
+			get_tree().change_scene_to_file(Net.round_scene())
 		"topic":
 			if not Net.is_host():
 				_topic.text = Net.room_topic
@@ -376,3 +409,5 @@ func _on_close() -> void:
 	if Net.active:
 		Net.leave()
 	queue_free()
+	if on_close.is_valid():
+		on_close.call()

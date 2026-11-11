@@ -75,6 +75,12 @@ var _aim_view: Control
 var _reticle: Node2D
 var _coin_lbl: Label
 var _arm_list: VBoxContainer
+# co-op (Net room in "survival" mode): see survival_net.gd
+var net: SurvivalNet
+var down := false                     # co-op: knocked out until the next round
+var local_ready := false              # co-op: finished picking perk + armory this break
+var _upgrade_wait := 0.0
+var _net_shots: Array = []            # host: hostile shots to send this frame
 # day / night: one full day every DAY_LEN seconds
 const DAY_LEN := 210.0
 var _day_t := 0.25 * DAY_LEN          # start in the morning
@@ -121,10 +127,14 @@ var _banner: Label
 
 func _ready() -> void:
 	randomize()
+	if Net.in_survival():   # co-op: everybody builds the same island from the host's seed
+		seed(int(Net.round_data.get("seed", 1)))
 	_build_arena()
 	player = PLAYER_SCENE.instantiate()
 	player.name = "Player"
 	player.position = _island_center()
+	if Net.in_survival():
+		player.position += Vector2(((Net.my_id - 1) % 5) * 24 - 48, ((Net.my_id - 1) / 5) * 24)
 	add_child(player)
 	player.add_to_group("actors")
 	_base_speed = player.speed
@@ -138,7 +148,10 @@ func _ready() -> void:
 	add_child(sfx)
 	weapons = SurvivalArsenal.owned()
 	_build_hud()
+	if Net.in_survival():
+		seed(int(Net.round_data.get("seed", 1)) + 7)
 	_decorate_arena()
+	randomize()
 	_build_daynight()
 	_reticle = _Reticle.new()
 	_reticle.game = self
@@ -152,7 +165,18 @@ func _ready() -> void:
 	for a in OS.get_cmdline_user_args():
 		if a.begins_with("--surv-round="):
 			round_no = int(a.get_slice("=", 1)) - 1
-	if _bot:
+	if Net.in_survival():
+		net = SurvivalNet.new()
+		add_child(net)
+		net.setup(self)
+		if net.is_host:
+			banner("Co-op: get ready!", PixelUI.GOLD)
+			await get_tree().create_timer(3.0).timeout
+			_next_round()
+		else:
+			state = "waves"
+			banner("Co-op: the host starts the waves", PixelUI.GOLD, false)
+	elif _bot:
 		await get_tree().create_timer(0.8).timeout
 		_next_round()
 	else:
@@ -309,6 +333,14 @@ func _show_intro() -> void:
 	shop.custom_minimum_size = Vector2(0, 60)
 	shop.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	row.add_child(shop)
+	var coop := PixelUI.button("👥 Co-op", func():
+		layer.queue_free()
+		get_tree().paused = false   # the lobby needs the game running to take input
+		Lobby.open(self, func(): return "", "survival", func(): _show_intro()))
+	coop.custom_minimum_size = Vector2(0, 60)
+	coop.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	coop.tooltip_text = "Play with friends: create a room or join with a code / invite link"
+	row.add_child(coop)
 	var go := PixelUI.button("Fight!", func():
 		get_tree().paused = false
 		layer.queue_free()
@@ -533,11 +565,15 @@ func ppos() -> Vector2:
 func _next_round() -> void:
 	round_no += 1
 	state = "waves"
+	_revive()
+	local_ready = false
 	to_spawn = 0 if "--surv-boss-now" in OS.get_cmdline_user_args() else mini(5 + 2 * round_no, 36)
 	_spawn_t = 1.2
 	banner("Round %d" % round_no, PixelUI.GOLD)
 	sfx.play("portal", 0.0)
 	_update_hud()
+	if net:
+		net.send_state()
 
 
 func _boss_def() -> Dictionary:
@@ -568,7 +604,7 @@ func _spawn_boss() -> void:
 	var away: Vector2 = (_island_center() - player.position).normalized()
 	boss.position = clamp_arena(player.position + (away if away != Vector2.ZERO else Vector2.UP) * 150.0)
 	boss.setup(self, d.tpl, [] as Array[String], round_no, d)
-	mobs.append(boss)
+	_add_mob(boss)
 	state = "boss"
 	_boss_name.text = "💀 %s" % d.name
 	_boss_panel.visible = true
@@ -605,7 +641,7 @@ func portal(tname: String, at: Vector2, muts: Array[String]) -> void:
 	add_child(m)
 	m.position = at
 	m.setup(self, tname, muts, round_no)
-	mobs.append(m)
+	_add_mob(m)
 
 
 func clone_of(b: SurvivalMob) -> void:
@@ -620,7 +656,7 @@ func clone_of(b: SurvivalMob) -> void:
 	m.max_hp = 4.0
 	m.set_size(2.2)
 	m.tint = b.tint * Color(1, 1, 1, 0.8)
-	mobs.append(m)
+	_add_mob(m)
 
 
 # ------------------------------------------------------------------ main loop
@@ -635,12 +671,18 @@ func _process(delta: float) -> void:
 	_slow_t -= delta
 	var sp: AnimatedSprite2D = player.get_node("AnimatedSprite2D")
 	sp.self_modulate.a = 0.35 if (_invuln > 0.0 and int(_t * 14.0) % 2 == 0) else 1.0
+	sp.modulate.a = 0.35 if down else 1.0   # co-op: a ghost while knocked out
 	var slow := 0.5 if _slow_t > 0.0 else 1.0
 	player.speed = _base_speed * stats.speed * slow
 	player.sprint_speed = _base_sprint * stats.speed * slow
 
+	var authority := net == null or net.is_host
+	if net and net.is_host and state == "upgrade":   # co-op: don't wait forever for a slow picker
+		_upgrade_wait += delta
+		if _upgrade_wait > 40.0:
+			start_next_round_mp()
 	# spawning
-	if state == "waves":
+	if authority and state == "waves":
 		if to_spawn > 0:
 			_spawn_t -= delta
 			if _spawn_t <= 0.0:
@@ -659,10 +701,14 @@ func _process(delta: float) -> void:
 
 	_player_combat(delta)
 	var pp := ppos()
-	for m in mobs.duplicate():
-		if is_instance_valid(m) and not m.dead:
-			m.tick(delta, pp)
-	_separate()
+	if authority:
+		var targets: Array[Vector2] = []
+		if net:
+			targets = net.alive_targets()
+		for m in mobs.duplicate():
+			if is_instance_valid(m) and not m.dead:
+				m.tick(delta, _target_for(m, pp, targets))
+		_separate()
 	_update_shots(delta, pp)
 	_update_fires(delta, pp)
 	# contact damage
@@ -675,6 +721,31 @@ func _process(delta: float) -> void:
 	if tilemap.get_cell_atlas_coords(cell) == LAVA and not player.airborne:
 		hurt_player(1)
 	_update_hud()
+	if not _net_shots.is_empty():   # co-op host: this frame's monster shots in one packet
+		var l := []
+		for sh in _net_shots:
+			if is_instance_valid(sh):
+				l.append([snappedf(sh.position.x, 0.1), snappedf(sh.position.y, 0.1), snappedf(sh.vel.x, 0.1), snappedf(sh.vel.y, 0.1),
+					sh.dmg, sh.color.to_html(false), sh.r, 1 if sh.slows else 0, sh.homing, snappedf(sh.life, 0.1)])
+		net.send({"t": "hsb", "l": l})
+		_net_shots = []
+
+
+# Co-op host: each monster goes for the closest player who is still standing.
+func _target_for(m: SurvivalMob, pp: Vector2, targets: Array[Vector2]) -> Vector2:
+	if targets.is_empty():
+		return pp
+	var best: Vector2 = targets[0]
+	for q in targets:
+		if q.distance_squared_to(m.position) < best.distance_squared_to(m.position):
+			best = q
+	return best + Vector2(0, -8)
+
+
+func _add_mob(m: SurvivalMob) -> void:
+	mobs.append(m)
+	if net and net.is_host:
+		net.register(m)
 
 
 func _spawn_point() -> Vector2:
@@ -745,7 +816,7 @@ func _nearest_mob(at: Vector2, max_d: float, skip: Array = []) -> SurvivalMob:
 
 
 func _player_combat(_delta: float) -> void:
-	if Global.input_locked:
+	if Global.input_locked or down:
 		return
 	var aim := _aim_input()
 	if aim != Vector2.ZERO:
@@ -972,7 +1043,7 @@ func _update_fires(delta: float, pp: Vector2) -> void:
 
 
 # ------------------------------------------------------------------ helpers used by mobs
-func shoot(at: Vector2, vel: Vector2, dmg: float, col: Color, hostile := true) -> SurvivalShot:
+func shoot(at: Vector2, vel: Vector2, dmg: float, col: Color, hostile := true, broadcast := true) -> SurvivalShot:
 	var s := SurvivalShot.new()
 	s.position = at
 	s.vel = vel
@@ -983,6 +1054,8 @@ func shoot(at: Vector2, vel: Vector2, dmg: float, col: Color, hostile := true) -
 	s.material = UNSHADED
 	add_child(s)
 	shots.append(s)
+	if hostile and broadcast and net and net.is_host:
+		_net_shots.append(s)   # sent at the end of the frame (after r / homing / slows are set)
 	return s
 
 
@@ -997,7 +1070,9 @@ func ring(at: Vector2, n: int, spd: float, dmg: float, col: Color) -> void:
 		shoot(at, Vector2.RIGHT.rotated(off + TAU * i / n) * spd, dmg, col)
 
 
-func fire(at: Vector2) -> void:
+func fire(at: Vector2, broadcast := true) -> void:
+	if broadcast and net and net.is_host:
+		net.send({"t": "hf", "x": snappedf(at.x, 0.1), "y": snappedf(at.y, 0.1)})
 	var f := _Fire.new()
 	f.position = at
 	f.z_index = int(at.y / 2.0) - 1
@@ -1005,7 +1080,9 @@ func fire(at: Vector2) -> void:
 	fires.append([f, 3.5])
 
 
-func explode(at: Vector2, radius: float, dmg: int, hurts_player: bool, hurts_mobs: bool, source: Node = null, mob_dmg := 2.0) -> void:
+func explode(at: Vector2, radius: float, dmg: int, hurts_player: bool, hurts_mobs: bool, source: Node = null, mob_dmg := 2.0, broadcast := true) -> void:
+	if hurts_player and broadcast and net and net.is_host:
+		net.send({"t": "hx", "x": snappedf(at.x, 0.1), "y": snappedf(at.y, 0.1), "r": radius, "dm": dmg})
 	var b := _Boom.new()
 	b.position = at
 	b.radius = radius
@@ -1050,7 +1127,9 @@ func floater(at: Vector2, text: String, col: Color) -> void:
 		l.queue_free())
 
 
-func telegraph(at: Vector2, radius: float, time: float) -> void:
+func telegraph(at: Vector2, radius: float, time: float, broadcast := true) -> void:
+	if broadcast and net and net.is_host:
+		net.send({"t": "hw", "x": snappedf(at.x, 0.1), "y": snappedf(at.y, 0.1), "r": radius, "tm": time})
 	var w := _Warn.new()
 	w.position = at
 	w.radius = radius
@@ -1060,7 +1139,9 @@ func telegraph(at: Vector2, radius: float, time: float) -> void:
 	add_child(w)
 
 
-func telegraph_line(from: Vector2, dir: Vector2, length: float, time: float) -> void:
+func telegraph_line(from: Vector2, dir: Vector2, length: float, time: float, broadcast := true) -> void:
+	if broadcast and net and net.is_host:
+		net.send({"t": "hl", "x": snappedf(from.x, 0.1), "y": snappedf(from.y, 0.1), "dx": snappedf(dir.x, 0.001), "dy": snappedf(dir.y, 0.001), "ln": length, "tm": time})
 	var w := _Warn.new()
 	w.position = from
 	w.line = dir * length
@@ -1106,7 +1187,7 @@ func shake() -> void:
 
 
 func hurt_player(dmg: int) -> bool:
-	if _invuln > 0.0 or state == "over" or dmg <= 0 or _god:
+	if _invuln > 0.0 or state == "over" or dmg <= 0 or _god or down:
 		return false
 	_invuln = 1.0
 	hearts.damage(dmg)
@@ -1145,9 +1226,13 @@ func mob_died(m: SurvivalMob, give_points := true) -> void:
 			c.set_size(m.scale_k * 0.65)
 			if m.type_name == "slime":
 				c.tint = m.tint   # same colour as the parent
-			mobs.append(c)
+			_add_mob(c)
+	var coins := 0
 	if give_points and not m.is_clone:
-		drop_coins(m.position, 25 + 5 * round_no if m.is_boss else 1 + int(m.kind.pts) / 12 + (1 if m.mutations.size() > 0 else 0))
+		coins = 25 + 5 * round_no if m.is_boss else 1 + int(m.kind.pts) / 12 + (1 if m.mutations.size() > 0 else 0)
+		drop_coins(m.position, coins)
+	if net and net.is_host and m.net_id != 0:
+		net.died(m, coins)   # every player gets their own coins
 	if randf() < 0.08 and not m.is_clone:
 		_heart_drop(m.position)
 	m.queue_free()
@@ -1158,11 +1243,17 @@ func mob_died(m: SurvivalMob, give_points := true) -> void:
 			_puff(o.center(), Color(0.8, 0.8, 1.0), o.scale_k)
 			o.queue_free()
 		mobs.clear()
+		if net and net.is_host:
+			net.by_id.clear()
+			net.send({"t": "mc"})
 		for s in shots.duplicate():
 			if s.hostile:
 				shots.erase(s); s.queue_free()
 		_heart_drop(m.position)
 		state = "upgrade"
+		_upgrade_wait = 0.0
+		if net:
+			net.send_state()
 		banner("Round %d cleared!" % round_no, Color(0.5, 1.0, 0.6))
 		get_tree().create_timer(1.6, false).timeout.connect(_show_upgrades)
 
@@ -1198,7 +1289,8 @@ func _heart_drop(at: Vector2) -> void:
 func _show_upgrades() -> void:
 	if state == "over":
 		return
-	get_tree().paused = true
+	if net == null:
+		get_tree().paused = true
 	var layer := CanvasLayer.new()
 	add_child(layer)
 	var v := PixelUI.page(layer, "⚔ Choose a perk", 760, func(): pass)
@@ -1218,6 +1310,8 @@ func _show_upgrades() -> void:
 			if _bot:
 				get_tree().paused = false
 				_next_round()
+			elif net:
+				_show_armory(_mark_ready)
 			else:
 				_show_armory(func():
 					get_tree().paused = false
@@ -1233,7 +1327,8 @@ func _show_upgrades() -> void:
 # Armory: buy weapons and level them up with coins. Progress is saved, so every run
 # starts with everything bought so far. `on_done` runs when the page is closed.
 func _show_armory(on_done: Callable) -> void:
-	get_tree().paused = true
+	if net == null:
+		get_tree().paused = true
 	var layer := CanvasLayer.new()
 	add_child(layer)
 	var close := func():
@@ -1318,6 +1413,12 @@ func _apply_upgrade(i: int) -> void:
 func _on_died() -> void:
 	if state == "over":
 		return
+	if net:   # co-op: knocked out until the next round (or until everyone is down)
+		down = true
+		banner_small("You're down! Your friends can still win the round")
+		if net.is_host and net.everyone_down():
+			game_over_mp()
+		return
 	state = "over"
 	var best_round := int(Global.stats.get("survival_best_round", 0))
 	var best_score := int(Global.stats.get("survival_best_score", 0))
@@ -1354,10 +1455,139 @@ func _open_pause() -> void:
 	var buttons := [["Resume", func(): pass]]
 	if Screen.can_fullscreen():
 		buttons.append([Screen.fullscreen_label(), Screen.toggle_fullscreen])
-	buttons.append(["Quit", func(): get_tree().change_scene_to_file("res://ui/home_screen/home_screen.tscn")])
+	buttons.append(["Leave" if net else "Quit", func():
+		if net:
+			Net.leave()
+		get_tree().change_scene_to_file("res://ui/home_screen/home_screen.tscn")])
 	RoundCard.show_card(self, "Paused",
 		"Left stick move · drag right side to aim\n⇄ weapon · DASH dodge · ↑ jump" if Screen.is_touch
-			else "Mouse aim, hold left to shoot · Q/E or wheel: weapon\nRight-click / K dash · Space jump · Shift sprint", buttons, true)
+			else "Mouse aim, hold left to shoot · Q/E or wheel: weapon\nRight-click / K dash · Space jump · Shift sprint", buttons, net == null)
+
+
+# ------------------------------------------------------------------ co-op helpers
+func _revive() -> void:
+	if down:
+		down = false
+		hearts.heal(hearts.max_hearts)
+		banner_small("Back in the fight!")
+	var sp: AnimatedSprite2D = player.get_node("AnimatedSprite2D")
+	sp.modulate.a = 1.0
+
+
+func _mark_ready() -> void:
+	local_ready = true
+	banner_small("Waiting for the others…")
+	if net.is_host:
+		net.check_ready()
+	else:
+		net.send({"t": "rdy"}, 1)
+
+
+func start_next_round_mp() -> void:
+	if state == "upgrade":
+		_next_round()
+
+
+# Guest: a monster's hit lands on our screen; the host applies it.
+func report_hit(m: SurvivalMob, amount: float, dir: Vector2, crit: bool) -> void:
+	if net and m.net_id != 0:
+		net.send({"t": "hit", "id": m.net_id, "d": snappedf(amount, 0.01), "dx": snappedf(dir.x, 0.01), "dy": snappedf(dir.y, 0.01), "cr": crit}, 1)
+
+
+# Guest: the host spawned a monster; make a local copy that mirrors it.
+func spawn_copy(d: Dictionary) -> void:
+	var m := SurvivalMob.new()
+	m.remote = true
+	add_child(m)
+	m.position = Vector2(float(d.x), float(d.y))
+	m.net_target = m.position
+	var muts: Array[String] = []
+	for x in d.get("mu", []):
+		muts.append(str(x))
+	var bdef := {}
+	if d.has("bn"):
+		bdef = {"name": str(d.bn), "hp": 100.0, "scale": float(d.sc), "speed": 0.0, "tint": Color.html(str(d.tn)),
+			"sprite": str(d.get("bs", d.ty)), "shot": Color.WHITE, "patterns": []}
+	m.setup(self, str(d.ty), muts if bdef.is_empty() else [] as Array[String], maxi(round_no, 1), bdef)
+	m.tint = Color.html(str(d.tn))
+	m.set_size(float(d.sc))
+	if bdef.is_empty():   # same hit size as on the host (big slimes, Giant / Tiny mutations)
+		m.radius = float(m.kind.r) * float(d.sc) / float(m.kind.scale)
+	m.net_id = int(d.id)
+	net.by_id[m.net_id] = m
+	mobs.append(m)
+	_puff(m.center(), Color(0.7, 0.4, 1.0), 1.0)
+
+
+# Guest: a monster died on the host.
+func copy_died(m: SurvivalMob, coins: int) -> void:
+	mobs.erase(m)
+	_puff(m.center(), m.tint if m.tint != Color.WHITE else Color(0.9, 0.9, 0.9), m.scale_k)
+	sfx.play("kill" if not m.is_boss else "boom", 0.1)
+	if coins > 0:
+		drop_coins(m.position, coins)
+	if m == boss:
+		boss = null
+		_boss_panel.visible = false
+	m.queue_free()
+
+
+# Guest: round state from the host (2x a second, and on every change).
+func apply_state(d: Dictionary) -> void:
+	var new_round := int(d.get("r", round_no))
+	var new_state := str(d.get("s", state))
+	if new_round > round_no:
+		round_no = new_round
+		local_ready = false
+		_revive()
+	if new_state == "upgrade" and state != "upgrade":
+		state = new_state
+		for s in shots.duplicate():
+			if s.hostile:
+				shots.erase(s); s.queue_free()
+		get_tree().create_timer(1.6, false).timeout.connect(_show_upgrades)
+	elif new_state != "over":
+		state = new_state
+	to_spawn = int(d.get("ts", 0))
+	score = int(d.get("sc", score))
+	kills = int(d.get("k", kills))
+	var day := float(d.get("d", _day_t))
+	if absf(day - _day_t) > 3.0 and absf(day - _day_t) < DAY_LEN - 3.0:
+		_day_t = day
+	var bid := int(d.get("b", 0))
+	if bid != 0 and net.by_id.has(bid):
+		var b: SurvivalMob = net.by_id[bid]
+		if b != boss:
+			boss = b
+			_boss_name.text = "💀 %s" % str(b.boss.get("name", "Boss"))
+			_boss_panel.visible = true
+			sfx.play("boss", 0.0)
+	elif bid == 0 and boss:
+		boss = null
+		_boss_panel.visible = false
+
+
+# Everyone is down: end the run for the whole room.
+func game_over_mp(broadcast := true) -> void:
+	if state == "over":
+		return
+	if broadcast and net and net.is_host:
+		net.send({"t": "over"})
+	state = "over"
+	var best_round := int(Global.stats.get("survival_best_round", 0))
+	Global.stats["survival_best_round"] = maxi(best_round, round_no)
+	Global.stats["survival_best_score"] = maxi(int(Global.stats.get("survival_best_score", 0)), score)
+	Global.save_game()
+	var buttons := []
+	if net and net.is_host:
+		buttons.append(["Play again", func():
+			Net.host_start_round("", 1, "survival")
+			get_tree().change_scene_to_file(Net.round_scene())])
+	buttons.append(["Leave", func():
+		Net.leave()
+		get_tree().change_scene_to_file("res://ui/home_screen/home_screen.tscn")])
+	RoundCard.show_card(self, "The team fell in round %d" % round_no,
+		"Score %d   ·   Kills %d%s" % [score, kills, "" if (net and net.is_host) else "\nThe host can start a new run"], buttons, false)
 
 
 # ------------------------------------------------------------------ HUD
@@ -1450,7 +1680,9 @@ func _update_hud() -> void:
 		_boss_fill.color = Color(1.0, 0.45, 0.15) if boss.enraged else Color(0.86, 0.18, 0.22)
 
 
-func banner(text: String, col: Color) -> void:
+func banner(text: String, col: Color, broadcast := true) -> void:
+	if broadcast and net and net.is_host:
+		net.send({"t": "bn", "tx": text, "c": col.to_html()})
 	print("[Survival] ", text, "   (score %d, kills %d)" % [score, kills])
 	_banner.text = text
 	_banner.add_theme_color_override("font_color", col)

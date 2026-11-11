@@ -38,6 +38,10 @@ func _ready():
 	_on_size_changed()
 	if Net.active:  # came back from a room: drop the connection
 		Net.leave()
+	var invite := Net.take_invite_code()   # opened from an invite link: join that room
+	if not invite.is_empty():
+		var lobby := Lobby.open(self, func(): return topic_input.text.strip_edges())
+		lobby.join_code.call_deferred(invite)
 	_dev_autoplay()
 
 	# Auto-open journal if flagged after game end

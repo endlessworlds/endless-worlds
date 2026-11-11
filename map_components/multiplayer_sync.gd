@@ -213,7 +213,7 @@ func _on_message(from: int, d: Dictionary) -> void:
 		"won":
 			_round_won_by(from, str(d.get("name", "Someone")), str(d.get("answer", "")))
 		"start":
-			get_tree().change_scene_to_file("res://map_components/map.tscn")
+			get_tree().change_scene_to_file(Net.round_scene())
 
 
 func broadcast_hint(idx: int) -> void:
@@ -238,7 +238,7 @@ func _round_won_by(id: int, pname: String, answer: String) -> void:
 		await get_tree().create_timer(5.0).timeout
 		if Net.active:
 			Net.host_start_round(Global.selected_topic, int(Net.round_data.get("round", 1)) + 1)
-			get_tree().change_scene_to_file("res://map_components/map.tscn")
+			get_tree().change_scene_to_file(Net.round_scene())
 
 
 func _on_disconnected(reason: String) -> void:
