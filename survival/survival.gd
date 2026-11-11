@@ -1511,6 +1511,8 @@ func spawn_copy(d: Dictionary) -> void:
 	m.setup(self, str(d.ty), muts if bdef.is_empty() else [] as Array[String], maxi(round_no, 1), bdef)
 	m.tint = Color.html(str(d.tn))
 	m.set_size(float(d.sc))
+	if bdef.is_empty():   # same hit size as on the host (big slimes, Giant / Tiny mutations)
+		m.radius = float(m.kind.r) * float(d.sc) / float(m.kind.scale)
 	m.net_id = int(d.id)
 	net.by_id[m.net_id] = m
 	mobs.append(m)
