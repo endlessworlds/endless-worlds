@@ -141,6 +141,7 @@ func _physics_process(delta):
 	if not movement_blocked and jump_t < 0.0 and not in_water and Input.is_action_just_pressed("jump"):
 		jump_t = 0.0
 		_squash = 0.18
+		Sound.play("jump", -4.0, 0.06)
 		stop_footsteps()
 	_update_jump(delta)
 

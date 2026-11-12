@@ -96,7 +96,9 @@ func _ready() -> void:
 	nl.custom_minimum_size = Vector2(70, 0)
 	name_row.add_child(nl)
 	_name = _field("Your name", 16)
-	_name.text = Global.player_name
+	# Never picked a name (or still the old default "Explorer"): a random one, so players differ.
+	var saved := Global.player_name.strip_edges()
+	_name.text = saved if not saved in ["", "Explorer"] else Global.random_player_name()
 	_name.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	name_row.add_child(_name)
 
@@ -315,7 +317,7 @@ func _slot(id: int) -> PanelContainer:
 
 # ------------------------------------------------------------------ flow
 func _remember_name() -> String:
-	Global.player_name = _name.text.strip_edges() if not _name.text.strip_edges().is_empty() else "Explorer"
+	Global.player_name = _name.text.strip_edges() if not _name.text.strip_edges().is_empty() else Global.random_player_name()
 	Global.save_game()
 	return Global.player_name
 

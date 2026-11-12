@@ -1,14 +1,8 @@
-[gd_scene load_steps=5 format=3 uid="uid://clivw5ge2vyc"]
+[gd_scene load_steps=3 format=3 uid="uid://clivw5ge2vyc"]
 
 [ext_resource type="Script" uid="uid://demurbm3nof8m" path="res://ui/tutorial/tutorial_button.gd" id="1_8epku"]
 [ext_resource type="FontFile" uid="uid://08vndck327l2" path="res://assets/fonts/Jersey10-Regular.ttf" id="1_jebmn"]
-[ext_resource type="Texture2D" uid="uid://u5jyehd7dxuk" path="res://assets/ui/tutorialicon.png" id="2_82e3k"]
 
 [node name="TutorialButton" type="Button"]
-offset_right = 508.0
-offset_bottom = 508.0
-scale = Vector2(0.2, 0.2)
 theme_override_fonts/font = ExtResource("1_jebmn")
-theme_override_font_sizes/font_size = 35
-icon = ExtResource("2_82e3k")
 script = ExtResource("1_8epku")

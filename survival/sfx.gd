@@ -24,7 +24,8 @@ func _ready() -> void:
 	_make("upgrade", "arp",    523.0,  0.0,   0.36, 0.3)
 	for i in 10:
 		var p := AudioStreamPlayer.new()
-		p.volume_db = -12.0
+		p.volume_db = -6.0
+		p.bus = &"SFX"
 		p.process_mode = Node.PROCESS_MODE_ALWAYS
 		add_child(p)
 		_pool.append(p)

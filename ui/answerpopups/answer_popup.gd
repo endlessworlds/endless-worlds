@@ -22,8 +22,6 @@ const COLOR_EMPTY = Color("3a3a3c")   # Dark Gray Border
 @onready var close_button: Button = $Panel/CloseButton
 @onready var question_label: Label = $Panel/VBoxContainer/QuestionLabel
 
-@onready var victory_sound: AudioStreamPlayer = $VictorySound
-@onready var gameover_sound: AudioStreamPlayer = $GameOverSound
 const KBC_OPEN_SOUND  = preload("res://assets/answerpopup/kbc-question.mp3")
 const KBC_LOCK_SOUND  = preload("res://assets/answerpopup/kbc-answer-locked-in.mp3")
 const KBC_RIGHT_SOUND = preload("res://assets/answerpopup/kbc-right-answer.mp3")
@@ -158,15 +156,19 @@ func _ready():
 	Input.set_mouse_mode(Input.MOUSE_MODE_VISIBLE)
 	kbc_open_sound_player = AudioStreamPlayer.new()
 	kbc_open_sound_player.stream = KBC_OPEN_SOUND
+	kbc_open_sound_player.bus = &"SFX"
 	add_child(kbc_open_sound_player)
 	kbc_locked_in_player = AudioStreamPlayer.new()
 	kbc_locked_in_player.stream = KBC_LOCK_SOUND
+	kbc_locked_in_player.bus = &"SFX"
 	add_child(kbc_locked_in_player)
 	kbc_right_answer_player = AudioStreamPlayer.new()
 	kbc_right_answer_player.stream = KBC_RIGHT_SOUND
+	kbc_right_answer_player.bus = &"SFX"
 	add_child(kbc_right_answer_player)
 	kbc_wrong_answer_player = AudioStreamPlayer.new()
 	kbc_wrong_answer_player.stream = KBC_WRONG_SOUND
+	kbc_wrong_answer_player.bus = &"SFX"
 	add_child(kbc_wrong_answer_player)
 	submit.pressed.connect(_on_submit)
 	close_button.pressed.connect(close)
@@ -533,6 +535,7 @@ func _stop_whack():
 	Input.set_mouse_mode(Input.MOUSE_MODE_VISIBLE)
 
 func _swing_hammer():
+	Sound.play("whack", 0.0, 0.08)
 	var tween = create_tween()
 	tween.tween_property(hammer, "rotation_degrees", hammer_hit_rotation, 0.05)
 	tween.tween_property(hammer, "rotation_degrees", hammer_rest_rotation, 0.15)\
@@ -903,7 +906,7 @@ func _handle_victory_shared():
 		kbc_msg_label.text = "🎉 VICTORY!"
 		kbc_msg_label.add_theme_color_override("font_color", KBC_GOLD)
 		kbc_msg_label.visible = true
-	victory_sound.play()
+	Sound.play("win")
 	_record_victory()
 	await get_tree().create_timer(1.5).timeout
 	close()
@@ -916,7 +919,7 @@ func _handle_wrong_shared():
 		kbc_msg_label.add_theme_color_override("font_color", Color(1.0, 0.3, 0.3))
 		kbc_msg_label.visible = true
 	if popup_type != Global.QuestionType.KBC:
-		gameover_sound.play()
+		Sound.play("wrong")
 	Global.add_score(-10)
 	hearts.damage(2)
 	await get_tree().create_timer(1.0).timeout
@@ -1660,77 +1663,8 @@ func _show_kbc_phone_popup(friend_answer: String):
 	vbox.add_child(close_btn)
 	close_btn.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
 
-# =============================
-# CONFETTI (UNCHANGED)
-# =============================
 func spawn_confetti():
-	var viewport_size := get_viewport().get_visible_rect().size
-
-	var colors := [
-		Color.RED,
-		Color.YELLOW,
-		Color.GREEN,
-		Color.CYAN,
-		Color.MAGENTA,
-		Color.ORANGE
-	]
-
-	var shapes := ["circle", "square", "rectangle", "triangle", "parallelogram"]
-
-	for c in colors:
-		var particles := CPUParticles2D.new()
-		add_child(particles)
-
-		particles.position = viewport_size * 0.5 + Vector2(0, -200)
-		particles.amount = 80
-		particles.explosiveness = 1.0
-		particles.lifetime = 2.0
-		particles.one_shot = true
-		particles.direction = Vector2(0, -1)
-		particles.spread = 180
-		particles.gravity = Vector2(0, 1200)
-		particles.initial_velocity_min = 400
-		particles.initial_velocity_max = 900
-		particles.angular_velocity_min = 100
-		particles.angular_velocity_max = 400
-		particles.scale_amount_min = 0.6
-		particles.scale_amount_max = 1.2
-		particles.modulate = c
-
-		var shape: Variant = shapes.pick_random()
-		particles.texture = _make_shape_texture(shape, 16)
-
-		particles.emitting = true
-		get_tree().create_timer(3.0).timeout.connect(particles.queue_free)
-
-func _make_shape_texture(shape: String, size := 16) -> Texture2D:
-	var img := Image.create(size, size, false, Image.FORMAT_RGBA8)
-	img.fill(Color.TRANSPARENT)
-
-	var c := Color.WHITE
-
-	match shape:
-		"circle":
-			for x in size:
-				for y in size:
-					if Vector2(x, y).distance_to(Vector2(size / 2.0, size / 2.0)) <= size / 2.0:
-						img.set_pixel(x, y, c)
-		"square":
-			img.fill(c)
-		"rectangle":
-			for x in size:
-				for y in int(size * 0.6):
-					img.set_pixel(x, y + int(size * 0.2), c)
-		"triangle":
-			for y in size:
-				for x in int((y / float(size)) * size):
-					img.set_pixel(x + (size - x) / 2, y, c)
-		"parallelogram":
-			for y in size:
-				for x in int(size * 0.7):
-					img.set_pixel(x + int(y * 0.2), y, c)
-
-	return ImageTexture.create_from_image(img)
+	Confetti.burst(self)
 
 
 func _evaluate_word():
@@ -1783,7 +1717,7 @@ func _evaluate_word():
 			
 func _wordle_defeat():
 	message.text = "❌ Out of attempts!"
-	gameover_sound.play()
+	Sound.play("lose")
 
 	
 
@@ -1793,7 +1727,7 @@ func _wordle_defeat():
 		
 func _wordle_victory():
 	spawn_confetti()
-	victory_sound.play()
+	Sound.play("win")
 	message.text = "🎉 VICTORY!"
 
 	_record_victory()

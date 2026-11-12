@@ -23,6 +23,17 @@ func _ready() -> void:
 
 	tooltip.visible = false
 	tooltip.text = ""
+	var sb := StyleBoxTexture.new()   # same pixel frame as the other HUD panels
+	sb.texture = preload("res://assets/ui/pixel/frame_normal.png")
+	sb.set_texture_margin_all(12)
+	sb.content_margin_left = 16
+	sb.content_margin_right = 16
+	sb.content_margin_top = 8
+	sb.content_margin_bottom = 10
+	tooltip.add_theme_stylebox_override("normal", sb)
+	tooltip.add_theme_font_size_override("font_size", 22)
+	tooltip.add_theme_color_override("font_color", Color(0.96, 0.92, 0.82))
+	tooltip.mouse_filter = Control.MOUSE_FILTER_IGNORE
 
 	# Long riddles / hints wrap to the screen instead of running off a phone screen.
 	riddle_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
@@ -100,21 +111,21 @@ func unlock_next_hint() -> void:
 	unlocked_count += 1
 
 # ==================================================
-# HOVER LOGIC (tooltip on RIGHT of bulb)
+# HOVER LOGIC: a framed card to the right of the bulb, centred on it and kept on screen
 # ==================================================
 func _on_bulb_hovered(text: String, bulb: HintBulb) -> void:
-	tooltip.text = text
+	var vp := get_viewport().get_visible_rect().size
+	var left := bulb.global_position.x + bulb.size.x + 10.0 - panel.global_position.x
+	var w := clampf(vp.x - left - 24.0, 180.0, 420.0)
+	tooltip.text = "💡 Hint %d
+%s" % [bulbs.find(bulb) + 1, text]
+	var font := tooltip.get_theme_font("font")
+	var fs := tooltip.get_theme_font_size("font_size")
+	var h := font.get_multiline_string_size(tooltip.text, HORIZONTAL_ALIGNMENT_LEFT, w - 32.0, fs).y + 22.0
+	var mid := bulb.global_position.y + bulb.size.y * 0.5 - panel.global_position.y
+	tooltip.position = Vector2(left, clampf(mid - h * 0.5, 8.0, vp.y - h - 8.0))
+	tooltip.size = Vector2(w, h)
 	tooltip.visible = true
-
-	# Bulb global position
-	var bulb_global: Vector2 = bulb.global_position
-	
-	# Convert to PANEL-local space (Control-safe)
-	var local_pos: Vector2 = bulb_global - panel.global_position
-
-	# Place tooltip to the RIGHT of the bulb, wrapped to the space that's left
-	tooltip.position = local_pos + Vector2(bulb.size.x + 12, 30)
-	tooltip.size = Vector2(clampf(panel.size.x - tooltip.position.x - 24.0, 160.0, 520.0), 0)
 
 
 

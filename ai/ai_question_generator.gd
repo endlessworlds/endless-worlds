@@ -34,6 +34,7 @@ signal riddle_generated(data: Dictionary)
 
 # ================= LOG & LOADING STATE =================
 var log_history: Array = []
+const LOG_KEEP := 7
 var _loading_bar: ColorRect = null
 var _loading_bg: ColorRect = null
 var _is_loading: bool = false
@@ -44,11 +45,13 @@ var _loading_target: float = 0.0
 func _ready() -> void:
 	# 1. SETUP TIMER
 	_log_timer = Timer.new()
-	_log_timer.wait_time = 20.0
+	_log_timer.wait_time = 14.0
 	_log_timer.one_shot = true
 	_log_timer.timeout.connect(_on_log_timer_timeout)
 	add_child(_log_timer)
-	if log_label: log_label.hide()
+	if log_label:
+		_style_log()
+		log_label.hide()
 
 	# 2. LOG
 	print("[AiQuestionGenerator] Initializing...")
@@ -74,6 +77,7 @@ func generate_riddle() -> void:
 	
 	print("[AiQuestionGenerator] Requesting Riddle. Topic: %s | Difficulty: %s" % [current_topic, current_difficulty])
 	log_history.clear()
+	add_log("🎯 Difficulty AI picked: %s" % current_difficulty.capitalize())
 	add_log("🔍 Searching Web for: %s..." % current_topic)
 	
 	start_loading()
@@ -111,6 +115,7 @@ func _on_scrape_response(result, code, _headers, body) -> void:
 		var data: Variant = JSON.parse_string(text)
 		if typeof(data) == TYPE_DICTIONARY and data.has("url"):
 			var chunks = data.get("chunks_stored", 0)
+			add_log("🌐 Read %s" % str(data["url"]).get_slice("//", 1).get_slice("/", 0))
 			add_log("📄 Scraped %d chunks" % chunks)
 			print("[AiQuestionGenerator] Scraped and stored %d chunks from %s" % [chunks, data["url"]])
 		else:
@@ -160,7 +165,9 @@ func _on_server_response(_result, code, _headers, body) -> void:
 	if typeof(data) == TYPE_DICTIONARY and data.has("riddle"):
 		riddle_data = data
 		print("Riddle generated via %s." % riddle_data.get("source", "unknown"))
+		add_log("🤖 Written by: %s" % str(riddle_data.get("source", "AI")))
 		add_log("✅ Question Ready!")
+		_log_hints(riddle_data)
 		_set_loading_target(100.0)  # 90→100%: Question generated
 		stop_loading()
 		_log_riddle_details(riddle_data)
@@ -173,11 +180,19 @@ func _on_server_response(_result, code, _headers, body) -> void:
 func _use_fallback() -> void:
 	print("[AiQuestionGenerator] ⚠️ ACTIVATING FALLBACK.")
 	riddle_data = pick_offline_riddle(current_topic)
-	add_log("⚠️ Using fallback question")
+	add_log("📚 Searching the offline question bank...")
+	add_log("🧩 Picked a riddle about %s" % current_topic)
+	add_log("✅ Question Ready!")
+	_log_hints(riddle_data)
 	_set_loading_target(100.0)  # Complete the bar
 	stop_loading()
 	_log_riddle_details(riddle_data)
 	emit_signal("riddle_generated", riddle_data)
+
+func _log_hints(data: Dictionary) -> void:
+	var n: int = (data.get("hints", []) as Array).size()
+	if n > 0:
+		add_log("💡 %d hint bulbs hidden on the island" % n)
 
 # =================================================
 func _log_riddle_details(data: Dictionary) -> void:
@@ -287,31 +302,68 @@ func _process(delta: float) -> void:
 		_loading_bar.size.x = (screen_w * _loading_progress) / 100.0
 
 # ================= LOG SYSTEM =================
+# Everything the AI does ("Searching Web for…", "Generating Riddle…", "Question Ready!") as a
+# feed in the pixel frame, top-left under the score; on narrow screens it sits below the
+# objective pill that takes the top centre. Each step is one line (long ones end in "…"),
+# newest at the bottom, and only as many lines as fit above the hint bulbs are shown.
+# The feed fades out after a quiet spell.
+func _style_log() -> void:
+	var sb := StyleBoxTexture.new()
+	sb.texture = preload("res://assets/ui/pixel/frame_normal.png")
+	sb.set_texture_margin_all(12)
+	sb.content_margin_left = 14
+	sb.content_margin_right = 14
+	sb.content_margin_top = 6
+	sb.content_margin_bottom = 8
+	log_label.add_theme_stylebox_override("normal", sb)
+	log_label.add_theme_font_size_override("font_size", 20)
+	log_label.add_theme_color_override("font_color", Color(0.96, 0.92, 0.82))
+	log_label.add_theme_constant_override("shadow_offset_x", 0)
+	log_label.add_theme_constant_override("shadow_offset_y", 0)
+	log_label.add_theme_constant_override("line_spacing", 0)
+	log_label.autowrap_mode = TextServer.AUTOWRAP_OFF
+	log_label.text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS
+	log_label.mouse_filter = Control.MOUSE_FILTER_IGNORE
+
+
 func add_log(message: String) -> void:
+	print("[AI log] ", message)
+	log_history.append(message)
+	if log_history.size() > LOG_KEEP:
+		log_history.pop_front()
 	if not log_label or Global.is_coding_mode:
 		return
-
-	log_history.append(message)
-	if log_history.size() > 5:
-		log_history.pop_front()
-
-	log_label.text = "\n".join(log_history)
+	var vp := get_viewport().get_visible_rect().size
+	var font := log_label.get_theme_font("font")
+	var fs := log_label.get_theme_font_size("font_size")
+	var top := 76.0 if vp.x >= 900.0 else 140.0
+	# lines that fit between the top and the hint bulbs (at least 2)
+	var room := vp.y * 0.5 - 170.0
+	var col := get_node_or_null("../RiddleUI/Panel/HintsColumn") as Control
+	if col and col.size.y > 0.0:
+		room = col.global_position.y
+	var line_h := font.get_height(fs)
+	var fit := clampi(int((room - 8.0 - top - 14.0) / line_h), 2, LOG_KEEP)
+	var shown := log_history.slice(maxi(0, log_history.size() - fit))
+	var w := 0.0
+	for l in shown:
+		w = maxf(w, font.get_string_size(l, HORIZONTAL_ALIGNMENT_LEFT, -1, fs).x)
+	log_label.text = "
+".join(shown)
+	log_label.position = Vector2(16, top)
+	log_label.size = Vector2(minf(w + 32.0, minf(440.0, vp.x - 32.0)), 0)
+	log_label.modulate.a = 1.0
 	log_label.show()
-
-	# Restart idle timer every time a log comes
 	_log_timer.stop()
 	_log_timer.start()
 
 func _on_log_timer_timeout() -> void:
-	# Fade out instead of instantly hiding
 	if log_label:
 		var tween = create_tween()
-		tween.tween_property(log_label, "modulate:a", 0.0, 1.5)
+		tween.tween_property(log_label, "modulate:a", 0.0, 1.0)
 		tween.tween_callback(func():
 			log_label.hide()
-			log_label.modulate.a = 1.0
-			log_history.clear()
-		)
+			log_history.clear())
 
 
 # Topic-matched riddle from the offline bank (any riddle if nothing matches).

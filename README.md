@@ -58,10 +58,10 @@ The PDFs are generated from `docs/src/*.html`; see *Rebuild the PDFs* below.
 - Touch controls: joystick, jump (**↑**), **Answer** at wells, **II** pause/home, survival **DASH** with auto-aim; tap lit bulbs to read hints
 - Own on-screen keyboard for every text box (letters, symbols, emoji, a code row for the coding editor) instead of the phone's; big in-game keyboard for Wordle / fill-in answers
 - Bundled emoji + symbol fonts, so emoji and ● ✓ → render in the browser too (no system fonts there)
-- Auto fullscreen on phones, Fullscreen button, and an **Install app** button (`web/manifest.webmanifest`)
+- Auto fullscreen on first tap / click (phones and desktop browsers), a small ⛶ button on the home screen, and an **Install app** button (`web/manifest.webmanifest`)
 
 **Quality of life**
-- ⚙ Settings (graphics quality, sound volume, vibration, fullscreen, install), daily visit streak with coin bonus, 18 achievements, "New riddle" in the pause menu
+- ⚙ Settings (graphics quality, master / music / effects / voice volume, vibration, fullscreen, install), daily visit streak with coin bonus, 18 achievements, "New riddle" in the pause menu
 - CI play-through (`tools/smoke_test.gd`, `.github/workflows/smoke.yml`): every screen, answer type, weapon, mob and boss plus two-player online sessions run in headless Godot on every branch push
 
 **Survival mode** (hidden: the small 🐛 button on the Stats page)

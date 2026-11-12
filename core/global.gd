@@ -31,11 +31,14 @@ var _coding_deck: Array = []          # shuffled indices still to play; refilled
 # `window.ENDLESS_WORLDS_API = "https://..."` in the HTML shell (export head_include).
 var api_base_url: String = "http://127.0.0.1:8000"
 var win_streak: int = 0
-var player_name: String = "Explorer"
-var character: int = 0   # index into Characters.NAMES
+var player_name: String = ""   # empty until chosen; online rooms then get a random name
+var character: int = 0   # 0 .. Characters.COUNT - 1
 var torch_mode := 0  # 0 auto (night), 1 always on, 2 off
 var graphics := "auto"  # "auto" | "high" | "low" (saved); see Screen.low()
 var sound_volume := 1.0  # 0..1 master volume (saved)
+var music_volume := 1.0  # 0..1 ambience tracks, "Music" bus (saved)
+var sfx_volume := 1.0    # 0..1 every other sound, "SFX" bus (saved)
+var voice_volume := 1.0  # 0..1 Bolt's text-to-speech; not an audio bus (saved)
 var vibration := true    # phones: short buzz when hurt (saved)
 var input_locked := false  # true while typing (chat / ask-the-bot) so WASD doesn't move the player
 
@@ -111,8 +114,36 @@ func daily_checkin() -> int:
 
 
 func apply_sound() -> void:
-	AudioServer.set_bus_mute(0, sound_volume <= 0.0)
-	AudioServer.set_bus_volume_db(0, linear_to_db(maxf(sound_volume, 0.001)))
+	_set_bus("Master", sound_volume)
+	_set_bus("Music", music_volume)
+	_set_bus("SFX", sfx_volume)
+
+
+# Music / SFX buses are made here (Global loads first), so players just use them by name.
+func _set_bus(bus_name: String, vol: float) -> void:
+	var i := AudioServer.get_bus_index(bus_name)
+	if i == -1:
+		AudioServer.add_bus()
+		i = AudioServer.bus_count - 1
+		AudioServer.set_bus_name(i, bus_name)
+		AudioServer.set_bus_send(i, "Master")
+	AudioServer.set_bus_mute(i, vol <= 0.0)
+	AudioServer.set_bus_volume_db(i, linear_to_db(maxf(vol, 0.001)))
+
+
+# Text-to-speech volume (0..100) for Bolt: the Voice slider times the master volume.
+func voice_tts_volume() -> int:
+	return int(round(100.0 * voice_volume * sound_volume))
+
+
+# A fun random name for online rooms (Global.player_name until the player types their own).
+const NAME_ADJ := ["Swift", "Brave", "Sneaky", "Lucky", "Fuzzy", "Cosmic", "Turbo", "Sleepy",
+	"Mighty", "Pixel", "Jolly", "Witty", "Shiny", "Zippy", "Bold", "Quiet"]
+const NAME_ANIMAL := ["Fox", "Otter", "Panda", "Falcon", "Gecko", "Yak", "Owl", "Lynx",
+	"Koala", "Badger", "Moth", "Toad", "Wolf", "Crab", "Llama", "Raven"]
+
+func random_player_name() -> String:
+	return "%s %s" % [NAME_ADJ.pick_random(), NAME_ANIMAL.pick_random()]
 
 
 func api_url(path: String) -> String:
@@ -176,6 +207,9 @@ func save_game():
 		"coding_theme": coding_theme,
 		"graphics": graphics,
 		"sound_volume": sound_volume,
+		"music_volume": music_volume,
+		"sfx_volume": sfx_volume,
+		"voice_volume": voice_volume,
 		"vibration": vibration,
 		"learning_journal": learning_journal
 	}
@@ -211,6 +245,9 @@ func load_game():
 	if not graphics in ["auto", "high", "low"]:
 		graphics = "auto"
 	sound_volume = clampf(float(data.get("sound_volume", 1.0)), 0.0, 1.0)
+	music_volume = clampf(float(data.get("music_volume", 1.0)), 0.0, 1.0)
+	sfx_volume = clampf(float(data.get("sfx_volume", 1.0)), 0.0, 1.0)
+	voice_volume = clampf(float(data.get("voice_volume", 1.0)), 0.0, 1.0)
 	vibration = bool(data.get("vibration", true))
 	if data.has("learning_journal"):
 		var lj = data["learning_journal"]

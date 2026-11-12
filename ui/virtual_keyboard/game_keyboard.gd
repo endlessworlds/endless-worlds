@@ -177,6 +177,7 @@ func _row(keys: Array, h: float, small := false) -> void:
 	for k in keys:
 		var key: String = k
 		var b := Button.new()
+		b.set_meta("sfx", "key")
 		b.text = _label_for(key)
 		b.focus_mode = Control.FOCUS_NONE
 		b.custom_minimum_size = Vector2(0, h)

@@ -42,6 +42,7 @@ func setup(map: Node2D, player: Node2D, time_sys: Node, snowy: bool) -> void:
 
 func cycle_torch() -> void:
 	Global.torch_mode = (Global.torch_mode + 1) % 3
+	Sound.play("torch")
 
 
 func torch_should_burn() -> bool:

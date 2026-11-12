@@ -1,10 +1,8 @@
-[gd_scene load_steps=4 format=3 uid="uid://fcyo16xbwnnq"]
+[gd_scene load_steps=3 format=3 uid="uid://fcyo16xbwnnq"]
 
 [ext_resource type="Script" uid="uid://doy2njs7yay6u" path="res://ui/gameplay/tasks.gd" id="1_yr4u5"]
 [ext_resource type="PackedScene" uid="uid://bm3cduarx3ktr" path="res://map_components/hint_pickup.tscn" id="2_yr4u5"]
-[ext_resource type="AudioStream" uid="uid://4ot4xm2pu3tt" path="res://assets/audio/Hint.mp3" id="3_pnapv"]
 
 [node name="Tasks" type="Node2D"]
 script = ExtResource("1_yr4u5")
 hint_pickup_scene = ExtResource("2_yr4u5")
-coin_sound = ExtResource("3_pnapv")

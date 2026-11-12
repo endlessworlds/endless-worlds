@@ -3,6 +3,7 @@ class_name AgenticBot
 
 # ============================================================
 # AgenticBot – 6×5 spritesheet bot displayed at the bottom-right.
+# Art: assets/agentic_bot.png, made by tools/make_bot.py (48 px pixel art saved at x2).
 #
 # Spritesheet layout (6 cols × 5 rows = 30 frames):
 #   Row 0 (frames  0– 5) → idle      – neutral waiting loop
@@ -17,7 +18,7 @@ class_name AgenticBot
 
 const COLS           := 6
 const ROWS           := 5
-const BOT_SCALE      := Vector2(1.2, 1.2)  # doubled from 0.6
+const BOT_SCALE      := Vector2(1.0, 1.0)  # 96 px frames, drawn 1:1 so the pixels stay crisp
 const MARGIN         := Vector2(14, 14)    # padding from screen edges
 const CLOCK_RESERVE  := 130.0             # pixels reserved for the clock at bottom-right
 const BUBBLE_W       := 260.0
@@ -325,7 +326,7 @@ func _start_voice() -> void:
 	_tts_on = speak_aloud and not _tts_voice.is_empty()
 	if _tts_on:
 		_utt_id += 1
-		DisplayServer.tts_speak(_full_text, _tts_voice, 80, 1.1, 1.05, _utt_id, true)
+		DisplayServer.tts_speak(_full_text, _tts_voice, Global.voice_tts_volume(), 1.1, 1.05, _utt_id, true)
 
 
 func _on_tts_boundary(pos: int, id: int) -> void:

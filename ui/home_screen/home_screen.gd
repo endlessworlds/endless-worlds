@@ -26,10 +26,11 @@ func _ready():
 	stats_button.pressed.connect(func(): StatsPage.open(self, _reset_stats))
 
 	start_button.pressed.connect(_on_start_pressed)
-	joystick_ui.modulate.a = 0.3
+	joystick_ui.visible = false   # nothing to move on the home screen
 
 	_create_journal_button()
 	_polish()
+	HomeSky.new().setup(self, $Player/AnimatedSprite2D)
 	topic_input.text_submitted.connect(func(_t): _on_start_pressed())
 	topic_input.focus_entered.connect(_relayout)
 	topic_input.focus_exited.connect(_relayout)
@@ -75,6 +76,27 @@ func _create_journal_button() -> void:
 		_top_buttons.append(_top_button("📲 Install", func(): Screen.install_app(self)))
 	for b in _top_buttons:
 		row.add_child(b)
+	if Screen.can_fullscreen():   # small icon-only square at the end of the row (top-right)
+		_fs_button = _top_button("", Screen.toggle_fullscreen)
+		_fs_button.tooltip_text = "Fullscreen"
+		_fs_button.draw.connect(_draw_fs_icon)
+		row.add_child(_fs_button)
+
+
+# Corner brackets: pointing out = go fullscreen, pointing in = leave it.
+func _draw_fs_icon() -> void:
+	var b := _fs_button
+	var col := b.get_theme_color("font_hover_color" if b.is_hovered() else "font_color")
+	var r := Rect2(b.size * 0.27, b.size * 0.46)
+	var arm := r.size.x * 0.38
+	var full := Screen.is_fullscreen()
+	for k in [Vector2(0, 0), Vector2(1, 0), Vector2(0, 1), Vector2(1, 1)]:
+		var inward := Vector2(1.0 - 2.0 * k.x, 1.0 - 2.0 * k.y)
+		var p: Vector2 = r.position + r.size * k
+		if full:
+			p += inward * arm
+			inward = -inward
+		b.draw_polyline(PackedVector2Array([p + Vector2(inward.x * arm, 0), p, p + Vector2(0, inward.y * arm)]), col, 3.0)
 
 
 func _top_button(text: String, cb: Callable) -> Button:
@@ -265,22 +287,15 @@ func _polish() -> void:
 	pick.add_theme_constant_override("separation", 10)
 	col.add_child(pick)
 	col.move_child(pick, 0)
-	var who := PixelUI.label("", 26, PixelUI.GOLD)
-	who.custom_minimum_size = Vector2(150, 0)
-	who.add_theme_color_override("font_outline_color", Color(0, 0, 0, 0.8))
-	who.add_theme_constant_override("outline_size", 6)
 	var cycle := func(step: int):
-		Global.character = posmod(Global.character + step, Characters.NAMES.size())
+		Global.character = posmod(Global.character + step, Characters.COUNT)
 		Global.save_game()
 		Characters.apply(hero, Global.character)
-		who.text = Characters.NAMES[Global.character]
 	for spec in [["<", -1], [">", 1]]:
 		var b := PixelUI.button(spec[0], cycle.bind(spec[1]))
 		b.custom_minimum_size = Vector2(44, 40)
 		b.tooltip_text = "Change character"
 		pick.add_child(b)
-	pick.add_child(who)
-	pick.move_child(who, 1)
 	cycle.call(0)
 
 	# One-line stats strip replaces the old floating panel
@@ -345,8 +360,10 @@ func _relayout() -> void:
 
 	for b in _top_buttons:
 		b.add_theme_font_size_override("font_size", 24 if narrow else 30)
-	if _fs_button:   # fullscreen may have switched on by itself (first tap on a phone)
-		_fs_button.text = Screen.fullscreen_label()
+	if _fs_button:   # square, row height; redraw since fullscreen may have switched on by itself (first tap)
+		var h := _top_buttons[0].get_combined_minimum_size().y
+		_fs_button.custom_minimum_size = Vector2(h, h)
+		_fs_button.queue_redraw()
 	var stats: Button = $JoyStickUI/StatsButton
 	stats.add_theme_font_size_override("font_size", 24 if narrow else 30)
 	_top_row.offset_left = stats.get_combined_minimum_size().x + 16
@@ -357,7 +374,10 @@ func _relayout() -> void:
 	_title.size = Vector2(minf(900.0, vp.x - 24.0), _title.get_minimum_size().y)
 	_title.position.x = -_title.size.x * 0.5
 	var row_bottom := _top_row.offset_top + _top_row.get_combined_minimum_size().y
-	_title_box.offset_top = maxf(row_bottom + (36.0 if narrow else 16.0), 64.0 if short else 96.0)
+	# AI status line under the Stats button / button row (which wraps to 2 lines on phones)
+	_status_label.position = Vector2(14, maxf(row_bottom, stats.position.y + stats.size.y) + 4.0)
+	var status_bottom := _status_label.position.y + _status_label.get_combined_minimum_size().y
+	_title_box.offset_top = maxf(maxf(row_bottom + (36.0 if narrow else 16.0), 64.0 if short else 96.0), status_bottom + 8.0)
 
 	# Typing on a phone: lift the topic box to the top, above the on-screen keyboard.
 	_kb_cover = Screen.keyboard_cover() if topic_input.has_focus() else 0.0

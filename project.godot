@@ -26,6 +26,7 @@ driver/enable_input=true
 
 Screen="*res://core/screen.gd"
 Global="*res://core/global.gd"
+Sound="*res://core/sound.gd"
 Net="*res://core/net.gd"
 
 [display]

@@ -81,6 +81,7 @@ func _screen_shake():
 # ==================================================
 func damage(amount := 1):
 	Screen.vibrate(70)
+	Sound.play("hurt")
 	_shake_camera()
 	_shake_hearts()
 
@@ -149,6 +150,7 @@ func _shake_hearts():
 	tween.tween_property(hearts_container, "position", original_pos, 0.05)
 
 func _emit_player_died():
+	Sound.play("lose")
 	emit_signal("player_died")
 
 

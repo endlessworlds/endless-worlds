@@ -88,7 +88,7 @@ Want the details? See [Multiplayer-How-It-Works.pdf](Multiplayer-How-It-Works.pd
 
 ## Settings, streaks and achievements
 
-- **⚙ Settings** (home screen and pause menu): graphics quality, sound volume, vibration on phones,
+- **⚙ Settings** (home screen and pause menu): graphics quality, volume (Master, Music, Effects, Bolt's Voice), vibration on phones,
   fullscreen, install as an app.
 - **Day streak:** the first visit each day extends your streak and adds bonus coins (10 per day, up to 50)
   for the Survival armory.
@@ -110,7 +110,7 @@ Want the details? See [Multiplayer-How-It-Works.pdf](Multiplayer-How-It-Works.pd
 | Chat (online) | **T**, Enter to send | Bolt → chat |
 | Tile / coords panel | **F3** (shown by default) | hidden on phones |
 | Pause / Home | **Esc** or the **II** button | **II** button (top-left) |
-| Fullscreen | pause menu or home screen | pause menu or home screen |
+| Fullscreen | first click in the browser; ⛶ button (home screen, top-right) or ⚙ Settings | first tap; ⛶ button or ⚙ Settings |
 
 ### Phones and tablets (web build)
 
@@ -121,8 +121,9 @@ Want the details? See [Multiplayer-How-It-Works.pdf](Multiplayer-How-It-Works.pd
 - Tap any text box (topic, name, room code, chat, Bolt, code editor) and the game's own keyboard
   slides up: letters, numbers, symbols (`#+=`), an emoji page (😀), and a code row ( ⇥ ( ) [ ] { } : = ← → )
   in the coding editor. Hold ⌫ to delete quickly; ⌄ closes it. The phone's keyboard is not used.
-- **Fullscreen:** turns on by itself at your first tap (Android, iPad). *Exit fullscreen* in ⚙ Settings
-  turns it off (and stops it coming back).
+- **Fullscreen:** turns on by itself at your first tap (Android, iPad), or first click on a laptop / desktop
+  browser. The small ⛶ button at the top-right of the home screen (or *Exit fullscreen* in ⚙ Settings)
+  turns it off and stops it coming back. On a laptop, Esc also leaves it for good.
 - **Install it like an app:** the **📲 Install** button on the home screen (also in ⚙ Settings) (Android Chrome shows
   the install prompt; on iPhone it shows how: Share → *Add to Home Screen*). It then opens
   fullscreen with its own icon.

@@ -147,6 +147,7 @@ func _ready() -> void:
 		player.position += Vector2(((Net.my_id - 1) % 5) * 24 - 48, ((Net.my_id - 1) / 5) * 24)
 	add_child(player)
 	player.add_to_group("actors")
+	ShaderWarmup.run(self)   # no shader-compile freezes later in play
 	_base_speed = player.speed
 	_base_sprint = player.sprint_speed
 	hearts = HeartSystem.new()
@@ -205,7 +206,6 @@ func _exit_tree() -> void:
 func _build_touch() -> void:
 	var joy: CanvasLayer = load("res://ui/gameplay/joy_stick_ui.tscn").instantiate()
 	add_child(joy)
-	(joy.get_node("VirtualJoystick") as Control).modulate.a = 0.6
 	touch = TouchControls.new()
 	add_child(touch)
 	touch.show_when = func() -> bool:

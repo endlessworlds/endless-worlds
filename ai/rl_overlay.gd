@@ -21,18 +21,19 @@ var _refresh_t := 0.0
 func _ready() -> void:
 	rl = Global.rl
 	panel.visible = false
-	btn.texture_normal = load("res://assets/rl.png")
+	btn.texture_normal = load("res://assets/ui/rl_badge.png")   # tools/make_ui_art.py
 	btn.ignore_texture_size = true
 	btn.stretch_mode = TextureButton.STRETCH_KEEP_ASPECT_CENTERED
 	btn.anchor_left = 1.0
 	btn.anchor_right = 1.0
 	btn.anchor_top = 0.5
 	btn.anchor_bottom = 0.5
-	btn.offset_left = -70
+	btn.offset_left = -74
 	btn.offset_right = -10
-	btn.offset_top = -30
-	btn.offset_bottom = 30
-	btn.modulate.a = 0.75
+	btn.offset_top = -32
+	btn.offset_bottom = 32
+	btn.modulate.a = 0.92
+	PixelUI.juicy(btn)
 	btn.focus_mode = Control.FOCUS_NONE
 	btn.tooltip_text = "Difficulty AI"
 	btn.pressed.connect(toggle)

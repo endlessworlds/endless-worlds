@@ -178,7 +178,8 @@ color_ramp = SubResource("Gradient_2hs0m")
 position = Vector2(0, 7)
 
 [node name="FootstepPlayer" type="AudioStreamPlayer2D" parent="."]
-volume_db = -10.0
+volume_db = -5.0
+bus = &"SFX"
 max_distance = 600.0
 attenuation = 1.5
 

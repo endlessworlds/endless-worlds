@@ -52,6 +52,18 @@ static func button(t: String, cb: Callable, primary := false) -> Button:
 	return b
 
 
+# Badge buttons (Difficulty AI, How to play): grow a little on hover, squash when pressed.
+static func juicy(b: Control) -> void:
+	var to := func(s: float, t: float):
+		b.pivot_offset = b.size * 0.5
+		b.create_tween().tween_property(b, "scale", Vector2(s, s), t).set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
+	b.mouse_entered.connect(func(): to.call(1.08, 0.15))
+	b.mouse_exited.connect(func(): to.call(1.0, 0.15))
+	if b is BaseButton:
+		b.button_down.connect(func(): to.call(0.9, 0.06))
+		b.button_up.connect(func(): to.call(1.0, 0.12))
+
+
 static func panel(tex: Texture2D = FRAME, pad_x: int = 18, pad_y: int = 12) -> PanelContainer:
 	var p := PanelContainer.new()
 	p.add_theme_stylebox_override("panel", box(tex, pad_x, pad_y))
@@ -81,6 +93,8 @@ static func page(layer: CanvasLayer, title: String, width: float, on_close: Call
 	center.add_child(p)
 	ScreenFit.attach(center, p)   # shrink to fit small / portrait phone screens
 	layer.add_to_group("modal")
+	Sound.play("open")
+	layer.tree_exiting.connect(func(): Sound.play("close"))
 	var v := VBoxContainer.new()
 	v.add_theme_constant_override("separation", 14)
 	p.add_child(v)

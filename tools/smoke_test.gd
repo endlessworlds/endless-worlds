@@ -86,7 +86,11 @@ class Runner extends Node:
 		SettingsPage.open(home)
 		await frames(5)
 		Global.sound_volume = 0.5
+		Global.music_volume = 0.0
 		Global.apply_sound()
+		var music := AudioServer.get_bus_index("Music")
+		check(music > 0 and AudioServer.get_bus_index("SFX") > 0 and AudioServer.is_bus_mute(music), "Music / SFX volume buses")
+		Global.music_volume = 1.0
 		Screen.vibrate(10)
 		await close_modals()
 		Global.sound_volume = 1.0
@@ -332,7 +336,9 @@ class Runner extends Node:
 		SurvivalArsenal.add_coins(500)
 		g._show_armory(func(): pass)
 		await frames(6)
-		check(SurvivalArsenal.buy_next("scatter"), "can buy a weapon")
+		# runs share the real save, so pick a weapon that isn't maxed out yet
+		var buyable := SurvivalArsenal.ORDER.filter(func(id): return SurvivalArsenal.next_price(id) >= 0)
+		check(buyable.is_empty() or SurvivalArsenal.buy_next(buyable[0]), "can buy a weapon")
 		g._fill_armory()
 		await frames(4)
 		await close_modals()

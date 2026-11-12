@@ -1,11 +1,9 @@
-[gd_scene load_steps=16 format=3 uid="uid://dpqtvtf5uxnjn"]
+[gd_scene load_steps=14 format=3 uid="uid://dpqtvtf5uxnjn"]
 
 [ext_resource type="Script" uid="uid://cw7pmsfdaakoc" path="res://ui/answerpopups/answer_popup.gd" id="1_juwdi"]
 [ext_resource type="FontFile" uid="uid://08vndck327l2" path="res://assets/fonts/Jersey10-Regular.ttf" id="2_ddl3n"]
 [ext_resource type="Texture2D" uid="uid://dxj6spi2ksyr4" path="res://assets/answerpopup/hammer.png" id="2_xh38c"]
-[ext_resource type="AudioStream" uid="uid://c4vnxjg8208ji" path="res://assets/audio/victory/VictorySmall.wav" id="3_mqpby"]
 [ext_resource type="Script" uid="uid://webohet2yr5x" path="res://ui/virtual_keyboard/custom_keyboard.gd" id="3_qoqra"]
-[ext_resource type="AudioStream" uid="uid://dvlhfxpdy87b5" path="res://assets/audio/gameover.mp3" id="3_ws6o5"]
 [ext_resource type="Texture2D" uid="uid://bqvh75xq0ogat" path="res://assets/answerpopup/background.png" id="4_5vgbp"]
 [ext_resource type="Texture2D" uid="uid://bsoa7x86v1w12" path="res://assets/answerpopup/hole_sprite.png" id="5_xh38c"]
 [ext_resource type="Texture2D" uid="uid://dror5upxnwwc6" path="res://assets/answerpopup/mole.png" id="6_5s6qv"]
@@ -433,11 +431,3 @@ theme_override_styles/normal = SubResource("StyleBoxFlat_qoqra")
 theme_override_styles/pressed = SubResource("StyleBoxFlat_qoqra")
 theme_override_styles/hover = SubResource("StyleBoxFlat_qoqra")
 text = "CLOSE"
-
-[node name="VictorySound" type="AudioStreamPlayer" parent="."]
-stream = ExtResource("3_mqpby")
-volume_db = -20.0
-
-[node name="GameOverSound" type="AudioStreamPlayer" parent="."]
-stream = ExtResource("3_ws6o5")
-volume_db = -10.0

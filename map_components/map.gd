@@ -150,6 +150,7 @@ func _ready():
 	atmosphere = Atmosphere.new()
 	add_child(atmosphere)
 	atmosphere.setup(self, player, time, world.SRC == 1)
+	ShaderWarmup.run(self)   # no shader-compile freezes later in play
 
 	# 🖥 UI + SYSTEMS
 	create_tile_info_ui()
@@ -190,7 +191,7 @@ func _ready():
 	agentic_bot = AgenticBot.new()
 	add_child(agentic_bot)
 
-	joystick.modulate.a = 0.6 if Screen.is_touch else 0.3
+	joystick.visible = Screen.is_touch   # keyboard / mouse players move with WASD
 	_create_touch_controls()
 
 	# 🧭 objective + compass
@@ -478,12 +479,6 @@ func create_tile_info_ui():
 		box.add_child(l)
 	tile_info_label.text = "Tile: Grass"
 	coords_label.text = "Coords: (0, 0)"
-	var hint := Label.new()
-	hint.text = "F3 to hide"
-	hint.add_theme_font_override("font", font)
-	hint.add_theme_font_size_override("font_size", 14)
-	hint.add_theme_color_override("font_color", Color(0.66, 0.7, 0.82))
-	box.add_child(hint)
 
 
 func toggle_debug_info() -> void:

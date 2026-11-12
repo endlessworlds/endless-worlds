@@ -25,7 +25,8 @@ func _play_random_ambience():
 	
 	print("Playing ambience track")
 	ambience_player.stream = stream
-	ambience_player.volume_db = -10
+	ambience_player.volume_db = -4
+	ambience_player.bus = &"Music"
 	ambience_player.play()
 	
 	# ✅ ensure looping

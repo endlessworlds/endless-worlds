@@ -1,7 +1,7 @@
 extends CanvasLayer
 class_name SettingsPage
 
-# Settings: graphics quality, sound volume, vibration (phones), fullscreen, install.
+# Settings: graphics quality, volume (master / music / effects / voice), vibration (phones), fullscreen, install.
 # Opened from the home screen and from the pause menus. Pauses a solo game while open.
 #   SettingsPage.open(parent)
 
@@ -31,32 +31,10 @@ func _ready() -> void:
 	note.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	v.add_child(note)
 
-	var row := HBoxContainer.new()
-	row.add_theme_constant_override("separation", 12)
-	v.add_child(row)
-	var sl := PixelUI.label("Sound", 28, PixelUI.CREAM, false)
-	sl.custom_minimum_size.x = 90
-	row.add_child(sl)
-	var slider := HSlider.new()
-	slider.min_value = 0.0
-	slider.max_value = 1.0
-	slider.step = 0.05
-	slider.value = Global.sound_volume
-	slider.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	slider.size_flags_vertical = Control.SIZE_SHRINK_CENTER
-	slider.custom_minimum_size = Vector2(200, 36)
-	slider.focus_mode = Control.FOCUS_NONE
-	row.add_child(slider)
-	var pct := PixelUI.label("", 26, PixelUI.GOLD, false)
-	pct.custom_minimum_size.x = 64
-	row.add_child(pct)
-	var show_pct := func(val: float): pct.text = "Off" if val <= 0.0 else "%d%%" % int(round(val * 100.0))
-	show_pct.call(slider.value)
-	slider.value_changed.connect(func(val: float):
-		Global.sound_volume = val
-		Global.apply_sound()
-		show_pct.call(val))
-	slider.drag_ended.connect(func(_changed): Global.save_game())
+	_volume_row(v, "Master", Global.sound_volume, func(val): Global.sound_volume = val)
+	_volume_row(v, "Music", Global.music_volume, func(val): Global.music_volume = val)
+	_volume_row(v, "Effects", Global.sfx_volume, func(val): Global.sfx_volume = val)
+	_volume_row(v, "Voice", Global.voice_volume, func(val): Global.voice_volume = val)
 
 	if Screen.is_touch:
 		var vib := PixelUI.button("", func(): pass)
@@ -84,6 +62,36 @@ func _ready() -> void:
 	var done := PixelUI.button("Done", _close, true)
 	done.custom_minimum_size = Vector2(0, 56)
 	v.add_child(done)
+
+
+# One labelled 0..100% slider; `set_value` stores the new value, then the sound is re-applied.
+func _volume_row(v: VBoxContainer, title: String, value: float, set_value: Callable) -> void:
+	var row := HBoxContainer.new()
+	row.add_theme_constant_override("separation", 12)
+	v.add_child(row)
+	var sl := PixelUI.label(title, 28, PixelUI.CREAM, false)
+	sl.custom_minimum_size.x = 110
+	row.add_child(sl)
+	var slider := HSlider.new()
+	slider.min_value = 0.0
+	slider.max_value = 1.0
+	slider.step = 0.05
+	slider.value = value
+	slider.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	slider.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	slider.custom_minimum_size = Vector2(200, 36)
+	slider.focus_mode = Control.FOCUS_NONE
+	row.add_child(slider)
+	var pct := PixelUI.label("", 26, PixelUI.GOLD, false)
+	pct.custom_minimum_size.x = 64
+	row.add_child(pct)
+	var show_pct := func(val: float): pct.text = "Off" if val <= 0.0 else "%d%%" % int(round(val * 100.0))
+	show_pct.call(value)
+	slider.value_changed.connect(func(val: float):
+		set_value.call(val)
+		Global.apply_sound()
+		show_pct.call(val))
+	slider.drag_ended.connect(func(_changed): Global.save_game())
 
 
 func _close() -> void:

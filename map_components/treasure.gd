@@ -46,6 +46,7 @@ func _process(delta: float) -> void:
 		return
 	if player.global_position.distance_to(global_position) < 34.0:
 		_opened = true
+		Sound.play("chest")
 		map.add_score(SCORE)
 		SurvivalArsenal.add_coins(COINS)
 		Global.save_game()

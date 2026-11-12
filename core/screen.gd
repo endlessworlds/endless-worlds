@@ -24,6 +24,8 @@ var is_mobile := false   # phone / tablet (browser or native)
 var is_touch := false    # touch-first device: on-screen buttons, "tap" wording, auto-aim
 var _ppl := 0.0          # physical px per logical px (0 = engine default)
 var keyboard: GameKeyboard   # the game's own on-screen keyboard (touch devices only)
+var slow_gpu := false    # web "Auto": this computer's GPU can't keep up at full resolution
+var _frame_times := PackedFloat32Array()
 
 signal keyboard_changed(height: float)   # logical px covered by the on-screen keyboard
 signal quality_changed
@@ -32,10 +34,11 @@ signal quality_changed
 func _ready() -> void:
 	process_mode = Node.PROCESS_MODE_ALWAYS
 	is_mobile = OS.has_feature("mobile") or OS.has_feature("web_android") or OS.has_feature("web_ios")
-	if is_web and not is_mobile and DisplayServer.is_touchscreen_available():
-		# iPadOS Safari reports a desktop user agent; a touch laptop has a big screen
-		# (and a mouse + keyboard, so it keeps the desktop controls).
-		is_mobile = _css_short_side() < 900.0
+	if is_web and not is_mobile:
+		# iPadOS Safari reports a desktop user agent. Ask whether the main pointer is a finger
+		# (ewIsPhone, export head include): a touch-screen laptop's is the trackpad / mouse,
+		# so it keeps the desktop controls and never gets the on-screen keyboard.
+		is_mobile = JavaScriptBridge.eval("window.ewIsPhone === true", true) == true
 	is_touch = is_mobile or "--touch" in OS.get_cmdline_user_args()   # dev: preview the touch UI
 	if is_mobile:
 		get_tree().root.size_changed.connect(_apply_scale)
@@ -64,12 +67,12 @@ func _no_system_keyboard(n: Node) -> void:
 #   * no full-screen post-processing pass, fewer particles, critters and lights.
 func low() -> bool:
 	var g := str(Global.graphics)
-	return g == "low" or (g == "auto" and is_mobile)
+	return g == "low" or (g == "auto" and (is_mobile or slow_gpu))
 
 
 func graphics_label() -> String:
 	var g := str(Global.graphics)
-	return "Graphics: %s" % ({"auto": "Auto (%s)" % ("Low" if is_mobile else "High"), "high": "High", "low": "Low"}[g])
+	return "Graphics: %s" % ({"auto": "Auto (%s)" % ("Low" if low() else "High"), "high": "High", "low": "Low"}[g])
 
 
 func cycle_graphics() -> void:
@@ -82,6 +85,25 @@ func cycle_graphics() -> void:
 func _apply_quality() -> void:
 	get_tree().root.content_scale_mode = Window.CONTENT_SCALE_MODE_VIEWPORT if low() else Window.CONTENT_SCALE_MODE_CANVAS_ITEMS
 	quality_changed.emit()
+
+
+# Web "Auto" on a laptop / desktop starts at High (full screen resolution + post FX). Laptop
+# integrated GPUs (e.g. Intel Iris Xe) only manage ~40 fps like that at 1.5x DPR, so when the
+# typical (median) frame of the last 2 s is slower than 48 fps, switch to Low for this session.
+# The median ignores one-off hitches (loading, shader compiles).
+func _process(delta: float) -> void:
+	if slow_gpu or not is_web or is_mobile or str(Global.graphics) != "auto":
+		return
+	_frame_times.append(delta)
+	if _frame_times.size() < 120:
+		return
+	_frame_times.sort()
+	var median := _frame_times[60]
+	_frame_times.clear()
+	if median > 1.0 / 48.0:
+		slow_gpu = true
+		print("[Screen] slow GPU (median frame %.1f ms): graphics Auto -> Low" % (median * 1000.0))
+		_apply_quality()
 
 
 # Phones: a short buzz (hurt, knocked out). No-op elsewhere or when switched off.

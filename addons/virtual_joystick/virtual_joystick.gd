@@ -8,7 +8,12 @@ extends Control
 # EXPORTED VARIABLE
 
 ## The color of the button when the joystick is pressed.
-@export var pressed_color := Color.GRAY
+@export var pressed_color := Color(1.0, 0.85, 0.4)   # warm gold knob while held
+
+## Dim and cool while nobody touches it, full colour while in use.
+const IDLE_LOOK := Color(0.62, 0.68, 0.85, 0.38)
+const ACTIVE_LOOK := Color(1, 1, 1, 0.95)
+var _look_tween: Tween
 
 ## If the input is inside this range, the output is zero.
 @export_range(0, 200, 1) var deadzone_size : float = 10
@@ -69,6 +74,7 @@ var _touch_index : int = -1
 # FUNCTIONS
 
 func _ready() -> void:
+	modulate = IDLE_LOOK
 	if not ProjectSettings.get_setting("input_devices/pointing/emulate_touch_from_mouse"):
 		printerr("The Project Setting 'emulate_touch_from_mouse' should be set to True")
 	
@@ -91,6 +97,7 @@ func _input(event: InputEvent) -> void:
 						show()
 					_touch_index = event.index
 					_tip.modulate = pressed_color
+					_fade_to(ACTIVE_LOOK, 0.08)
 					_update_joystick(event.position)
 					get_viewport().set_input_as_handled()
 		elif event.index == _touch_index:
@@ -173,7 +180,14 @@ func _update_joystick(touch_position: Vector2) -> void:
 		if output.y > 0:
 			Input.action_press(action_down, output.y)
 
+func _fade_to(look: Color, secs: float) -> void:
+	if _look_tween:
+		_look_tween.kill()
+	_look_tween = create_tween()
+	_look_tween.tween_property(self, "modulate", look, secs)
+
 func _reset():
+	_fade_to(IDLE_LOOK, 0.35)
 	is_pressed = false
 	output = Vector2.ZERO
 	_touch_index = -1

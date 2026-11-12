@@ -1,0 +1,13 @@
+# game.solulu.dev: the CI web build (hosting/dist) as Worker static assets. See README.md.
+name = "endless-worlds-game"
+main = "worker.js"
+compatibility_date = "2026-10-01"
+workers_dev = false
+
+routes = [{ pattern = "game.solulu.dev", custom_domain = true }]
+
+[assets]
+directory = "dist"
+binding = "ASSETS"
+not_found_handling = "404-page"
+run_worker_first = ["/index.wasm"]
